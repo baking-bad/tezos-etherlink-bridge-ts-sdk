@@ -1,0 +1,25 @@
+{
+  "name": "token-bridge-poc",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "npm run build -- -w",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@taquito/taquito": "^17.4.0",
+    "bignumber.js": "^9.1.2",
+    "web3": "^4.2.2"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.10",
+    "@typescript-eslint/eslint-plugin": "^6.13.1",
+    "@typescript-eslint/parser": "^6.13.1",
+    "eslint": "^8.54.0",
+    "eslint-plugin-import": "^2.29.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.2"
+  }
+}
