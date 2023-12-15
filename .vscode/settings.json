@@ -1,7 +1,7 @@
 {
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll": true
+    "source.fixAll": "explicit"
   },
   "[typescript]": {
     "editor.tabSize": 2,
@@ -21,7 +21,8 @@
   ],
   "cSpell.language": "en",
   "cSpell.words": [
+    "etherlink",
     "tezos",
-    "etherlink"
+    "ticketer"
   ]
 }
