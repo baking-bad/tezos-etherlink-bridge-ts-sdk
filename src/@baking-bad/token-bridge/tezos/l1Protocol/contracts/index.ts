@@ -1,1 +1,1 @@
-export * from './ticketerContract';
+export * from './ticketHelper';

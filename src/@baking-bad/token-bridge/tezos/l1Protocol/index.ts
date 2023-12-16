@@ -1,1 +1,1 @@
-export * from './fa12Protocol';
+export * from './deposit';

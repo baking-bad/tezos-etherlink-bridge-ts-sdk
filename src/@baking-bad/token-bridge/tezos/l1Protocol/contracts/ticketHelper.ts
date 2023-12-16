@@ -14,10 +14,11 @@ export interface FA2TokenObject {
 
 export type TokenObject = FA12TokenObject | FA2TokenObject;
 
-export type TicketerContract<T extends ContractProvider | Wallet = ContractProvider> = ContractAbstraction<T> & {
+export type TicketHelperContract<T extends ContractProvider | Wallet = ContractProvider> = ContractAbstraction<T> & {
   methodsObject: {
     deposit(params: {
-      token: TokenObject,
+      rollup: string;
+      routing_info: string;
       amount: BigNumber
     }): ContractMethod<T>;
   }
