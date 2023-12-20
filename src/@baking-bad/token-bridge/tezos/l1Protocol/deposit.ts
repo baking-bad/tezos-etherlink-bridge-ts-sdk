@@ -11,6 +11,7 @@ export const deposit = async (
   toolkit: TezosToolkit,
   rollupAddress: string,
   ticketHelperContractAddress: string,
+  //l1TokenStandard: string, // 'FA12' | 'FA20' | others types fir the future
   l1TokenContractAddress: string,
   l1TokenId: BigNumber | undefined,
   l2TokenProxyContractAddress: string,
