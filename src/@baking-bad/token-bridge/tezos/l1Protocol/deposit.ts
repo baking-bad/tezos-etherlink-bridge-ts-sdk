@@ -1,9 +1,9 @@
-import { packDataBytes } from '@taquito/michel-codec';
 import { ContractMethod, TezosToolkit, Wallet } from '@taquito/taquito';
 import { BatchWalletOperation } from '@taquito/taquito/dist/types/wallet/batch-operation';
 import BigNumber from 'bignumber.js';
 
 import { TicketHelperContract } from './contracts';
+import { checkEvmAddressIsCorrect } from '../../evm/utils';
 import { FA12Contract, FA2Contract } from '../contracts';
 import { fa12helper, fa2helper } from '../utils';
 
@@ -11,29 +11,49 @@ export const deposit = async (
   toolkit: TezosToolkit,
   rollupAddress: string,
   ticketHelperContractAddress: string,
-  //l1TokenStandard: string, // 'FA12' | 'FA20' | others types fir the future
+  //l1TokenStandard: string, // 'FA12' | 'FA20' | others types for the future
   l1TokenContractAddress: string,
   l1TokenId: BigNumber | undefined,
-  l2TokenProxyContractAddress: string,
   l2ReceiverAddress: string,
+  l2TokenProxyContractAddress: string,
   amount: BigNumber
 ): Promise<BatchWalletOperation> => {
+  const depositOperation = await createDepositOperation(
+    toolkit,
+    rollupAddress,
+    ticketHelperContractAddress,
+    l2ReceiverAddress,
+    l2TokenProxyContractAddress,
+    amount
+  );
+
+  const operation = l1TokenId === undefined
+    ? await depositFa12WithApprove(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, amount)
+    : await depositFa2WithApprove(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, l1TokenId);
+
+  return operation;
+};
+
+export const createDepositOperation = async (
+  toolkit: TezosToolkit,
+  rollupAddress: string,
+  ticketHelperContractAddress: string,
+  l2ReceiverAddress: string,
+  l2TokenProxyContractAddress: string,
+  amount: BigNumber
+): Promise<ContractMethod<Wallet>> => {
   const ticketHelperContract = await toolkit.wallet.at<TicketHelperContract<Wallet>>(ticketHelperContractAddress);
-  const routingInfo = packRoutingInfo(l2TokenProxyContractAddress, l2ReceiverAddress);
-  const depositOperation = ticketHelperContract.methodsObject.deposit({
+  const routingInfo = packRoutingInfo(l2ReceiverAddress, l2TokenProxyContractAddress);
+  const operation = ticketHelperContract.methodsObject.deposit({
     rollup: rollupAddress,
     routing_info: routingInfo,
     amount
   });
 
-  const operation = l1TokenId === undefined
-    ? await depositFa12(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, amount)
-    : await depositFa2(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, l1TokenId);
-
   return operation;
 };
 
-const depositFa12 = async (
+const depositFa12WithApprove = async (
   toolkit: TezosToolkit,
   ticketHelperContractAddress: string,
   depositOperation: ContractMethod<Wallet>,
@@ -52,7 +72,7 @@ const depositFa12 = async (
   return operation;
 };
 
-const depositFa2 = async (
+const depositFa2WithApprove = async (
   toolkit: TezosToolkit,
   ticketHelperContractAddress: string,
   depositOperation: ContractMethod<Wallet>,
@@ -73,9 +93,9 @@ const depositFa2 = async (
   return operation;
 };
 
-const packRoutingInfo = (l2TokenProxyContractAddress: string, l2ReceiverAddress: string): string => {
-  const tokenProxyAddressBytes = packDataBytes({ string: l2TokenProxyContractAddress }, { prim: 'address' }).bytes;
-  const receiverAddressBytes = packDataBytes({ string: l2ReceiverAddress }, { prim: 'address' }).bytes;
+export const packRoutingInfo = (l2ReceiverAddress: string, l2TokenProxyContractAddress: string): string => {
+  checkEvmAddressIsCorrect(l2ReceiverAddress);
+  checkEvmAddressIsCorrect(l2TokenProxyContractAddress);
 
-  return `0x${tokenProxyAddressBytes}${receiverAddressBytes}`;
+  return `${l2ReceiverAddress.substring(2)}${l2TokenProxyContractAddress.substring(2)}`;
 };

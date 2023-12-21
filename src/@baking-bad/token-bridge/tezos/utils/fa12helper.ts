@@ -1,5 +1,5 @@
 import type { ContractMethod, ContractMethodObject, TezosToolkit, Wallet, WalletOperationBatch } from '@taquito/taquito';
-import type BigNumber from 'bignumber.js';
+import BigNumber from 'bignumber.js';
 
 import type { FA12Contract } from '../contracts';
 
@@ -13,6 +13,7 @@ export interface WrapTransactionsWithFA12ApproveParameters {
 
 export const wrapContractCallsWithApprove = (options: WrapTransactionsWithFA12ApproveParameters): WalletOperationBatch => {
   const batch = options.toolkit.wallet.batch()
+    .withContractCall(options.tokenContract.methods.approve(options.approvedAddress, BigNumber(0)))
     .withContractCall(options.tokenContract.methods.approve(options.approvedAddress, options.approvedAmount));
 
   options.contractCalls.forEach(call => batch.withContractCall(call));
