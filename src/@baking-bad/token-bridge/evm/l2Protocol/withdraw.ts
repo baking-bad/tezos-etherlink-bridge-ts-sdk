@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import Web3, { TransactionReceipt } from 'web3';
 
 import { kernelAbi } from './contracts';
+import { convertBigNumberToBigInt, convertTezosAddressToBytes } from '../utils';
 
 export const withdraw = async (
   toolkit: Web3,
@@ -10,32 +11,38 @@ export const withdraw = async (
   l1ReceiverAddress: string,
   amount: BigNumber,
   l1TicketerAddress: string,
-  l1TicketContent: string,
+  l1RouterAddress: string,      // in our case router is ticketer address
+  l1TicketContent: string,      // TODO: may be we need to get content from pack(ticketerContract.storage.content) ?
 
-  senderAddress: string
+  senderAddress: string         // TODO: Should we get it from toolkit.eth.defaultAccount ?
 ): Promise<TransactionReceipt> => {
   const kernel = new toolkit.eth.Contract(
     kernelAbi,
     kernelAddress
   );
 
-  //TODO: encode parameters
+  const receiverBytes = `0x${convertTezosAddressToBytes(l1ReceiverAddress)}${convertTezosAddressToBytes(l1RouterAddress)}`;
+  const ticketerAddressBytes = `0x${convertTezosAddressToBytes(l1TicketerAddress)}`;
+  const amountBigInt = convertBigNumberToBigInt(amount);
+
   const data: string = kernel.methods
     .withdraw(
       ticketOwnerAddress,
-      l1ReceiverAddress,
-      toolkit.utils.toBigInt(amount),
-      l1TicketerAddress,
+      receiverBytes,
+      amountBigInt,
+      ticketerAddressBytes,
       l1TicketContent
     )
     .encodeABI();
 
-  const gas = undefined; // TODO: calculate correct gas limit or skip
+
+  const gasPrice = await toolkit.eth.getGasPrice();
 
   const receipt: TransactionReceipt = await toolkit.eth.sendTransaction({
     from: senderAddress,
     to: kernelAddress,
-    gas,
+    gas: BigInt('30000'), // TODO: need to calculate or or hardcode in config 
+    gasPrice,             // without it we get Network doesn't support eip-1559
     data,
   });
 
