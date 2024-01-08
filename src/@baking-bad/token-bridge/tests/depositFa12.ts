@@ -26,5 +26,5 @@ export const testFa12Deposit = async (toolkit: TezosToolkit, rollupAddress: stri
 
   await result.confirmation(1);
 
-  console.log(result.opHash);
+  console.log('Fa12 Deposit L1 Operation Hash:', result.opHash);
 };

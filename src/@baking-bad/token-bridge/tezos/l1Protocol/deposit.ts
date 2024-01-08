@@ -27,11 +27,11 @@ export const deposit = async (
     amount
   );
 
-  const operation = l1TokenId === undefined
-    ? await depositFa12WithApprove(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, amount)
-    : await depositFa2WithApprove(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, l1TokenId);
+  const batchOperation = l1TokenId === undefined
+    ? await batchWithFa12Approve(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, amount)
+    : await batchWithFa2Approve(toolkit, ticketHelperContractAddress, depositOperation, l1TokenContractAddress, l1TokenId);
 
-  return operation;
+  return batchOperation;
 };
 
 export const createDepositOperation = async (
@@ -53,7 +53,7 @@ export const createDepositOperation = async (
   return operation;
 };
 
-const depositFa12WithApprove = async (
+const batchWithFa12Approve = async (
   toolkit: TezosToolkit,
   ticketHelperContractAddress: string,
   depositOperation: ContractMethod<Wallet>,
@@ -72,7 +72,7 @@ const depositFa12WithApprove = async (
   return operation;
 };
 
-const depositFa2WithApprove = async (
+const batchWithFa2Approve = async (
   toolkit: TezosToolkit,
   ticketHelperContractAddress: string,
   depositOperation: ContractMethod<Wallet>,

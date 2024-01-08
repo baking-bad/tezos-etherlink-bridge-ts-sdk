@@ -22,6 +22,6 @@ import { withdrawFa2 } from './withdrawFa2';
 
   await testFa12Deposit(tezosToolkit, rollupAddress);
   await testFa2Deposit(tezosToolkit, rollupAddress);
-  await withdrawFa12(web3Toolkit);
-  await withdrawFa2(web3Toolkit);
+  await withdrawFa12(web3Toolkit, tezosToolkit);
+  await withdrawFa2(web3Toolkit, tezosToolkit);
 })();

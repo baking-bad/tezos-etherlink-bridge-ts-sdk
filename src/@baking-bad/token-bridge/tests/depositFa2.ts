@@ -26,5 +26,5 @@ export const testFa2Deposit = async (toolkit: TezosToolkit, rollupAddress: strin
 
   await result.confirmation(1);
 
-  console.log(result.opHash);
+  console.log('Fa2 Deposit L1 Operation Hash:', result.opHash);
 };
