@@ -3,8 +3,6 @@
 **/build/
 **/temp/
 coverage/
-environment/**/*.js
-environment/**/*.js.map
-**/.ENV
 *.log
 .eslintcache
+.env.local

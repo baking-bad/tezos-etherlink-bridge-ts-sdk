@@ -1,18 +1,21 @@
-import type { ContractMethod, ContractMethodObject, TezosToolkit, Wallet, WalletOperationBatch } from '@taquito/taquito';
+import type { ContractMethod, ContractMethodObject, ContractProvider, OperationBatch, TezosToolkit, Wallet } from '@taquito/taquito';
 
 import type { FA2Contract } from '../contracts';
 
 export interface WrapTransactionsWithFA2ApproveParameters {
   toolkit: TezosToolkit;
-  tokenContract: FA2Contract<Wallet>;
+  tokenContract: FA2Contract;
   ownerAddress: string;
   approvedAddress: string;
   tokenId: string;
-  contractCalls: ContractMethod<Wallet> | ContractMethodObject<Wallet> | Array<ContractMethod<Wallet> | ContractMethodObject<Wallet>>;
+  contractCalls:
+  | ContractMethod<Wallet | ContractProvider>
+  | ContractMethodObject<Wallet | ContractProvider>
+  | Array<ContractMethod<Wallet | ContractProvider> | ContractMethodObject<Wallet | ContractProvider>>;
 }
 
-export const wrapContractCallsWithApprove = (options: WrapTransactionsWithFA2ApproveParameters): WalletOperationBatch => {
-  const batch = options.toolkit.wallet.batch()
+export const wrapContractCallsWithApprove = (options: WrapTransactionsWithFA2ApproveParameters): OperationBatch => {
+  const batch = options.toolkit.contract.batch()
     .withContractCall(options.tokenContract.methods.update_operators([{
       add_operator: {
         owner: options.ownerAddress,

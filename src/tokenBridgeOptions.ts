@@ -1,15 +1,15 @@
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
+import type { BridgeDataProvider } from './bridgeDataProvider';
 import type { Network } from './common';
-import type { RollupAddress } from './tezos';
 
 export interface TokenBridgeOptions {
   network: Network;
   tezos: {
     toolkit: TezosToolkit;
     bridgeOptions: {
-      rollupAddress: RollupAddress;
+      rollupAddress: string;
     }
   };
   etherlink: {
@@ -18,4 +18,5 @@ export interface TokenBridgeOptions {
       kernelContractAddress: string;
     }
   };
+  bridgeDataProvider: BridgeDataProvider
 }

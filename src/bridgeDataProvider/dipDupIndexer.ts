@@ -1,8 +1,9 @@
 import BigNumber from 'bignumber.js';
 
-import type { BridgeDataProvider } from './bridgeDataProvider';
-import type { TransferTokensBridgeOperationResult } from '../bridgeOperations';
+import type { BridgeDataProvider, TokenPair } from './bridgeDataProvider';
+import type { BridgeTokenTransfer } from '../bridgeOperations';
 import { EventEmitter, type Token } from '../common';
+import type { EtherlinkToken } from '../etherlink';
 import type { TezosToken } from '../tezos';
 
 export class DipDupIndexerBridgeDataProvider implements BridgeDataProvider {
@@ -13,7 +14,16 @@ export class DipDupIndexerBridgeDataProvider implements BridgeDataProvider {
   constructor(readonly baseUrl: string) {
   }
 
-  getTokenTransfers(userAddresses: string[]): Promise<TransferTokensBridgeOperationResult[]> {
+  getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null> {
+
+    throw new Error('Method not implemented.');
+  }
+
+  getRegisteredTokenPairs(): Promise<TokenPair[]> {
+    throw new Error('Method not implemented.');
+  }
+
+  getTokenTransfers(userAddresses: string[]): Promise<BridgeTokenTransfer[]> {
     throw new Error('Method not implemented.');
   }
 

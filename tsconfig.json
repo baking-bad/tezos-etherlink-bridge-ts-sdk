@@ -23,6 +23,7 @@
   "exclude": [
     "node_modules",
     "build",
-    "tests"
+    "tests",
+    "e2e"
   ]
 }

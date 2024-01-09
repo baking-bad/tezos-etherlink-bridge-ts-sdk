@@ -1,34 +1,33 @@
-import type { TezosToolkit, Wallet, WalletOperation } from '@taquito/taquito';
+import type { BatchOperation, TezosToolkit } from '@taquito/taquito';
 
-import type { RollupAddress } from './common';
 import type { FA12Contract, FA2Contract, TicketHelperContract } from './contracts';
 import { fa12helper, fa2helper } from './helpers';
 import type { FA12Token, FA2Token, TezosToken } from './tokens';
-import { guards } from '../utils';
+import { tezosUtils } from '../utils';
 
 interface DepositParams {
   token: TezosToken;
   amount: bigint;
   etherlinkReceiverAddress: string;
-  ticketHelperContractAddress: string;
   etherlinkTokenProxyContractAddress: string;
+  ticketHelperContractAddress: string;
 }
 
 export interface TezosBlockchainBridgeComponentOptions {
   tezosToolkit: TezosToolkit;
-  rollupAddress: RollupAddress;
+  rollupAddress: string;
 }
 
 export class TezosBlockchainBridgeComponent {
   protected readonly tezosToolkit: TezosToolkit;
-  protected readonly rollupAddress: RollupAddress;
+  protected readonly rollupAddress: string;
 
   constructor(options: TezosBlockchainBridgeComponentOptions) {
     this.tezosToolkit = options.tezosToolkit;
     this.rollupAddress = options.rollupAddress;
   }
 
-  async deposit(params: DepositParams): Promise<WalletOperation> {
+  async deposit(params: DepositParams): Promise<BatchOperation> {
     const depositOperation = await this.createDepositOperation(
       params.etherlinkReceiverAddress,
       params.amount,
@@ -36,7 +35,7 @@ export class TezosBlockchainBridgeComponent {
       params.ticketHelperContractAddress
     );
 
-    const batchWalletOperation = await (guards.isFA2TezosToken(params.token)
+    const batchWalletOperation = await (tezosUtils.isFA2Token(params.token)
       ? this.wrapContractCallsWithFA2TokenApprove(depositOperation, params.token, params.ticketHelperContractAddress)
       : this.wrapContractCallsWithFA12TokenApprove(depositOperation, params.token, params.amount, params.ticketHelperContractAddress));
 
@@ -61,9 +60,9 @@ export class TezosBlockchainBridgeComponent {
     return operation;
   }
 
-  protected async getTicketHelperContract(ticketHelperContractAddress: string): Promise<TicketHelperContract<Wallet>> {
+  protected async getTicketHelperContract(ticketHelperContractAddress: string): Promise<TicketHelperContract> {
     // TODO: do we need to cache the ticket helper contract?
-    return this.tezosToolkit.wallet.at<TicketHelperContract<Wallet>>(ticketHelperContractAddress);
+    return this.tezosToolkit.contract.at<TicketHelperContract>(ticketHelperContractAddress);
   }
 
   protected packDepositRoutingInfo(etherlinkReceiverAddress: string, etherlinkTokenProxyContractAddress: string): string {
@@ -79,8 +78,8 @@ export class TezosBlockchainBridgeComponent {
     token: FA12Token,
     amount: bigint,
     ticketHelperContractAddress: string
-  ): Promise<WalletOperation> {
-    const tokenContract = await this.tezosToolkit.wallet.at<FA12Contract<Wallet>>(token.address);
+  ): Promise<BatchOperation> {
+    const tokenContract = await this.tezosToolkit.contract.at<FA12Contract>(token.address);
     const resultOperation = fa12helper.wrapContractCallsWithApprove({
       toolkit: this.tezosToolkit,
       approvedAddress: ticketHelperContractAddress,
@@ -96,9 +95,9 @@ export class TezosBlockchainBridgeComponent {
     contractCalls: Parameters<typeof fa2helper.wrapContractCallsWithApprove>[0]['contractCalls'],
     token: FA2Token,
     ticketHelperContractAddress: string
-  ): Promise<WalletOperation> {
+  ): Promise<BatchOperation> {
     const [tokenContract, tokenOwnerAddress] = await Promise.all([
-      this.tezosToolkit.wallet.at<FA2Contract<Wallet>>(token.address),
+      this.tezosToolkit.contract.at<FA2Contract>(token.address),
       this.tezosToolkit.wallet.pkh()
     ]);
     const resultOperation = fa2helper.wrapContractCallsWithApprove({

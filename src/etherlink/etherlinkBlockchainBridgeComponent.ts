@@ -3,7 +3,7 @@ import type Web3 from 'web3';
 import type { TransactionReceipt } from 'web3';
 
 import { kernelContractAbi, type KernelContract } from './contracts';
-import { converters } from '../utils';
+import { tezosUtils } from '../utils';
 
 interface WithdrawParams {
   tezosReceiverAddress: string;
@@ -12,7 +12,7 @@ interface WithdrawParams {
   etherlinkSenderAddress: string;
   etherlinkTokenProxyContractAddress: string;
   tezosTicketerAddress: string;
-  tezosRouterAddress: string;
+  tezosProxyAddress: string;
 }
 
 export interface EtherlinkBlockchainBridgeComponentOptions {
@@ -36,9 +36,9 @@ export class EtherlinkBlockchainBridgeComponent {
   }
 
   async withdraw(params: WithdrawParams): Promise<TransactionReceipt> {
-    const tezosReceiverAddressBytes = converters.convertTezosAddressToBytes(params.tezosReceiverAddress, true);
-    const tezosTicketerAddressBytes = converters.convertTezosAddressToBytes(params.tezosTicketerAddress, true);
-    const tezosProxyAddressBytes = converters.convertTezosAddressToBytes(params.tezosRouterAddress);
+    const tezosReceiverAddressBytes = tezosUtils.convertAddressToBytes(params.tezosReceiverAddress, true);
+    const tezosTicketerAddressBytes = tezosUtils.convertAddressToBytes(params.tezosTicketerAddress, true);
+    const tezosProxyAddressBytes = tezosUtils.convertAddressToBytes(params.tezosProxyAddress);
     const receiverBytes = tezosReceiverAddressBytes + tezosProxyAddressBytes;
 
     const data = this.kernelContract.methods
