@@ -27,6 +27,10 @@ export class DipDupIndexerBridgeDataProvider implements BridgeDataProvider {
     throw new Error('Method not implemented.');
   }
 
+  getTokenTransferByOperationHash(operationHash: string): Promise<BridgeTokenTransfer | null> {
+    throw new Error('Method not implemented.');
+  }
+
   getBalance(token: Token, accountAddress: string): Promise<BigNumber> {
     throw new Error('Method not implemented.');
   }

@@ -15,7 +15,8 @@ export interface TokenBridgeOptions {
   etherlink: {
     toolkit: Web3;
     bridgeOptions: {
-      kernelContractAddress: string;
+      kernelAddress: string;
+      withdrawPrecompileAddress: string;
     }
   };
   bridgeDataProvider: BridgeDataProvider

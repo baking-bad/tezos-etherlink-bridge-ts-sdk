@@ -7,7 +7,7 @@ import type Web3 from 'web3';
 import { BridgeDataProvider } from './bridgeDataProvider';
 import {
   BridgeTokenTransferKind,
-  type BridgeTokenDeposit, type BridgeTokenFullWithdrawal, type BridgeTokenPartialWithdrawal
+  type BridgeTokenDeposit, type FinishedBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, BridgeTokenTransferStatus
 } from './bridgeOperations';
 import type { Network } from './common';
 import { EtherlinkBlockchainBridgeComponent, type EtherlinkToken } from './etherlink';
@@ -20,6 +20,7 @@ import { converters, tezosUtils } from './utils';
 
 export class TokenBridge {
   readonly network: Network;
+  readonly bridgeDataProvider: BridgeDataProvider;
 
   protected readonly tezosToolkit: TezosToolkit;
   protected readonly etherlinkToolkit: Web3;
@@ -27,7 +28,6 @@ export class TokenBridge {
   protected readonly etherlinkBlockchainBridgeComponent: EtherlinkBlockchainBridgeComponent;
 
   protected readonly tezosTicketerContentSchema = new Schema(tezosTicketerContentMichelsonType);
-  protected readonly bridgeDataProvider: BridgeDataProvider;
 
   constructor(options: TokenBridgeOptions) {
     // TODO: validate the network
@@ -42,7 +42,8 @@ export class TokenBridge {
     });
     this.etherlinkBlockchainBridgeComponent = new EtherlinkBlockchainBridgeComponent({
       etherlinkToolkit: this.etherlinkToolkit,
-      kernelContractAddress: options.etherlink.bridgeOptions.kernelContractAddress
+      kernelAddress: options.etherlink.bridgeOptions.kernelAddress,
+      withdrawPrecompileAddress: options.etherlink.bridgeOptions.withdrawPrecompileAddress
     });
   }
 
@@ -76,6 +77,7 @@ export class TokenBridge {
 
     return {
       kind: BridgeTokenTransferKind.Deposit,
+      status: BridgeTokenTransferStatus.Created,
       tezosOperation: {
         blockId: depositOperation.includedInBlock,
         hash: depositOperation.hash,
@@ -92,7 +94,7 @@ export class TokenBridge {
     };
   }
 
-  async startWithdraw(token: EtherlinkToken, amount: BigNumber, tezosReceiverAddress?: string): Promise<BridgeTokenPartialWithdrawal> {
+  async startWithdraw(token: EtherlinkToken, amount: BigNumber, tezosReceiverAddress?: string): Promise<CreatedBridgeTokenWithdrawal> {
     if (!tezosReceiverAddress) {
       tezosReceiverAddress = await this.getTezosConnectedAddress();
     }
@@ -118,6 +120,7 @@ export class TokenBridge {
 
     return {
       kind: BridgeTokenTransferKind.Withdrawal,
+      status: BridgeTokenTransferStatus.Created,
       etherlinkOperation: {
         blockId: +withdrawalTransactionReceipt.blockNumber.toString(10),
         hash: withdrawalTransactionReceipt.transactionHash.toString(),
@@ -126,15 +129,13 @@ export class TokenBridge {
         amount: amountBigInt,
         fee: BigInt(withdrawalTransactionReceipt.gasUsed) * gasPrice,
         source: withdrawalTransactionReceipt.from,
-        // TODO: receive the sender
-        sender: '',
         receiver: tezosReceiverAddress,
         token,
       }
     };
   }
 
-  async finishWithdraw(BridgeTokenPartialWithdrawal: BridgeTokenPartialWithdrawal): Promise<BridgeTokenFullWithdrawal> {
+  async finishWithdraw(BridgeTokenPartialWithdrawal: CreatedBridgeTokenWithdrawal): Promise<FinishedBridgeTokenWithdrawal> {
     throw new Error('Not implemented');
   }
 

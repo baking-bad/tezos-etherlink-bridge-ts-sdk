@@ -8,8 +8,8 @@ export interface TezosTransferTokensOperation {
   readonly token: TezosToken;
   readonly amount: bigint;
   readonly fee: bigint;
-  readonly sender: string;
   readonly source: string;
+  readonly sender: string;
   readonly receiver: string;
 }
 
@@ -20,7 +20,6 @@ export interface EtherlinkTransferTokensOperation {
   readonly token: EtherlinkToken;
   readonly amount: bigint;
   readonly fee: bigint;
-  readonly sender: string;
   readonly source: string;
   readonly receiver: string;
 }
@@ -32,27 +31,58 @@ export enum BridgeTokenTransferKind {
   WithdrawalRevert = 3
 }
 
+export enum BridgeTokenTransferStatus {
+  Created = 0,
+  Finished = 1,
+  Sealed = 2,
+  Failed = 3
+}
+
 interface BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind;
+  readonly status: BridgeTokenTransferStatus;
 }
 
-export interface BridgeTokenDeposit extends BridgeTokenTransferBase {
+export interface CreatedBridgeTokenDeposit extends BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind.Deposit;
+  readonly status: BridgeTokenTransferStatus.Created;
   readonly tezosOperation: TezosTransferTokensOperation;
 }
 
-export interface BridgeTokenPartialWithdrawal extends BridgeTokenTransferBase {
-  readonly kind: BridgeTokenTransferKind.Withdrawal;
-  readonly etherlinkOperation: TezosTransferTokensOperation;
-}
-
-export interface BridgeTokenFullWithdrawal extends BridgeTokenTransferBase {
-  readonly kind: BridgeTokenTransferKind.Withdrawal;
-  readonly etherlinkOperation: TezosTransferTokensOperation;
+export interface FinishedBridgeTokenDeposit extends BridgeTokenTransferBase {
+  readonly kind: BridgeTokenTransferKind.Deposit;
+  readonly status: BridgeTokenTransferStatus.Finished;
   readonly tezosOperation: TezosTransferTokensOperation;
+  readonly etherlinkOperation: EtherlinkTransferTokensOperation;
 }
 
-export type BridgeTokenWithdrawal = BridgeTokenPartialWithdrawal | BridgeTokenFullWithdrawal;
+export type BridgeTokenDeposit =
+  | CreatedBridgeTokenDeposit
+  | FinishedBridgeTokenDeposit;
+
+export interface CreatedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly kind: BridgeTokenTransferKind.Withdrawal;
+  readonly status: BridgeTokenTransferStatus.Created;
+  readonly etherlinkOperation: EtherlinkTransferTokensOperation;
+}
+
+export interface SealedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly kind: BridgeTokenTransferKind.Withdrawal;
+  readonly status: BridgeTokenTransferStatus.Sealed;
+  readonly etherlinkOperation: EtherlinkTransferTokensOperation;
+}
+
+export interface FinishedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly kind: BridgeTokenTransferKind.Withdrawal;
+  readonly status: BridgeTokenTransferStatus.Finished;
+  readonly tezosOperation: TezosTransferTokensOperation;
+  readonly etherlinkOperation: EtherlinkTransferTokensOperation;
+}
+
+export type BridgeTokenWithdrawal =
+  | CreatedBridgeTokenWithdrawal
+  | SealedBridgeTokenWithdrawal
+  | FinishedBridgeTokenWithdrawal;
 
 export type BridgeTokenTransfer =
   | BridgeTokenDeposit

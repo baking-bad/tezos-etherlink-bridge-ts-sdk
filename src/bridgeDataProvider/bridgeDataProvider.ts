@@ -20,5 +20,7 @@ export interface BridgeDataProvider {
 
   getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null>;
   getRegisteredTokenPairs(): Promise<TokenPair[]>;
+
   getTokenTransfers(userAddresses: string[]): Promise<BridgeTokenTransfer[]>;
+  getTokenTransferByOperationHash(operationHash: string): Promise<BridgeTokenTransfer | null>;
 }

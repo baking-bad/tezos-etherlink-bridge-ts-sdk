@@ -17,21 +17,24 @@ interface WithdrawParams {
 
 export interface EtherlinkBlockchainBridgeComponentOptions {
   etherlinkToolkit: Web3;
-  kernelContractAddress: string;
+  kernelAddress: string;
+  withdrawPrecompileAddress: string;
 }
 
 export class EtherlinkBlockchainBridgeComponent {
   protected readonly etherlinkToolkit: Web3;
   protected readonly kernelContract: KernelContract;
-  protected readonly kernelContractAddress: string;
+  protected readonly kernelAddress: string;
+  protected readonly withdrawPrecompileAddress: string;
 
   constructor(options: EtherlinkBlockchainBridgeComponentOptions) {
     this.etherlinkToolkit = options.etherlinkToolkit;
-    this.kernelContractAddress = options.kernelContractAddress;
+    this.kernelAddress = options.kernelAddress;
+    this.withdrawPrecompileAddress = options.withdrawPrecompileAddress;
 
     this.kernelContract = new this.etherlinkToolkit.eth.Contract(
       kernelContractAbi,
-      this.kernelContractAddress
+      this.withdrawPrecompileAddress
     );
   }
 
@@ -55,7 +58,7 @@ export class EtherlinkBlockchainBridgeComponent {
     const gasPrice = await this.etherlinkToolkit.eth.getGasPrice();
     const receipt: TransactionReceipt = await this.etherlinkToolkit.eth.sendTransaction({
       from: params.etherlinkSenderAddress,
-      to: this.kernelContractAddress,
+      to: this.kernelAddress,
       gas: BigInt('30000'), // TODO: need to calculate the value or hardcode it in config 
       gasPrice,             // without gasPrice we get the 'Network doesn't support eip-1559' exception
       data,
