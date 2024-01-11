@@ -34,10 +34,9 @@ export class TzktBridgeDataProvider extends RemoteService {
       : null;
   }
 
-  async getTezosTokenWithdrawals(userAddress: string, rollupAddress: string, offset?: number, limit?: number): Promise<TokenWithdrawalFromRollupTzktTransaction[]> {
+  async getTezosTokenWithdrawals(rollupAddress: string, offset?: number, limit?: number): Promise<TokenWithdrawalFromRollupTzktTransaction[]> {
     const queryParams = new URLSearchParams({
       'sender.eq': rollupAddress,
-      'initiator.eq': userAddress,
       'entrypoint.eq': 'withdraw',
       'sort.desc': 'id'
     });
@@ -58,10 +57,9 @@ export class TzktBridgeDataProvider extends RemoteService {
       && (t as TokenWithdrawalFromRollupTzktTransaction).parameter?.value?.ticket) as TokenWithdrawalFromRollupTzktTransaction | undefined) || null;
   }
 
-  async getTezosTokenWithdrawalOutboxMessageExecution(userAddress: string, rollupAddress: string, offset?: number, limit?: number): Promise<TokenWithdrawalFromRollupTzktOutboxMessageExecution[]> {
+  async getTezosTokenWithdrawalOutboxMessageExecution(rollupAddress: string, offset?: number, limit?: number): Promise<TokenWithdrawalFromRollupTzktOutboxMessageExecution[]> {
     const queryParams = new URLSearchParams({
       'rollup.eq': rollupAddress,
-      'sender.eq': userAddress,
       'sort.desc': 'id'
     });
     if (offset !== undefined && offset !== null)

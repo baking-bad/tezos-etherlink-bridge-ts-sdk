@@ -6,8 +6,8 @@ import type Web3 from 'web3';
 
 import { BridgeDataProvider } from './bridgeDataProvider';
 import {
-  BridgeTokenTransferKind,
-  type BridgeTokenDeposit, type FinishedBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, BridgeTokenTransferStatus
+  BridgeTokenTransferKind, BridgeTokenTransferStatus,
+  type BridgeTokenDeposit, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from './bridgeOperations';
 import type { Network } from './common';
 import { EtherlinkBlockchainBridgeComponent, type EtherlinkToken } from './etherlink';
@@ -17,6 +17,8 @@ import {
 } from './tezos';
 import { TokenBridgeOptions } from './tokenBridgeOptions';
 import { converters, tezosUtils } from './utils';
+
+type TokenAmount = BigNumber | string | bigint | number;
 
 export class TokenBridge {
   readonly network: Network;
@@ -47,11 +49,7 @@ export class TokenBridge {
     });
   }
 
-  async deposit(
-    token: TezosToken,
-    amount: BigNumber | string | bigint | number,
-    etherlinkReceiverAddress?: string
-  ): Promise<BridgeTokenDeposit> {
+  async deposit(token: TezosToken, amount: TokenAmount, etherlinkReceiverAddress?: string): Promise<BridgeTokenDeposit> {
     if (!etherlinkReceiverAddress) {
       etherlinkReceiverAddress = await this.getEtherlinkConnectedAddress();
     }
@@ -94,14 +92,18 @@ export class TokenBridge {
     };
   }
 
-  async startWithdraw(token: EtherlinkToken, amount: BigNumber, tezosReceiverAddress?: string): Promise<CreatedBridgeTokenWithdrawal> {
+  async startWithdraw(token: EtherlinkToken, amount: TokenAmount, tezosReceiverAddress?: string): Promise<CreatedBridgeTokenWithdrawal> {
     if (!tezosReceiverAddress) {
       tezosReceiverAddress = await this.getTezosConnectedAddress();
     }
 
-    const tezosTicketerAddress = 'tezosTicketerAddress';
-    const etherlinkTokenProxyContractAddress = 'etherlinkTokenProxyContractAddress';
-    const tezosProxyAddress = 'tezosProxyAddress';
+    const tokenPair = await this.bridgeDataProvider.getRegisteredTokenPair(token);
+    if (!tokenPair)
+      throw new Error(`Token (${token.address}) is not listed`);
+
+    const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
+    const etherlinkTokenProxyContractAddress = tokenPair.etherlink.token.address;
+    const tezosProxyAddress = tezosTicketerAddress;
 
     const amountBigInt = await this.prepareAmount(amount, token);
     const etherlinkConnectedAddress = await this.getEtherlinkConnectedAddress();
@@ -131,12 +133,25 @@ export class TokenBridge {
         source: withdrawalTransactionReceipt.from,
         receiver: tezosReceiverAddress,
         token,
+      },
+      rollupData: {
+        // TODO:
+        outboxMessageLevel: 0n,
+        // TODO:
+        outboxMessageId: 0n
       }
     };
   }
 
-  async finishWithdraw(BridgeTokenPartialWithdrawal: CreatedBridgeTokenWithdrawal): Promise<FinishedBridgeTokenWithdrawal> {
-    throw new Error('Not implemented');
+  async finishWithdraw(bridgeTokenPartialWithdrawal: SealedBridgeTokenWithdrawal): Promise<FinishedBridgeTokenWithdrawal> {
+    const finishWithdrawOperationHash = await this.tezosBlockchainBridgeComponent.finishWithdraw(
+      bridgeTokenPartialWithdrawal.rollupData.commitment,
+      bridgeTokenPartialWithdrawal.rollupData.proof
+    );
+    const tokenTransfer = await this.bridgeDataProvider.getTokenTransferByOperationHash(finishWithdrawOperationHash);
+
+    // TODO
+    return tokenTransfer as FinishedBridgeTokenWithdrawal;
   }
 
   private async getTezosConnectedAddress(): Promise<string> {
@@ -152,7 +167,7 @@ export class TokenBridge {
     return address;
   }
 
-  private async prepareAmount(amount: BigNumber | string | bigint | number, token: EtherlinkToken | TezosToken): Promise<bigint> {
+  private async prepareAmount(amount: TokenAmount, token: EtherlinkToken | TezosToken): Promise<bigint> {
     if (typeof amount === 'bigint')
       return amount;
 
@@ -170,6 +185,6 @@ export class TokenBridge {
     const storage = await contract.storage<{ content: unknown }>();
     const contentMichelsonData = this.tezosTicketerContentSchema.Encode(storage.content);
 
-    return packDataBytes(contentMichelsonData, tezosTicketerContentMichelsonType).bytes.slice(2);
+    return '0x' + packDataBytes(contentMichelsonData, tezosTicketerContentMichelsonType).bytes.slice(2);
   }
 }

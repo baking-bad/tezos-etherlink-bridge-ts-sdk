@@ -24,6 +24,20 @@ export interface EtherlinkTransferTokensOperation {
   readonly receiver: string;
 }
 
+export interface InitialRollupData {
+  readonly outboxMessageLevel: bigint;
+  readonly outboxMessageId: bigint;
+}
+
+export interface CementedRollupData extends InitialRollupData {
+  readonly commitment: string;
+  readonly proof: string;
+}
+
+export type RollupData =
+  | InitialRollupData
+  | CementedRollupData;
+
 export enum BridgeTokenTransferKind {
   Deposit = 0,
   Withdrawal = 1,
@@ -64,12 +78,14 @@ export interface CreatedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Created;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
+  readonly rollupData: InitialRollupData;
 }
 
 export interface SealedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Sealed;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
+  readonly rollupData: CementedRollupData;
 }
 
 export interface FinishedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
@@ -77,6 +93,7 @@ export interface FinishedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly status: BridgeTokenTransferStatus.Finished;
   readonly tezosOperation: TezosTransferTokensOperation;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
+  readonly rollupData: CementedRollupData;
 }
 
 export type BridgeTokenWithdrawal =
