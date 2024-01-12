@@ -47,8 +47,8 @@ export enum BridgeTokenTransferKind {
 
 export enum BridgeTokenTransferStatus {
   Created = 0,
-  Finished = 1,
-  Sealed = 2,
+  Sealed = 1,
+  Finished = 2,
   Failed = 3
 }
 

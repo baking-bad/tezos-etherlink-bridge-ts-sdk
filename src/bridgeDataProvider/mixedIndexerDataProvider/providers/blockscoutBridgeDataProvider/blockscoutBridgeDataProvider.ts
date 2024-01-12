@@ -33,6 +33,8 @@ export class BlockscoutBridgeDataProvider extends RemoteService {
   }
 
   async getEtherlinkTokenWithdrawals(userAddress: string | null, kernelAddress: string, offset?: number, page?: number): Promise<TokenTransfer[]> {
+    userAddress = userAddress && userAddress.toLocaleLowerCase();
+
     const queryParams = new URLSearchParams({
       module: 'account',
       action: 'tokentx',
