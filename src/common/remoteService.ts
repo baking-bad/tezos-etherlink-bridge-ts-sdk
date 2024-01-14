@@ -5,7 +5,8 @@ export abstract class RemoteService {
   }
 
   protected getUrl(uri: string) {
-    return new URL(uri, this.baseUrl);
+    // TODO: check slashes
+    return new URL(this.baseUrl + '/' + uri);
   }
 
   protected async getRequestInit(requestInit: RequestInit = {}) {

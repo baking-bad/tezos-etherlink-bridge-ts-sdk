@@ -11,7 +11,7 @@ import type { Log as EtherlinkLog, TokenTransfer } from './providers/blockscoutB
 import type { TokenDepositToRollupTzktTransaction, TokenWithdrawalFromRollupTzktOutboxMessageExecution, TokenWithdrawalFromRollupTzktTransaction } from './providers/tzktBridgeDataProvider';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
-  type BridgeTokenDeposit, type BridgeTokenWithdrawal, type BridgeTokenTransfer
+  type BridgeTokenDeposit, type BridgeTokenWithdrawal, type BridgeTokenTransfer, RollupData, CementedRollupData
 } from '../../bridgeOperations';
 import type { EtherlinkToken } from '../../etherlink';
 import type { FA12Token, FA2Token, TezosToken } from '../../tezos';
@@ -71,15 +71,22 @@ export class MixedIndexerDataProvider implements BridgeDataProvider {
 
     const tokenTransfers: BridgeTokenTransfer[] = [];
     let tokenWithdrawalsIndex = 0;
-
-    for (const tokenDeposit of tokenDeposits) {
+    let tokenDepositsIndex = 0;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const tokenDeposit = tokenDeposits[tokenDepositsIndex];
       const currentTokenWithdrawal = tokenWithdrawals[tokenWithdrawalsIndex];
-      if (!currentTokenWithdrawal || tokenDeposit.tezosOperation.timestamp <= currentTokenWithdrawal.etherlinkOperation.timestamp) {
-        tokenWithdrawalsIndex++;
+
+      if (tokenDeposit && (!currentTokenWithdrawal || tokenDeposit.tezosOperation.timestamp > currentTokenWithdrawal.etherlinkOperation.timestamp)) {
         tokenTransfers.push(tokenDeposit);
+        tokenDepositsIndex++;
+      }
+      else if (currentTokenWithdrawal) {
+        tokenTransfers.push(currentTokenWithdrawal);
+        tokenWithdrawalsIndex++;
       }
       else {
-        tokenTransfers.push(currentTokenWithdrawal);
+        break;
       }
     }
 
@@ -140,41 +147,32 @@ export class MixedIndexerDataProvider implements BridgeDataProvider {
       etherlinkTokenWithdrawalOperations,
       etherlinkTokenWithdrawalLogs,
       tezosTokenWithdrawalOperations,
-      tezosTokenWithdrawalOutboxMessageExecution
     ] = await Promise.all([
       this.blockscoutBridgeDataProvider.getEtherlinkTokenWithdrawals(userAddress, this.etherlinkKernelAddress),
       this.blockscoutBridgeDataProvider.getEtherlinkTokenWithdrawalLogs(this.etherlinkKernelAddress),
       this.tzktBridgeDataProvider.getTezosTokenWithdrawals(this.tezosRollupAddress),
-      this.tzktBridgeDataProvider.getTezosTokenWithdrawalOutboxMessageExecution(this.tezosRollupAddress)
     ]);
     const tokenPairsMap = this.getTokenPairsMap(tokenPairs);
     const etherlinkWithdrawalEventDataMap = this.getEtherlinkWithdrawalEventDataMap(etherlinkTokenWithdrawalLogs);
     const tezosTokenWithdrawalOperationsMap = this.getTezosTokenWithdrawalOperationsMap(tezosTokenWithdrawalOperations);
-    const tezosTokenWithdrawalOutboxMessageExecutionMap = this.getWithdrawalOutboxMessageExecutionMap(tezosTokenWithdrawalOutboxMessageExecution);
 
-    const promises: Array<Promise<BridgeTokenWithdrawal | null>> = [];
+    const rollupDataMap = new Map<string, CementedRollupData>();
+    await Promise.all(etherlinkTokenWithdrawalOperations
+      .map(etherlinkTokenWithdrawalOperation => this.fillRollupDataMap(rollupDataMap, etherlinkTokenWithdrawalOperation, etherlinkWithdrawalEventDataMap))
+    );
+
+    const bridgeTokenWithdrawals: Array<BridgeTokenWithdrawal | null> = [];
     for (let i = etherlinkTokenWithdrawalOperations.length - 1; i >= 0; i--) {
       const etherlinkTokenWithdrawalOperation = etherlinkTokenWithdrawalOperations[i]!;
 
-      promises.push(this.getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
+      bridgeTokenWithdrawals.unshift(this.getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
         etherlinkTokenWithdrawalOperation,
         etherlinkWithdrawalEventDataMap,
         tezosTokenWithdrawalOperationsMap,
-        tezosTokenWithdrawalOutboxMessageExecutionMap,
+        rollupDataMap,
         tokenPairsMap
       ));
     }
-
-    // const promises = etherlinkTokenWithdrawalOperations
-    //   .map(o => this.getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
-    //     o,
-    //     etherlinkWithdrawalEventDataMap,
-    //     tezosTokenWithdrawalOperationsMap,
-    //     tezosTokenWithdrawalOutboxMessageExecutionMap,
-    //     tokenPairsMap
-    //   ));
-
-    const bridgeTokenWithdrawals = (await Promise.all(promises)).reverse();
 
     return bridgeTokenWithdrawals
       .filter((w: BridgeTokenWithdrawal | null): w is BridgeTokenWithdrawal => !!w);
@@ -188,24 +186,24 @@ export class MixedIndexerDataProvider implements BridgeDataProvider {
     const [
       tokenPairs,
       etherlinkTokenWithdrawalLogs,
-      tezosTokenWithdrawalOperations,
-      tezosTokenWithdrawalOutboxMessageExecution
+      tezosTokenWithdrawalOperations
     ] = await Promise.all([
       this.tokenPairsProvider.getPairs(),
       this.blockscoutBridgeDataProvider.getEtherlinkTokenWithdrawalLogs(this.etherlinkKernelAddress),
-      this.tzktBridgeDataProvider.getTezosTokenWithdrawals(this.tezosRollupAddress),
-      this.tzktBridgeDataProvider.getTezosTokenWithdrawalOutboxMessageExecution(this.tezosRollupAddress)
+      this.tzktBridgeDataProvider.getTezosTokenWithdrawals(this.tezosRollupAddress)
     ]);
     const tokenPairsMap = this.getTokenPairsMap(tokenPairs);
     const etherlinkWithdrawalEventDataMap = this.getEtherlinkWithdrawalEventDataMap(etherlinkTokenWithdrawalLogs);
     const tezosTokenWithdrawalOperationsMap = this.getTezosTokenWithdrawalOperationsMap(tezosTokenWithdrawalOperations);
-    const tezosTokenWithdrawalOutboxMessageExecutionMap = this.getWithdrawalOutboxMessageExecutionMap(tezosTokenWithdrawalOutboxMessageExecution);
 
-    const bridgeTokenWithdrawal = await this.getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
+    const rollupDataMap = new Map<string, CementedRollupData>();
+    await this.fillRollupDataMap(rollupDataMap, etherlinkTokenWithdrawalOperation, etherlinkWithdrawalEventDataMap);
+
+    const bridgeTokenWithdrawal = this.getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
       etherlinkTokenWithdrawalOperation,
       etherlinkWithdrawalEventDataMap,
       tezosTokenWithdrawalOperationsMap,
-      tezosTokenWithdrawalOutboxMessageExecutionMap,
+      rollupDataMap,
       tokenPairsMap
     );
 
@@ -279,13 +277,13 @@ export class MixedIndexerDataProvider implements BridgeDataProvider {
     }
   }
 
-  private async getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
+  private getBridgeTokenWithdrawalByEtherlinkAndTezosOperations(
     etherlinkTokenWithdrawalOperation: TokenTransfer,
     etherlinkWithdrawalEventDataMap: ReadonlyMap<string, EtherlinkWithdrawalEventData>,
     tezosTokenWithdrawalOperationsMap: Map<string, TokenWithdrawalFromRollupTzktTransaction[]>,
-    tezosTokenWithdrawalOutboxMessageExecutionMap: Map<string, TokenWithdrawalFromRollupTzktOutboxMessageExecution>,
+    rollupDataMap: ReadonlyMap<string, CementedRollupData>,
     tokenPairsMap: ReadonlyMap<string, TokenPair>
-  ): Promise<BridgeTokenWithdrawal | null> {
+  ): BridgeTokenWithdrawal | null {
     const withdrawalAmount = BigInt(etherlinkTokenWithdrawalOperation.value);
     const tokenPair = tokenPairsMap.get(etherlinkTokenWithdrawalOperation.contractAddress);
     const etherlinkWithdrawalEventData = etherlinkWithdrawalEventDataMap.get(etherlinkTokenWithdrawalOperation.hash);
@@ -309,8 +307,8 @@ export class MixedIndexerDataProvider implements BridgeDataProvider {
       source: etherlinkTokenWithdrawalOperation.from,
       receiver: etherlinkTokenWithdrawalOperation.to,
     };
-    const rollupData = await this.tezosRollupBridgeDataProvider.getRollupData(etherlinkWithdrawalEventData.level.toString(), etherlinkWithdrawalEventData.index.toString());
 
+    const rollupData = rollupDataMap.get(etherlinkWithdrawalEventData.level.toString() + '_' + etherlinkWithdrawalEventData.index.toString());
     if (!rollupData) {
       return {
         kind: BridgeTokenTransferKind.Withdrawal,
@@ -426,6 +424,29 @@ export class MixedIndexerDataProvider implements BridgeDataProvider {
       },
         new Map<string, TokenWithdrawalFromRollupTzktTransaction[]>
       );
+  }
+
+  private async fillRollupDataMap(
+    rollupDataMap: Map<string, CementedRollupData>,
+    etherlinkTokenWithdrawalOperation: TokenTransfer,
+    etherlinkWithdrawalEventDataMap: ReadonlyMap<string, EtherlinkWithdrawalEventData>
+  ): Promise<Map<string, CementedRollupData>> {
+    const etherlinkWithdrawalEventData = etherlinkWithdrawalEventDataMap.get(etherlinkTokenWithdrawalOperation.hash);
+
+    if (!etherlinkWithdrawalEventData)
+      return rollupDataMap;
+
+    const rollupData = await this.tezosRollupBridgeDataProvider.getRollupData(etherlinkWithdrawalEventData.level.toString(), etherlinkWithdrawalEventData.index.toString());
+    if (!rollupData)
+      return rollupDataMap;
+
+    rollupDataMap.set(etherlinkWithdrawalEventData.level.toString() + '_' + etherlinkWithdrawalEventData.index.toString(), {
+      outboxMessageLevel: etherlinkWithdrawalEventData.level,
+      outboxMessageId: etherlinkWithdrawalEventData.index,
+      commitment: rollupData.commitment,
+      proof: rollupData.proof
+    });
+    return rollupDataMap;
   }
 
   private getWithdrawalOutboxMessageExecutionMap(execution: TokenWithdrawalFromRollupTzktOutboxMessageExecution[]): Map<string, TokenWithdrawalFromRollupTzktOutboxMessageExecution> {
