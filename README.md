@@ -432,7 +432,6 @@ To get token transfers where the sender (in the case of deposit) or receiver (in
 // const tokenBridge: TokenBridge = ...
 // ...
 
-
 let tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...']);
 tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...', '0x...']);
 tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...', 'tz1...', '0x...']);
