@@ -2,10 +2,9 @@ import type { BatchOperation, TransactionOperation } from '@taquito/taquito';
 import { encodePubKey, b58decode } from '@taquito/utils';
 
 import { memoize } from './memoize';
-import type { TezosToken, FA2Token } from '../tezos';
+import type { FA2TezosToken, NonNativeTezosToken } from '../tezos';
 
-
-export const isFA2Token = (token: TezosToken): token is FA2Token => !!(token as FA2Token).tokenId;
+export const isFA2Token = (token: NonNativeTezosToken): token is FA2TezosToken => !!(token as FA2TezosToken).tokenId;
 
 export const convertAddressToBytes = (address: string, addPrefix = false): string => {
   const bytes = b58decode(address);

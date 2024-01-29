@@ -1,21 +1,22 @@
-import type { ContractMethod, ContractMethodObject, ContractProvider, OperationBatch, TezosToolkit, Wallet } from '@taquito/taquito';
+import type { ContractMethod, ContractMethodObject, ContractProvider, Wallet } from '@taquito/taquito';
 
 import type { FA2Contract } from '../contracts';
 
-export interface WrapTransactionsWithFA2ApproveParameters {
-  toolkit: TezosToolkit;
-  tokenContract: FA2Contract;
+interface WrapTransactionsWithFA2ApproveParameters<TApi extends ContractProvider | Wallet> {
+  batch: ReturnType<TApi['batch']>;
+  tokenContract: FA2Contract<TApi>;
   ownerAddress: string;
   approvedAddress: string;
   tokenId: string;
   contractCalls:
-  | ContractMethod<Wallet | ContractProvider>
-  | ContractMethodObject<Wallet | ContractProvider>
-  | Array<ContractMethod<Wallet | ContractProvider> | ContractMethodObject<Wallet | ContractProvider>>;
+  | ContractMethod<TApi>
+  | ContractMethodObject<TApi>
+  | Array<ContractMethod<TApi> | ContractMethodObject<TApi>>;
 }
 
-export const wrapContractCallsWithApprove = (options: WrapTransactionsWithFA2ApproveParameters): OperationBatch => {
-  const batch = options.toolkit.contract.batch()
+export function wrapContractCallsWithApprove<TApi extends ContractProvider | Wallet>(options: WrapTransactionsWithFA2ApproveParameters<TApi>): typeof options['batch'];
+export function wrapContractCallsWithApprove(options: WrapTransactionsWithFA2ApproveParameters<ContractProvider>): typeof options['batch'] {
+  const batch = options.batch
     .withContractCall(options.tokenContract.methods.update_operators([{
       add_operator: {
         owner: options.ownerAddress,
@@ -39,4 +40,4 @@ export const wrapContractCallsWithApprove = (options: WrapTransactionsWithFA2App
     }]));
 
   return batch;
-};
+}

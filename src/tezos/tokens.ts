@@ -1,14 +1,22 @@
 import type { Token } from '../common';
 
-export interface FA12Token extends Token {
-  address: string;
+export interface NativeTezosToken extends Token {
+  readonly type: 'native';
 }
 
-export interface FA2Token extends Token {
-  address: string;
-  tokenId: string;
+export interface FA12TezosToken extends Token {
+  readonly type: 'fa1.2';
+  readonly address: string;
 }
 
-export type TezosToken =
-  | FA12Token
-  | FA2Token;
+export interface FA2TezosToken extends Token {
+  readonly type: 'fa2';
+  readonly address: string;
+  readonly tokenId: string;
+}
+
+export type NonNativeTezosToken =
+  | FA12TezosToken
+  | FA2TezosToken;
+
+export type TezosToken = NativeTezosToken | NonNativeTezosToken;

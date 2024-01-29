@@ -1,7 +1,14 @@
 import type { Token } from '../common';
 
-export interface ERC20Token extends Token {
-  address: string;
+export interface NativeEtherlinkToken extends Token {
+  readonly type: 'native';
 }
 
-export type EtherlinkToken = ERC20Token;
+export interface ERC20EtherlinkToken extends Token {
+  readonly type: 'erc20';
+  readonly address: string;
+}
+
+export type NonNativeEtherlinkToken = ERC20EtherlinkToken;
+
+export type EtherlinkToken = NativeEtherlinkToken | NonNativeEtherlinkToken;

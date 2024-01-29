@@ -1,11 +1,11 @@
-import type { EtherlinkToken } from './etherlink';
-import type { TezosToken } from './tezos';
+import type { NonNativeEtherlinkToken } from '../etherlink';
+import type { NonNativeTezosToken } from '../tezos';
 
 export interface TezosTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
   readonly timestamp: string;
-  readonly token: TezosToken;
+  readonly token: NonNativeTezosToken;
   readonly amount: bigint;
   readonly fee: bigint;
   readonly source: string;
@@ -17,7 +17,7 @@ export interface EtherlinkTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
   readonly timestamp: string;
-  readonly token: EtherlinkToken;
+  readonly token: NonNativeEtherlinkToken;
   readonly amount: bigint;
   readonly fee: bigint;
   readonly source: string;
@@ -46,15 +46,30 @@ export enum BridgeTokenTransferKind {
 }
 
 export enum BridgeTokenTransferStatus {
-  Created = 0,
-  Sealed = 1,
-  Finished = 2,
-  Failed = 3
+  Pending = 0,
+  Created = 1,
+  Sealed = 2,
+  Finished = 3,
+  Failed = 4
 }
 
 interface BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind;
   readonly status: BridgeTokenTransferStatus;
+}
+
+export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
+  readonly kind: BridgeTokenTransferKind.Deposit;
+  readonly status: BridgeTokenTransferStatus.Pending;
+  readonly tezosOperation: {
+    readonly hash: string;
+    readonly timestamp: string;
+    readonly token: NonNativeTezosToken;
+    readonly amount: bigint;
+    readonly source: string;
+    readonly sender?: string;
+    readonly receiver: string;
+  }
 }
 
 export interface CreatedBridgeTokenDeposit extends BridgeTokenTransferBase {
@@ -71,8 +86,22 @@ export interface FinishedBridgeTokenDeposit extends BridgeTokenTransferBase {
 }
 
 export type BridgeTokenDeposit =
+  | PendingBridgeTokenDeposit
   | CreatedBridgeTokenDeposit
   | FinishedBridgeTokenDeposit;
+
+export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly kind: BridgeTokenTransferKind.Withdrawal;
+  readonly status: BridgeTokenTransferStatus.Pending;
+  readonly etherlinkOperation: {
+    readonly hash: string;
+    readonly timestamp: string;
+    readonly token: NonNativeEtherlinkToken;
+    readonly amount: bigint;
+    readonly source: string;
+    readonly receiver: string;
+  }
+}
 
 export interface CreatedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind.Withdrawal;
@@ -97,6 +126,7 @@ export interface FinishedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
 }
 
 export type BridgeTokenWithdrawal =
+  | PendingBridgeTokenWithdrawal
   | CreatedBridgeTokenWithdrawal
   | SealedBridgeTokenWithdrawal
   | FinishedBridgeTokenWithdrawal;

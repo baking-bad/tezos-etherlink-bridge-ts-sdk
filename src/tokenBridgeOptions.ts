@@ -1,23 +1,35 @@
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
-import type { BridgeDataProvider } from './bridgeDataProvider';
-import type { Network } from './common';
+import type {
+  TokensBridgeDataProvider, LocalTokensBridgeDataProvider,
+  BalancesBridgeDataProvider,
+  TransfersBridgeDataProvider
+} from './bridgeDataProviders';
+
+interface TezosTokenBridgeOptions {
+  toolkit: TezosToolkit;
+  bridgeOptions: {
+    rollupAddress: string;
+  }
+}
+
+interface EtherlinkTokenBridgeOptions {
+  toolkit: Web3;
+  bridgeOptions: {
+    kernelAddress: string;
+    withdrawPrecompileAddress: string;
+  }
+}
+
+interface DataProvidersTokenBridgeOptions {
+  tokens: TokensBridgeDataProvider | LocalTokensBridgeDataProvider;
+  balances: BalancesBridgeDataProvider;
+  transfers: TransfersBridgeDataProvider
+}
 
 export interface TokenBridgeOptions {
-  network: Network;
-  tezos: {
-    toolkit: TezosToolkit;
-    bridgeOptions: {
-      rollupAddress: string;
-    }
-  };
-  etherlink: {
-    toolkit: Web3;
-    bridgeOptions: {
-      kernelAddress: string;
-      withdrawPrecompileAddress: string;
-    }
-  };
-  bridgeDataProvider: BridgeDataProvider
+  tezos: TezosTokenBridgeOptions;
+  etherlink: EtherlinkTokenBridgeOptions;
+  bridgeDataProviders: DataProvidersTokenBridgeOptions;
 }
