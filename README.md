@@ -26,7 +26,7 @@ npm install @baking-bad/tezos-etherlink-bridge-ts-sdk
 The SDK requires instances of the `TezosToolkit` and `Web3`. These instances must be able to sign data and transactions. Depending on the type of application, there are two approaches:
 
 **For dApps using end-user wallets:**  
-Taquito also requires the [@taquito/beacon-wallet](https://www.npmjs.com/package/@taquito/beacon-wallet) package for dApps to use end-user wallets.
+Taquito also requires the [@taquito/beacon-wallet](https://www.npmjs.com/package/@taquito/beacon-wallet) package for dApps to use end-user wallets.  
 Web3 can use the global provider via the `window` instance.  
 Example configuration:
 
