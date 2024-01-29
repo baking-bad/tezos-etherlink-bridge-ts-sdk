@@ -271,7 +271,7 @@ console.log(`
 
 ```
 
-Also, you can use the `tokenTransferUpdated` event to receive the actual status of token transfers in real-time:
+Also, you can use the `TokenBridge.events.accountTokenTransferUpdated` event to receive the actual status of token transfers in real-time:
 
 ```ts
 import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
@@ -285,7 +285,7 @@ const ctezTezosToken: FA12TezosToken = {
   address: 'KT1GM2AnBAJWdzrChp3hTYFTSb6Dmh61peBP'
 };
 
-tokenBridge.transfersBridgeDataProvider.events.tokenTransferUpdated.addListener(
+tokenBridge.events.accountTokenTransferUpdated.addListener(
   tokenTransfer => {
     if (tokenTransfer.kind === BridgeTokenTransferKind.Deposit && tokenTransfer.status === BridgeTokenTransferStatus.Finished) {
       console.log(`
@@ -408,7 +408,53 @@ console.log(`
 
 ```
 
-Also, you can use the `tokenTransferUpdated` event to receive actual status of token transfers in real-time.
+Also, you can use the `TokenBridge.events.accountTokenTransferUpdated` event to receive actual status of token transfers in real-time.
+
+### Events
+
+To receive real-time updates of token transfers, use the `TokenBridge.events`:
+1. `tokenTransferCreated` emits when a new token transfer is created for any account;
+2. `tokenTransferUpdated` emits when the data of an existing token transfer for any account is updated;
+3. `accountTokenTransferUpdated` emits when the data of an existing token transfer is updated for the currently connected accounts;
+4. `accountTokenTransferCreated` emits when a new token transfer is created for the currently connected accounts.
+
+```ts
+// ...
+// const tokenBridge: TokenBridge = ...
+// ...
+
+// Subscribe to all token transfers of the bridge.
+tokenBridge.events.tokenTransferCreated.addListener(
+  tokenTransfer => {
+    console.log('Created a new token transfer:');
+    console.dir(tokenTransfer, { depth: null });
+  }
+);
+
+// Subscribe to updates of all token transfers of the bridge.
+tokenBridge.events.tokenTransferUpdated.addListener(
+  tokenTransfer => {
+    console.log('Token transfer is updated:');
+    console.dir(tokenTransfer, { depth: null });
+  }
+);
+
+// Subscribe to only token transfers of the connected account addresses.
+tokenBridge.events.accountTokenTransferCreated.addListener(
+  tokenTransfer => {
+    console.log('Created a new token transfer:');
+    console.dir(tokenTransfer, { depth: null });
+  }
+);
+
+// Subscribe only to updates of token transfers for the connected account addresses.
+tokenBridge.events.accountTokenTransferUpdated.addListener(
+  tokenTransfer => {
+    console.log('Token transfer is updated:');
+    console.dir(tokenTransfer, { depth: null });
+  }
+);
+```
 
 ### Use data providers
 
