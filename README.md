@@ -18,7 +18,7 @@ These packages are defined as `peerDependencies`, so users of the SDK must insta
 
 ### Installation
 ```sh
-npm install @baking-bad/tezos-etherlink-bridge-ts-sdk
+npm install @baking-bad/tezos-etherlink-bridge-sdk
 ```
 
 ### Prepare the Blockchain Toolkits
@@ -58,7 +58,7 @@ The SDK only allows registered (listed) tokens to be transferred between Tezos a
 Configure a list of token pairs or the corresponding provider:  
 
 ```ts
-import type { FA12TezosToken, ERC20EtherlinkToken, TokenPair } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import type { FA12TezosToken, ERC20EtherlinkToken, TokenPair } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 
@@ -88,7 +88,7 @@ Once token pairs are configured, creating an instance of `TokenBridge` is a type
 The first one is to use the `createDefaultTokenBridge` method, which creates an instance with default options and DipDup, which is the balance and transfer data provider:  
 
 ```ts
-import { createDefaultTokenBridge } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import { createDefaultTokenBridge } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 
@@ -113,7 +113,7 @@ The second approach is to create an instance directly (`new TokenBridge(<options
 import {
   TokenBridge, LocalTokensBridgeDataProvider, DipDupBridgeDataProvider,
   defaultEtherlinkKernelAddress, defaultEtherlinkWithdrawPrecompileAddress
-} from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+} from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 
@@ -157,7 +157,7 @@ await tokenBridge.start();
 import {
   type FA12TezosToken, type ERC20EtherlinkToken, type TokenPair,
   createDefaultTokenBridge
-} from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+} from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 
@@ -229,7 +229,7 @@ Use the asynchronous `TokenBridge.waitBridgeTokenTransferStatus` method to wait 
 > ℹ️ The SDK automatically adds token approval operations. However, if needed, you can disable this feature by passing the set option flag: `useApprove: false`.
 
 ```ts
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -274,7 +274,7 @@ console.log(`
 Also, you can use the `TokenBridge.events.accountTokenTransferUpdated` event to receive the actual status of token transfers in real-time:
 
 ```ts
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -345,7 +345,7 @@ You can you the asynchronous `TokenBridge.waitBridgeTokenTransferStatus` method 
 Use the asynchronous `TokenBridge.waitBridgeTokenTransferStatus` method to wait until the specified token transfer reaches the specified status.
 
 ```ts
-import type { ERC20EtherlinkToken } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import type { ERC20EtherlinkToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -515,7 +515,7 @@ If you need to perform operations before or after deposit operations in the same
 
 ```ts
 import { OpKind, type WalletParamsWithKind } from '@taquito/taquito';
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -562,7 +562,7 @@ By default, the SDK uses the Wallet API for signing and sending operations. Howe
 Example:  
 
 ```ts
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-ts-sdk';
+import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...

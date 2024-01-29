@@ -11,12 +11,10 @@
     "noUncheckedIndexedAccess": true,
     "allowJs": false,
     "sourceMap": true,
-    "declaration": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "rootDir": "./src",
-    "outDir": "./build"
+    "noEmit": true
   },
   "include": [
     "src"
