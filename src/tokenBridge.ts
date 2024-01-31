@@ -325,8 +325,8 @@ export class TokenBridge implements TokenBridgeService {
     etherlinkTokenProxyContractAddress?: string
   ): Promise<WalletDepositResult> {
     const isNativeToken = token.type === 'native';
-    if (isNativeToken && !etherlinkTokenProxyContractAddress) {
-      throw new Error('Etherlink Toke Proxy contract not specified');
+    if (!isNativeToken && !etherlinkTokenProxyContractAddress) {
+      throw new Error('Etherlink Token Proxy contract not specified');
     }
 
     const [depositOperation, sourceAddress] = await Promise.all([
@@ -372,8 +372,8 @@ export class TokenBridge implements TokenBridgeService {
     etherlinkTokenProxyContractAddress?: string
   ): Promise<DepositResult> {
     const isNativeToken = token.type === 'native';
-    if (isNativeToken && !etherlinkTokenProxyContractAddress) {
-      throw new Error('Etherlink Toke Proxy contract not specified');
+    if (!isNativeToken && !etherlinkTokenProxyContractAddress) {
+      throw new Error('Etherlink Token Proxy contract not specified');
     }
 
     const depositOperation = await (isNativeToken
