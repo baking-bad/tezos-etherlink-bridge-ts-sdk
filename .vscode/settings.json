@@ -9,6 +9,9 @@
   "[javascript]": {
     "editor.tabSize": 2
   },
+  "[json]": {
+    "editor.tabSize": 2
+  },
   "files.insertFinalNewline": true,
   "files.eol": "\n",
   "javascript.preferences.quoteStyle": "single",
@@ -23,6 +26,7 @@
   "cSpell.words": [
     "etherlink",
     "tezos",
-    "ticketer"
+    "ticketer",
+    "mutez"
   ]
 }
