@@ -2,7 +2,7 @@ import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
 import type {
-  TokensBridgeDataProvider, LocalTokensBridgeDataProvider,
+  TokensBridgeDataProvider,
   BalancesBridgeDataProvider,
   TransfersBridgeDataProvider
 } from './bridgeDataProviders';
@@ -23,7 +23,7 @@ interface EtherlinkTokenBridgeOptions {
 }
 
 interface DataProvidersTokenBridgeOptions {
-  tokens: TokensBridgeDataProvider | LocalTokensBridgeDataProvider;
+  tokens: TokensBridgeDataProvider;
   balances: BalancesBridgeDataProvider;
   transfers: TransfersBridgeDataProvider
 }

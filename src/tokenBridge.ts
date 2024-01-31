@@ -5,7 +5,6 @@ import type Web3 from 'web3';
 
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
-  type TokenPair,
   type DepositOptions, type WalletDepositOptions, type DepositResult, type WalletDepositResult,
   type StartWithdrawResult, type FinishWithdrawResult,
 
@@ -19,14 +18,10 @@ import type {
   TransfersBridgeDataProvider
 } from './bridgeDataProviders';
 import type { TokenBridgeService } from './common';
-import {
-  EtherlinkBlockchainBridgeComponent,
-  type NonNativeEtherlinkToken
-} from './etherlink';
+import { EtherlinkBlockchainBridgeComponent, type NonNativeEtherlinkToken } from './etherlink';
 import {
   TezosBlockchainBridgeComponent, tezosTicketerContentMichelsonType,
-  type NonNativeTezosToken,
-  FA2TezosToken
+  type TezosToken, type NativeTezosToken, type NonNativeTezosToken
 } from './tezos';
 import type { TokenBridgeOptions } from './tokenBridgeOptions';
 import { guards } from './utils';
@@ -166,14 +161,14 @@ export class TokenBridge implements TokenBridgeService {
     return watcherPromise;
   }
 
-  async deposit(token: NonNativeTezosToken, amount: bigint): Promise<WalletDepositResult>;
-  async deposit(token: NonNativeTezosToken, amount: bigint, etherlinkReceiverAddress: string): Promise<WalletDepositResult>;
-  async deposit(token: NonNativeTezosToken, amount: bigint, options: WalletDepositOptions): Promise<WalletDepositResult>;
-  async deposit(token: NonNativeTezosToken, amount: bigint, options: DepositOptions): Promise<DepositResult>;
-  async deposit(token: NonNativeTezosToken, amount: bigint, etherlinkReceiverAddress: string, options: WalletDepositOptions): Promise<WalletDepositResult>;
-  async deposit(token: NonNativeTezosToken, amount: bigint, etherlinkReceiverAddress: string, options: DepositOptions): Promise<DepositResult>;
+  async deposit(token: TezosToken, amount: bigint): Promise<WalletDepositResult>;
+  async deposit(token: TezosToken, amount: bigint, etherlinkReceiverAddress: string): Promise<WalletDepositResult>;
+  async deposit(token: TezosToken, amount: bigint, options: WalletDepositOptions): Promise<WalletDepositResult>;
+  async deposit(token: TezosToken, amount: bigint, options: DepositOptions): Promise<DepositResult>;
+  async deposit(token: TezosToken, amount: bigint, etherlinkReceiverAddress: string, options: WalletDepositOptions): Promise<WalletDepositResult>;
+  async deposit(token: TezosToken, amount: bigint, etherlinkReceiverAddress: string, options: DepositOptions): Promise<DepositResult>;
   async deposit(
-    token: NonNativeTezosToken,
+    token: TezosToken,
     amount: bigint,
     etherlinkReceiverAddressOrOptions?: string | WalletDepositOptions | DepositOptions,
     options?: WalletDepositOptions | DepositOptions
@@ -184,12 +179,16 @@ export class TokenBridge implements TokenBridgeService {
     const depositOptions = typeof etherlinkReceiverAddressOrOptions !== 'string' && etherlinkReceiverAddressOrOptions ? etherlinkReceiverAddressOrOptions : options;
     const useWalletApi = depositOptions && depositOptions.useWalletApi !== undefined ? depositOptions.useWalletApi : true;
 
-    const tokenPair = await this.getRegisteredTokenPair(token);
+    const tokenPair = await this.tokensBridgeDataProvider.getRegisteredTokenPair(token);
     if (!tokenPair)
-      throw new Error(`Token (${token.address}) is not listed`);
+      throw new Error(`Token (${token.type}${token.type === 'fa1.2' ? ', ' + token.address : ''}${token.type === 'fa2' ? ', ' + token.tokenId : ''}) is not listed`);
 
-    const ticketHelperContractAddress = tokenPair.tezos.tickerHelperContractAddress;
-    const etherlinkTokenProxyContractAddress = tokenPair.etherlink.address;
+    const ticketHelperContractAddress = token.type === 'native'
+      ? tokenPair.tezos.ticketerContractAddress
+      : (tokenPair.tezos as Exclude<typeof tokenPair.tezos, { type: 'native' }>).tickerHelperContractAddress;
+    const etherlinkTokenProxyContractAddress = token.type === 'native'
+      ? undefined
+      : (tokenPair.etherlink as Exclude<typeof tokenPair.etherlink, { type: 'native' }>).address;
 
     const depositOperation = await (useWalletApi
       ? this.depositUsingWalletApi(
@@ -214,16 +213,19 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   async startWithdraw(token: NonNativeEtherlinkToken, amount: bigint, tezosReceiverAddress?: string): Promise<StartWithdrawResult> {
+    if ((token.type as string) === 'native')
+      throw new Error('Withdrawal of native tokens is not supported yet');
+
     if (!tezosReceiverAddress) {
       tezosReceiverAddress = await this.getTezosConnectedAddress();
     }
 
-    const tokenPair = await this.getRegisteredTokenPair(token);
+    const tokenPair = await this.tokensBridgeDataProvider.getRegisteredTokenPair(token);
     if (!tokenPair)
       throw new Error(`Token (${token.address}) is not listed`);
 
     const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
-    const etherlinkTokenProxyContractAddress = tokenPair.etherlink.address;
+    const etherlinkTokenProxyContractAddress = (tokenPair.etherlink as Exclude<typeof tokenPair.etherlink, { type: 'native' }>).address;
     const tezosProxyAddress = tezosTicketerAddress;
 
     const [etherlinkConnectedAddress, tezosTicketerContent] = await Promise.all([
@@ -254,18 +256,19 @@ export class TokenBridge implements TokenBridgeService {
           token,
         }
       },
-      withdrawOperation: withdrawalTransactionReceipt
+      startWithdrawOperation: withdrawalTransactionReceipt
     };
   }
 
   async finishWithdraw(bridgeTokenPartialWithdrawal: SealedBridgeTokenWithdrawal): Promise<FinishWithdrawResult> {
-    const finishWithdrawOperationHash = await this.bridgeComponents.tezos.finishWithdraw(
+    const _finishWithdrawOperation = await this.bridgeComponents.tezos.finishWithdraw(
       bridgeTokenPartialWithdrawal.rollupData.commitment,
       bridgeTokenPartialWithdrawal.rollupData.proof
     );
 
     return {
-      tokenTransfer: bridgeTokenPartialWithdrawal
+      tokenTransfer: bridgeTokenPartialWithdrawal,
+      // finishWithdrawOperation
     };
   }
 
@@ -280,15 +283,6 @@ export class TokenBridge implements TokenBridgeService {
       throw new Error('Address is unavailable');
 
     return address;
-  }
-
-  protected getRegisteredTokenPair(token: NonNativeTezosToken | NonNativeEtherlinkToken): TokenPair | undefined | null | Promise<TokenPair | null> {
-    return guards.isReadonlyArray(this.tokensBridgeDataProvider)
-      ? this.tokensBridgeDataProvider.find(tokenPair => {
-        return (tokenPair.tezos.type === token.type && tokenPair.tezos.address === token.address && (tokenPair.tezos as FA2TezosToken).tokenId === (token as FA2TezosToken).tokenId)
-          || (tokenPair.etherlink.type === token.type && tokenPair.etherlink.address === token.address);
-      })
-      : this.tokensBridgeDataProvider.getRegisteredTokenPair(token);
   }
 
   protected attachEvents() {
@@ -323,21 +317,32 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   private async depositUsingWalletApi(
-    token: NonNativeTezosToken,
+    token: TezosToken,
     amount: bigint,
     etherlinkReceiverAddress: string,
     options: WalletDepositOptions | undefined | null,
-    ticketHelperContractAddress: string,
-    etherlinkTokenProxyContractAddress: string
+    ticketHelperOrNativeTokenTicketerContractAddress: string,
+    etherlinkTokenProxyContractAddress?: string
   ): Promise<WalletDepositResult> {
+    const isNativeToken = token.type === 'native';
+    if (isNativeToken && !etherlinkTokenProxyContractAddress) {
+      throw new Error('Etherlink Toke Proxy contract not specified');
+    }
+
     const [depositOperation, sourceAddress] = await Promise.all([
-      this.bridgeComponents.tezos.wallet.deposit({
-        token,
-        amount,
-        etherlinkReceiverAddress,
-        ticketHelperContractAddress,
-        etherlinkTokenProxyContractAddress
-      }),
+      isNativeToken
+        ? this.bridgeComponents.tezos.wallet.depositNativeToken({
+          amount,
+          etherlinkReceiverAddress,
+          ticketerContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
+        })
+        : this.bridgeComponents.tezos.wallet.depositNonNativeToken({
+          token,
+          amount,
+          etherlinkReceiverAddress,
+          ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
+          etherlinkTokenProxyContractAddress: etherlinkTokenProxyContractAddress!
+        }),
       this.getTezosConnectedAddress()
     ]);
 
@@ -359,20 +364,32 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   private async depositUsingContractApi(
-    token: NonNativeTezosToken,
+    token: TezosToken,
     amount: bigint,
     etherlinkReceiverAddress: string,
     options: DepositOptions | undefined | null,
-    ticketHelperContractAddress: string,
-    etherlinkTokenProxyContractAddress: string
+    ticketHelperOrNativeTokenTicketerContractAddress: string,
+    etherlinkTokenProxyContractAddress?: string
   ): Promise<DepositResult> {
-    const depositOperation = await this.bridgeComponents.tezos.deposit({
-      token,
-      amount,
-      etherlinkReceiverAddress,
-      ticketHelperContractAddress,
-      etherlinkTokenProxyContractAddress
-    });
+    const isNativeToken = token.type === 'native';
+    if (isNativeToken && !etherlinkTokenProxyContractAddress) {
+      throw new Error('Etherlink Toke Proxy contract not specified');
+    }
+
+    const depositOperation = await (isNativeToken
+      ? this.bridgeComponents.tezos.depositNativeToken({
+        amount,
+        etherlinkReceiverAddress,
+        ticketerContractAddress: ticketHelperOrNativeTokenTicketerContractAddress
+      })
+      : this.bridgeComponents.tezos.depositNonNativeToken({
+        token,
+        amount,
+        etherlinkReceiverAddress,
+        ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
+        etherlinkTokenProxyContractAddress: etherlinkTokenProxyContractAddress!
+      })
+    );
 
     return {
       tokenTransfer: {

@@ -6,4 +6,5 @@ export type {
   FA2UpdateOperatorParameters,
   FA2UpdateOperatorsPayload
 } from './fa2';
-export type { TicketHelperContract } from './ticketHelper';
+export type { NativeTokenTicketHelper } from './nativeTokenTicketHelper';
+export type { NonNativeTokenTicketHelper } from './nonNativeTokenTicketHelper';

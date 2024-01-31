@@ -1,10 +1,10 @@
 import type { TokenPair } from '../../bridge';
-import type { NonNativeEtherlinkToken } from '../../etherlink';
-import type { NonNativeTezosToken } from '../../tezos';
+import type { EtherlinkToken } from '../../etherlink';
+import type { TezosToken } from '../../tezos';
 
 export interface TokensBridgeDataProvider {
-  getRegisteredTokenPair(token: NonNativeTezosToken | NonNativeEtherlinkToken): Promise<TokenPair | null>;
+  getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null>;
 
-  getRegisteredTokenPairs(): Promise<readonly TokenPair[]>;
-  getRegisteredTokenPairs(offset: number, limit: number): Promise<readonly TokenPair[]>;
+  getRegisteredTokenPairs(): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
 }

@@ -1,6 +1,6 @@
 import type { ContractProvider, OperationBatch, ParamsWithKind, Wallet, WalletOperationBatch, WalletParamsWithKind } from '@taquito/taquito';
 
-import { TicketHelperContract, FA12Contract, FA2Contract } from './contracts';
+import type { NonNativeTokenTicketHelper, FA12Contract, FA2Contract, NativeTokenTicketHelper } from './contracts';
 import { TezosBlockchainBridgeComponentBase } from './tezosBlockchainBridgeComponentBase';
 import type { TezosBlockchainBridgeComponentOptions } from './tezosBlockchainBridgeComponentOptions';
 
@@ -17,8 +17,12 @@ export class TezosBlockchainBridgeComponent extends TezosBlockchainBridgeCompone
     return this.tezosToolkit.contract.batch(params);
   }
 
-  protected getTicketHelperContract(ticketHelperContractAddress: string): Promise<TicketHelperContract<ContractProvider>> {
-    return this.tezosToolkit.contract.at<TicketHelperContract<ContractProvider>>(ticketHelperContractAddress);
+  protected getNativeTokenTicketHelperContract(ticketHelperContractAddress: string): Promise<NativeTokenTicketHelper<ContractProvider>> {
+    return this.tezosToolkit.contract.at<NativeTokenTicketHelper<ContractProvider>>(ticketHelperContractAddress);
+  }
+
+  protected getNonNativeTokenTicketHelperContract(ticketHelperContractAddress: string): Promise<NonNativeTokenTicketHelper<ContractProvider>> {
+    return this.tezosToolkit.contract.at<NonNativeTokenTicketHelper<ContractProvider>>(ticketHelperContractAddress);
   }
 
   protected getFA12TokenContract(fa12TokenContractAddress: string): Promise<FA12Contract<ContractProvider>> {
@@ -35,8 +39,12 @@ export class WalletTezosBlockchainBridgeComponent extends TezosBlockchainBridgeC
     return this.tezosToolkit.wallet.batch(params);
   }
 
-  protected getTicketHelperContract(ticketHelperContractAddress: string): Promise<TicketHelperContract<Wallet>> {
-    return this.tezosToolkit.wallet.at<TicketHelperContract<Wallet>>(ticketHelperContractAddress);
+  protected getNativeTokenTicketHelperContract(ticketHelperContractAddress: string): Promise<NativeTokenTicketHelper<Wallet>> {
+    return this.tezosToolkit.wallet.at<NativeTokenTicketHelper<Wallet>>(ticketHelperContractAddress);
+  }
+
+  protected getNonNativeTokenTicketHelperContract(ticketHelperContractAddress: string): Promise<NonNativeTokenTicketHelper<Wallet>> {
+    return this.tezosToolkit.wallet.at<NonNativeTokenTicketHelper<Wallet>>(ticketHelperContractAddress);
   }
 
   protected getFA12TokenContract(fa12TokenContractAddress: string): Promise<FA12Contract<Wallet>> {

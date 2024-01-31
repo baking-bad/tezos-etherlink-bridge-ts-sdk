@@ -18,6 +18,7 @@ export class DipDupBridgeDataProvider implements TransfersBridgeDataProvider, Ba
 
   readonly baseUrl: string;
   readonly events: TransfersBridgeDataProvider['events'] = {
+    tokenTransferCreated: new EventEmitter(),
     tokenTransferUpdated: new EventEmitter()
   };
 
@@ -75,18 +76,30 @@ export class DipDupBridgeDataProvider implements TransfersBridgeDataProvider, Ba
     throw new Error('Method not implemented.');
   }
 
+  getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
+  getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
   getTokenTransfers(userAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
   getTokenTransfers(userAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(_userAddresses: readonly string[], _offset?: number, _limit?: number): Promise<BridgeTokenTransfer[]> {
+  getTokenTransfers(
+    _offsetOrUserAddresses?: number | readonly string[],
+    _limitOrOffset?: number,
+    _limit?: number
+  ): Promise<BridgeTokenTransfer[]> {
     throw new Error('Method not implemented.');
   }
 
-  getBalance(accountAddress: string, token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {
+  getBalance(_accountAddress: string, _token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {
     throw new Error('Method not implemented.');
   }
+
   getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
+  getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalanceInfo>;
   getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
-  getBalances(accountAddress: unknown, offset?: unknown, limit?: unknown): Promise<AccountTokenBalanceInfo> {
+  getBalances(
+    _accountAddress: string,
+    _tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
+    _limit?: number
+  ): Promise<AccountTokenBalanceInfo> {
     throw new Error('Method not implemented.');
   }
 

@@ -54,7 +54,7 @@ export class EtherlinkBlockchainBridgeComponent {
 
     // TODO: refactoring
     const gasPrice = await this.etherlinkToolkit.eth.getGasPrice();
-    const receipt: TransactionReceipt = await this.etherlinkToolkit.eth.sendTransaction({
+    const receipt = await this.etherlinkToolkit.eth.sendTransaction({
       from: params.etherlinkSenderAddress,
       to: this.withdrawPrecompileAddress,
       gas: BigInt('30000'), // TODO: need to calculate the value or hardcode it in config 

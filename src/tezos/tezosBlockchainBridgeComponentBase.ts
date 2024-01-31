@@ -1,14 +1,20 @@
 import { LocalForger } from '@taquito/local-forging';
 import type { OperationContentsSmartRollupExecuteOutboxMessage } from '@taquito/rpc';
-import { OpKind, type TezosToolkit, type Wallet, type ContractProvider, type ParamsWithKind } from '@taquito/taquito';
+import { OpKind, type TezosToolkit, type Wallet, type ContractProvider, type ContractMethod } from '@taquito/taquito';
 
-import type { FA12Contract, FA2Contract, TicketHelperContract } from './contracts';
+import type { FA12Contract, FA2Contract, NativeTokenTicketHelper, NonNativeTokenTicketHelper } from './contracts';
 import { fa12helper, fa2helper } from './helpers';
 import type { TezosBlockchainBridgeComponentOptions } from './tezosBlockchainBridgeComponentOptions';
 import type { FA12TezosToken, FA2TezosToken, NonNativeTezosToken } from './tokens';
 import { tezosUtils } from '../utils';
 
-export interface DepositParams {
+export interface DepositNativeTokenParams {
+  amount: bigint;
+  etherlinkReceiverAddress: string;
+  ticketerContractAddress: string;
+}
+
+export interface DepositNonNativeTokensParams {
   token: NonNativeTezosToken;
   amount: bigint;
   etherlinkReceiverAddress: string;
@@ -26,8 +32,20 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     this.rollupAddress = options.rollupAddress;
   }
 
-  async deposit(params: DepositParams): Promise<ReturnType<ReturnType<TApi['batch']>['send']>> {
-    const depositOperation = await this.createDepositOperation(
+  async depositNativeToken(params: DepositNativeTokenParams): Promise<ReturnType<ReturnType<TApi['batch']>['send']>> {
+    const depositOperation = await this.createDepositNativeTokenOperation(
+      params.etherlinkReceiverAddress,
+      params.ticketerContractAddress
+    );
+
+    const batch = this.createBatch()
+      .withContractCall(depositOperation as ContractMethod<ContractProvider> & ContractMethod<Wallet>, { amount: Number(params.amount), mutez: true });
+
+    return batch.send() as ReturnType<ReturnType<TApi['batch']>['send']>;
+  }
+
+  async depositNonNativeToken(params: DepositNonNativeTokensParams): Promise<ReturnType<ReturnType<TApi['batch']>['send']>> {
+    const depositOperation = await this.createDepositNonNativeTokenOperation(
       params.etherlinkReceiverAddress,
       params.amount,
       params.etherlinkTokenProxyContractAddress,
@@ -82,13 +100,25 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     return operationHash;
   }
 
-  protected async createDepositOperation(
+  protected async createDepositNativeTokenOperation(etherlinkReceiverAddress: string, ticketHelperContractAddress: string) {
+    const ticketHelperContract = await this.getNativeTokenTicketHelperContract(ticketHelperContractAddress);
+    const routingInfo = this.packDepositRoutingInfo(etherlinkReceiverAddress);
+
+    const operation = ticketHelperContract.methodsObject.deposit({
+      evm_address: this.rollupAddress,
+      l2_address: routingInfo,
+    });
+
+    return operation;
+  }
+
+  protected async createDepositNonNativeTokenOperation(
     etherlinkReceiverAddress: string,
     amount: bigint,
     etherlinkTokenProxyContractAddress: string,
     ticketHelperContractAddress: string
   ) {
-    const ticketHelperContract = await this.getTicketHelperContract(ticketHelperContractAddress);
+    const ticketHelperContract = await this.getNonNativeTokenTicketHelperContract(ticketHelperContractAddress);
     const routingInfo = this.packDepositRoutingInfo(etherlinkReceiverAddress, etherlinkTokenProxyContractAddress);
 
     const operation = ticketHelperContract.methodsObject.deposit({
@@ -100,12 +130,13 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     return operation;
   }
 
-  protected packDepositRoutingInfo(etherlinkReceiverAddress: string, etherlinkTokenProxyContractAddress: string): string {
+  protected packDepositRoutingInfo(etherlinkReceiverAddress: string, etherlinkTokenProxyContractAddress?: string): string {
     // TODO: validate
     // checkEvmAddressIsCorrect(etherlinkReceiverAddress);
     // checkEvmAddressIsCorrect(etherlinkTokenProxyContractAddress);
-
-    return `${etherlinkReceiverAddress.substring(2)}${etherlinkTokenProxyContractAddress.substring(2)}`;
+    return (etherlinkTokenProxyContractAddress)
+      ? `${etherlinkReceiverAddress.substring(2)}${etherlinkTokenProxyContractAddress.substring(2)}`
+      : etherlinkReceiverAddress.substring(2);
   }
 
   protected async wrapContractCallsWithFA12TokenApprove(
@@ -151,7 +182,8 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
   }
 
   protected abstract createBatch(params?: Parameters<TApi['batch']>[0]): ReturnType<TApi['batch']>;
-  protected abstract getTicketHelperContract(ticketHelperContractAddress: string): Promise<TicketHelperContract<TApi>>;
+  protected abstract getNativeTokenTicketHelperContract(ticketHelperContractAddress: string): Promise<NativeTokenTicketHelper<TApi>>;
+  protected abstract getNonNativeTokenTicketHelperContract(ticketHelperContractAddress: string): Promise<NonNativeTokenTicketHelper<TApi>>;
   protected abstract getFA12TokenContract(fa12TokenContractAddress: string): Promise<FA12Contract<TApi>>;
   protected abstract getFA2TokenContract(fa2TokenContractAddress: string): Promise<FA2Contract<TApi>>;
 }

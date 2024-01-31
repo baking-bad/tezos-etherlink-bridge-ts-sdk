@@ -1,8 +1,10 @@
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
-import { DipDupBridgeDataProvider, type LocalTokensBridgeDataProvider, type TokensBridgeDataProvider } from './bridgeDataProviders';
+import type { TokenPair } from './bridge';
+import { DipDupBridgeDataProvider, LocalTokensBridgeDataProvider, type TokensBridgeDataProvider } from './bridgeDataProviders';
 import { TokenBridge } from './tokenBridge';
+import { guards } from './utils';
 
 interface DefaultTezosTokenBridgeOptions {
   toolkit: TezosToolkit;
@@ -20,8 +22,8 @@ interface DefaultDipDupBridgeDataProvider {
 export interface DefaultTokenBridgeOptions {
   tezos: DefaultTezosTokenBridgeOptions;
   etherlink: DefaultEtherlinkTokenBridgeOptions;
-  tokenPairs: TokensBridgeDataProvider | LocalTokensBridgeDataProvider,
-  dipDup: DefaultDipDupBridgeDataProvider
+  tokenPairs: TokensBridgeDataProvider | ReadonlyArray<Readonly<TokenPair>>;
+  dipDup: DefaultDipDupBridgeDataProvider;
 }
 
 export const defaultEtherlinkKernelAddress = '0x0000000000000000000000000000000000000000';
@@ -30,8 +32,11 @@ export const defaultEtherlinkWithdrawPrecompileAddress = '0x00000000000000000000
 export const createDefaultTokenBridge = (options: DefaultTokenBridgeOptions): TokenBridge => {
   const dipDup = new DipDupBridgeDataProvider({
     baseUrl: options.dipDup.baseUrl,
-    autoUpdate: 'websocket'
+    autoUpdate: false
   });
+  const tokensProvider = guards.isReadonlyArray(options.tokenPairs)
+    ? new LocalTokensBridgeDataProvider(options.tokenPairs)
+    : options.tokenPairs;
 
   return new TokenBridge({
     tezos: {
@@ -48,7 +53,7 @@ export const createDefaultTokenBridge = (options: DefaultTokenBridgeOptions): To
       }
     },
     bridgeDataProviders: {
-      tokens: options.tokenPairs,
+      tokens: tokensProvider,
       balances: dipDup,
       transfers: dipDup
     }

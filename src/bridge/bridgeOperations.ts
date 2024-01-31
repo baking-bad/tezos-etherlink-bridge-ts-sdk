@@ -1,11 +1,11 @@
-import type { NonNativeEtherlinkToken } from '../etherlink';
-import type { NonNativeTezosToken } from '../tezos';
+import type { EtherlinkToken } from '../etherlink';
+import type { TezosToken } from '../tezos';
 
 export interface TezosTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
   readonly timestamp: string;
-  readonly token: NonNativeTezosToken;
+  readonly token: TezosToken;
   readonly amount: bigint;
   readonly fee: bigint;
   readonly source: string;
@@ -17,7 +17,7 @@ export interface EtherlinkTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
   readonly timestamp: string;
-  readonly token: NonNativeEtherlinkToken;
+  readonly token: EtherlinkToken;
   readonly amount: bigint;
   readonly fee: bigint;
   readonly source: string;
@@ -64,7 +64,7 @@ export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
   readonly tezosOperation: {
     readonly hash: string;
     readonly timestamp: string;
-    readonly token: NonNativeTezosToken;
+    readonly token: TezosToken;
     readonly amount: bigint;
     readonly source: string;
     readonly sender?: string;
@@ -96,7 +96,7 @@ export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly etherlinkOperation: {
     readonly hash: string;
     readonly timestamp: string;
-    readonly token: NonNativeEtherlinkToken;
+    readonly token: EtherlinkToken;
     readonly amount: bigint;
     readonly source: string;
     readonly receiver: string;

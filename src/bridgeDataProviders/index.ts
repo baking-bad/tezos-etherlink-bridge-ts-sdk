@@ -1,5 +1,5 @@
-export type {
-  TokensBridgeDataProvider,
+export {
+  type TokensBridgeDataProvider,
   LocalTokensBridgeDataProvider
 } from './tokensBridgeDataProvider';
 

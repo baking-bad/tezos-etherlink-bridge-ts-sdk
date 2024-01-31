@@ -1,16 +1,23 @@
-import type { ERC20EtherlinkToken } from '../etherlink';
-import type { FA12TezosToken, FA2TezosToken } from '../tezos';
+import type { NativeEtherlinkToken, ERC20EtherlinkToken } from '../etherlink';
+import type { NativeTezosToken, FA12TezosToken, FA2TezosToken } from '../tezos';
 
-interface TezosTokenTicketerInfo {
+interface NativeTezosTokenTicketerInfo {
+  readonly ticketerContractAddress: string;
+}
+
+interface NonNativeTezosTokenTicketerInfo {
   readonly ticketerContractAddress: string;
   readonly tickerHelperContractAddress: string;
 }
 
 type TezosTokenInfo =
-  | FA12TezosToken & TezosTokenTicketerInfo
-  | FA2TezosToken & TezosTokenTicketerInfo;
+  | NativeTezosToken & NativeTezosTokenTicketerInfo
+  | FA12TezosToken & NonNativeTezosTokenTicketerInfo
+  | FA2TezosToken & NonNativeTezosTokenTicketerInfo;
 
-type EtherlinkTokenInfo = ERC20EtherlinkToken;
+type EtherlinkTokenInfo =
+  | NativeEtherlinkToken
+  | ERC20EtherlinkToken;
 
 export type TokenPair = {
   readonly tezos: TezosTokenInfo;
