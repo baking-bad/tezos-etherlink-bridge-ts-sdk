@@ -1,7 +1,7 @@
 import type { GraphQLResponse, TokenTransferDto } from './dtos';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
-import { BridgeTokenTransferKind, type BridgeTokenTransfer, BridgeTokenTransferStatus } from '../../bridge';
+import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridge';
 import { EventEmitter, RemoteService, ToEventEmitter, type TokenBridgeService } from '../../common';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
@@ -54,8 +54,6 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }`;
 
   readonly events: TransfersBridgeDataProvider['events'] = {
-    accountTokenTransferCreated: new EventEmitter(),
-    accountTokenTransferUpdated: new EventEmitter(),
     tokenTransferCreated: new EventEmitter(),
     tokenTransferUpdated: new EventEmitter()
   };
@@ -194,6 +192,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   subscribeToTokenTransfers(): void;
   subscribeToTokenTransfers(accountAddress: string): void;
   subscribeToTokenTransfers(accountAddresses: readonly string[]): void;
+  subscribeToTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
   subscribeToTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
 
   }
@@ -201,6 +200,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   unsubscribeFromTokenTransfers(): void;
   unsubscribeFromTokenTransfers(accountAddress: string): void;
   unsubscribeFromTokenTransfers(accountAddresses: readonly string[]): void;
+  unsubscribeFromTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
   unsubscribeFromTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
 
   }

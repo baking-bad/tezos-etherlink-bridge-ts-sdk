@@ -28,6 +28,7 @@
     "tezos",
     "ticketer",
     "mutez",
-    "dipdup"
+    "dipdup",
+    "endregion"
   ]
 }

@@ -4,8 +4,6 @@ import type { PublicEventEmitter } from '../../common';
 interface TransfersBridgeDataProviderEvents {
   readonly tokenTransferCreated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
   readonly tokenTransferUpdated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
-  readonly accountTokenTransferCreated: PublicEventEmitter<readonly [accountAddress: string, tokenTransfer: BridgeTokenTransfer]>;
-  readonly accountTokenTransferUpdated: PublicEventEmitter<readonly [accountAddress: string, tokenTransfer: BridgeTokenTransfer]>;
 }
 
 export interface TransfersBridgeDataProvider {
@@ -28,10 +26,12 @@ export interface TransfersBridgeDataProvider {
   subscribeToTokenTransfers(): void;
   subscribeToTokenTransfers(accountAddress: string): void;
   subscribeToTokenTransfers(accountAddresses: readonly string[]): void;
+  subscribeToTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
 
   unsubscribeFromTokenTransfers(): void;
   unsubscribeFromTokenTransfers(accountAddress: string): void;
   unsubscribeFromTokenTransfers(accountAddresses: readonly string[]): void;
+  unsubscribeFromTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
 
   unsubscribeFromAllTokenTransfers(): void;
 }

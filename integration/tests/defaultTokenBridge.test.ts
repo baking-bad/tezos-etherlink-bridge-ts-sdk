@@ -2,13 +2,10 @@ import { TezosToolkit } from '@taquito/taquito';
 import Web3 from 'web3';
 
 import {
-  BridgeTokenTransferKind,
   BridgeTokenTransferStatus,
   createDefaultTokenBridge,
-  FinishedBridgeTokenDeposit,
   NativeEtherlinkToken,
   NativeTezosToken,
-  PendingBridgeTokenDeposit,
   type TokenBridge
 } from '../../src';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
