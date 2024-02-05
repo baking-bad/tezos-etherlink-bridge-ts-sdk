@@ -1,20 +1,50 @@
-export interface WebSocketRequestDto {
-  method: string;
-  data: unknown;
-  requestId: number;
+import type { GraphQLResponse } from '../dtos';
+
+export interface WebSocketRequestBaseDto {
+  type: string;
 }
+
+export interface SubscribeToSubscriptionWebSocketRequestDto extends WebSocketRequestBaseDto {
+  type: 'start';
+  id: string;
+  payload: {
+    query: string;
+  }
+}
+
+export interface UnsubscribeFromSubscriptionWebSocketRequestDto extends WebSocketRequestBaseDto {
+  type: 'stop';
+  id: string;
+}
+
+export type WebSocketRequestDto =
+  | SubscribeToSubscriptionWebSocketRequestDto
+  | UnsubscribeFromSubscriptionWebSocketRequestDto;
 
 export interface WebSocketResponseBaseDto {
-  event: string;
-  data: unknown;
-  requestId?: number;
+  type: string;
 }
 
-export interface WebSocketBridgeTokenTransferResponseDto extends WebSocketResponseBaseDto {
-  event: 'transfer';
-  // TODO: create the BridgeTokenTransferDto type and use it here
-  data: unknown;
+export interface HeartbeatWebSocketResponseDto {
+  type: 'ka';
+}
+
+export interface ConnectionAcknowledgmentWebSocketResponseDto {
+  type: 'connection_ack';
+}
+
+export interface DataWebSocketResponseDto<TData = unknown> {
+  type: 'data';
+  id: string;
+  payload: GraphQLResponse<TData>
 }
 
 export type WebSocketResponseDto =
-  | WebSocketBridgeTokenTransferResponseDto;
+  | HeartbeatWebSocketResponseDto
+  | ConnectionAcknowledgmentWebSocketResponseDto
+  | DataWebSocketResponseDto;
+
+export type DipDupWebSocketResponseDto = Exclude<
+  WebSocketResponseDto,
+  HeartbeatWebSocketResponseDto | ConnectionAcknowledgmentWebSocketResponseDto
+>;

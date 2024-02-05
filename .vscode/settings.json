@@ -27,6 +27,7 @@
     "etherlink",
     "tezos",
     "ticketer",
-    "mutez"
+    "mutez",
+    "dipdup"
   ]
 }

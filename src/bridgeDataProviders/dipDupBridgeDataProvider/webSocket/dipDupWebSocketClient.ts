@@ -1,27 +1,31 @@
-import { WebSocketResponseDto } from './dtos';
-import { WebSocketClient } from './webSocketClient';
+import type {
+  DipDupWebSocketResponseDto,
+  SubscribeToSubscriptionWebSocketRequestDto, UnsubscribeFromSubscriptionWebSocketRequestDto,
+  WebSocketResponseDto
+} from './dtos';
+import { WebSocketClient, type WebSocketCloseEvent, type Subscription } from './webSocketClient';
 import { EventEmitter, TimeoutScheduler, type PublicEventEmitter, type ToEventEmitter } from '../../../common';
+import { textUtils } from '../../../utils';
 
 interface DipDupWebSocketClientEvents {
-  messageReceived: PublicEventEmitter<readonly [message: WebSocketResponseDto]>;
+  messageReceived: PublicEventEmitter<readonly [message: DipDupWebSocketResponseDto]>;
 }
 
 export class DipDupWebSocketClient {
-  protected static readonly WEB_SOCKET_URI = '/ws';
-  protected static readonly TOP_OF_BOOK_STREAM = 'topOfBook';
-  protected static readonly ORDER_BOOK_STREAM = 'orderBook';
-
   readonly events: DipDupWebSocketClientEvents = {
     messageReceived: new EventEmitter()
   };
 
   protected socket: WebSocketClient;
-
-  private _isStarted = false;
+  protected subscriptions: Map<string, Subscription> = new Map();
+  protected subscriptionIdCounter: number = 0;
   protected reconnectScheduler = new TimeoutScheduler([1000, 5000, 30000, 60000], 120000);
 
+  private _isStarted = false;
+  private _isStarting = false;
+
   constructor(protected readonly webSocketApiBaseUrl: string) {
-    this.socket = new WebSocketClient(new URL(DipDupWebSocketClient.WEB_SOCKET_URI, this.webSocketApiBaseUrl));
+    this.socket = new WebSocketClient(new URL(textUtils.trimSlashes(this.webSocketApiBaseUrl) + '/v1/graphql'));
   }
 
   get isStarted() {
@@ -29,16 +33,22 @@ export class DipDupWebSocketClient {
   }
 
   async start(): Promise<void> {
-    if (this.isStarted)
+    if (this.isStarted || this._isStarting)
       return;
 
-    this.socket.events.messageReceived.addListener(this.onSocketMessageReceived);
-    this.socket.events.closed.addListener(this.onSocketClosed);
-    await this.socket.connect();
+    this._isStarting = true;
 
-    this.subscribeOnStreams(this.socket);
-
-    this._isStarted = true;
+    try {
+      this.socket.events.messageReceived.addListener(this.onSocketMessageReceived);
+      this.socket.events.closed.addListener(this.onSocketClosed);
+      await this.connect();
+      this._isStarted = true;
+    }
+    catch (error: unknown) {
+      this._isStarting = false;
+      this._isStarted = false;
+      throw new Error('Socket error', { cause: error });
+    }
   }
 
   stop() {
@@ -47,25 +57,101 @@ export class DipDupWebSocketClient {
 
     this.socket.events.messageReceived.removeListener(this.onSocketMessageReceived);
     this.socket.events.closed.removeListener(this.onSocketClosed);
-    this.socket.disconnect();
+    this.disconnect();
     this.reconnectScheduler[Symbol.dispose]();
 
     this._isStarted = false;
   }
 
-  protected subscribeOnStreams(socket: WebSocketClient) {
-    socket.subscribe(DipDupWebSocketClient.TOP_OF_BOOK_STREAM);
-    socket.subscribe(DipDupWebSocketClient.ORDER_BOOK_STREAM);
+  subscribe(query: string): boolean {
+    let subscription = this.subscriptions.get(query);
+    if (subscription) {
+      subscription.subscribers++;
+      return false;
+    }
+
+    subscription = {
+      id: this.subscriptionIdCounter++,
+      query,
+      subscribers: 1,
+    };
+
+    this.subscribeToSubscription(subscription);
+    this.subscriptions.set(subscription.query, subscription);
+
+    return true;
   }
 
-  protected onSocketClosed = (socket: WebSocketClient, _event: CloseEvent) => {
-    this.reconnectScheduler.setTimeout(async () => {
-      await socket.connect();
-      this.subscribeOnStreams(socket);
+  unsubscribe(query: string): boolean {
+    const subscription = this.subscriptions.get(query);
+    if (!subscription)
+      return false;
+
+    if (--subscription.subscribers > 0)
+      return false;
+
+    this.unsubscribeFromSubscription(subscription.id);
+    this.subscriptions.delete(subscription.query);
+
+    return true;
+  }
+
+  protected async connect(): Promise<void> {
+    await this.socket.connect();
+    this.socket.send({
+      type: 'connection_init',
+      payload: {
+        headers: {
+          'content-type': 'application/json'
+        },
+        lazy: true
+      }
+    });
+
+    for (const subscription of this.subscriptions.values()) {
+      this.subscribeToSubscription(subscription);
+    }
+  }
+
+  protected subscribeToSubscription(subscription: Subscription) {
+    const message: SubscribeToSubscriptionWebSocketRequestDto = {
+      type: 'start',
+      id: subscription.id.toString(),
+      payload: {
+        query: subscription.query
+      }
+    };
+
+    this.socket.send(message);
+  }
+
+  protected unsubscribeFromSubscription(subscriptionId: Subscription['id']) {
+    const message: UnsubscribeFromSubscriptionWebSocketRequestDto = {
+      type: 'stop',
+      id: subscriptionId.toString()
+    };
+
+    this.socket.send(message);
+  }
+
+  protected disconnect(): void {
+    this.socket.disconnect();
+  }
+
+  protected onSocketClosed = (_socket: WebSocketClient, _event: WebSocketCloseEvent) => {
+    this.reconnectScheduler.setTimeout(() => {
+      this.connect();
     });
   };
 
-  protected onSocketMessageReceived = (message: WebSocketResponseDto) => {
-    (this.events.messageReceived as ToEventEmitter<typeof this.events.messageReceived>).emit(message);
+  protected onSocketMessageReceived = (message: unknown) => {
+    switch ((message as WebSocketResponseDto).type) {
+      case 'ka':
+      case 'connection_ack':
+        break;
+
+      default:
+        (this.events.messageReceived as ToEventEmitter<typeof this.events.messageReceived>).emit(message as DipDupWebSocketResponseDto);
+    }
   };
 }

@@ -1,12 +1,16 @@
+import { textUtils } from '../utils';
+
 export type RemoteServiceResponseFormat = 'none' | 'json' | 'text';
 
 export abstract class RemoteService {
-  constructor(readonly baseUrl: string) {
+  readonly baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = textUtils.trimSlashes(baseUrl);
   }
 
   protected getUrl(uri: string) {
-    // TODO: check slashes
-    return new URL(this.baseUrl + '/' + uri);
+    return new URL(this.baseUrl + '/' + textUtils.trimSlashes(uri));
   }
 
   protected async getRequestInit(requestInit: RequestInit = {}) {
@@ -16,7 +20,6 @@ export abstract class RemoteService {
     if (!headers.has('Content-Type'))
       headers.append('Content-Type', 'application/json');
 
-    requestInit.credentials = 'include';
     requestInit.headers = headers;
     return requestInit;
   }

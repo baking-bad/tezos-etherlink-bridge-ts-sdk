@@ -9,8 +9,8 @@ export interface TezosTransferTokensOperation {
   readonly amount: bigint;
   readonly fee: bigint;
   readonly source: string;
-  readonly sender: string;
   readonly receiver: string;
+  readonly receiverProxy: string | null;
 }
 
 export interface EtherlinkTransferTokensOperation {
@@ -22,6 +22,7 @@ export interface EtherlinkTransferTokensOperation {
   readonly fee: bigint;
   readonly source: string;
   readonly receiver: string;
+  readonly receiverProxy: string | null;
 }
 
 export interface InitialRollupData {
@@ -67,8 +68,8 @@ export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
     readonly token: TezosToken;
     readonly amount: bigint;
     readonly source: string;
-    readonly sender?: string;
     readonly receiver: string;
+    readonly receiverProxy: string | null;
   }
 }
 
@@ -100,6 +101,7 @@ export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
     readonly amount: bigint;
     readonly source: string;
     readonly receiver: string;
+    readonly receiverProxy: string | null;
   }
 }
 

@@ -2,6 +2,7 @@
 /* eslint-env node */
 const startTime = process.hrtime.bigint();
 import { spawnSync } from 'child_process';
+import path from 'node:path';
 
 import { build } from 'esbuild';
 
@@ -18,6 +19,25 @@ const makeAllPackagesExternalPlugin = {
 };
 
 /**
+ * @type {import('esbuild').Plugin}
+ */
+const applyPlatformModulesPlugin = {
+  name: 'apply-platform-modules-plugin',
+  setup: build => {
+    const extensionRegEx = /\.(js|mjs)$/;
+    build.onResolve(
+      { filter: /index.abstract/ },
+      args => {
+        let updatedPath = extensionRegEx.test(args.path) ? args.path.replace(extensionRegEx, ext => ext.replace('js', 'ts')) : args.path + '.ts';
+        updatedPath = updatedPath.replace('abstract', build.initialOptions.platform === 'browser' ? 'browser' : 'node');
+
+        return { path: path.join(args.resolveDir, updatedPath) };
+      }
+    );
+  }
+};
+
+/**
  * @type {import('esbuild').BuildOptions}
  */
 const baseOptions = {
@@ -28,7 +48,8 @@ const baseOptions = {
   sourcemap: true,
   minify: false,
   plugins: [
-    makeAllPackagesExternalPlugin
+    makeAllPackagesExternalPlugin,
+    applyPlatformModulesPlugin
   ]
 };
 
