@@ -66,14 +66,14 @@ export class DipDupWebSocketClient {
   subscribe(query: string): boolean {
     let subscription = this.subscriptions.get(query);
     if (subscription) {
-      subscription.subscribers++;
+      subscription.subscribersCount++;
       return false;
     }
 
     subscription = {
       id: this.subscriptionIdCounter++,
       query,
-      subscribers: 1,
+      subscribersCount: 1,
     };
 
     this.subscribeToSubscription(subscription);
@@ -87,7 +87,7 @@ export class DipDupWebSocketClient {
     if (!subscription)
       return false;
 
-    if (--subscription.subscribers > 0)
+    if (--subscription.subscribersCount > 0)
       return false;
 
     this.unsubscribeFromSubscription(subscription.id);
@@ -136,6 +136,7 @@ export class DipDupWebSocketClient {
 
   protected disconnect(): void {
     this.socket.disconnect();
+    this.subscriptions.clear();
   }
 
   protected onSocketClosed = (_socket: WebSocketClient, _event: WebSocketCloseEvent) => {

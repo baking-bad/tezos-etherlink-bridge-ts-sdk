@@ -4,30 +4,30 @@ import type { TezosToken } from '../tezos';
 export interface TezosTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
-  readonly timestamp: string;
-  readonly token: TezosToken;
   readonly amount: bigint;
-  readonly fee: bigint;
+  readonly token: TezosToken;
   readonly source: string;
   readonly receiver: string;
   readonly receiverProxy: string | null;
+  readonly fee: bigint;
+  readonly timestamp: string;
 }
 
 export interface EtherlinkTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
-  readonly timestamp: string;
-  readonly token: EtherlinkToken;
   readonly amount: bigint;
-  readonly fee: bigint;
+  readonly token: EtherlinkToken;
   readonly source: string;
   readonly receiver: string;
   readonly receiverProxy: string | null;
+  readonly fee: bigint;
+  readonly timestamp: string;
 }
 
 export interface InitialRollupData {
-  readonly outboxMessageLevel: bigint;
-  readonly outboxMessageId: bigint;
+  readonly outboxMessageLevel: number;
+  readonly outboxMessageIndex: number;
 }
 
 export interface CementedRollupData extends InitialRollupData {
@@ -64,12 +64,12 @@ export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
   readonly status: BridgeTokenTransferStatus.Pending;
   readonly tezosOperation: {
     readonly hash: string;
-    readonly timestamp: string;
     readonly token: TezosToken;
     readonly amount: bigint;
     readonly source: string;
     readonly receiver: string;
     readonly receiverProxy: string | null;
+    readonly timestamp: string;
   }
 }
 
@@ -96,12 +96,12 @@ export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly status: BridgeTokenTransferStatus.Pending;
   readonly etherlinkOperation: {
     readonly hash: string;
-    readonly timestamp: string;
     readonly token: EtherlinkToken;
     readonly amount: bigint;
     readonly source: string;
     readonly receiver: string;
     readonly receiverProxy: string | null;
+    readonly timestamp: string;
   }
 }
 

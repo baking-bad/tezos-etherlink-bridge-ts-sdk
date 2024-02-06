@@ -1,41 +1,48 @@
-import type { BridgeDepositDto, TezosTokenDto } from './dtos';
+import type { BridgeDepositDto, BridgeWithdrawalDto, TezosTokenDto } from './dtos';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
-  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit
+  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit, BridgeTokenWithdrawal, CreatedBridgeTokenWithdrawal
 } from '../../bridge';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
 import { etherlinkUtils } from '../../utils';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto): TezosToken => {
-  if (tezosTokenDto.contract_address === 'KT1000000000000000000000000000000000')
+  if (tezosTokenDto.id === 'xtz')
     return { type: 'native' };
 
   // TODO: detect fa2 token
-  return { type: 'fa1.2', address: tezosTokenDto.contract_address };
+  return {
+    type: 'unknown',
+    address: tezosTokenDto.contract_address,
+    tokenId: tezosTokenDto.token_id
+  } as any;
 };
 
-const mapEtherlinkTokenDtoToEtherlinkToken = (): EtherlinkToken => {
-  // TODO: receive the etherlink token from DipDup
+const mapEtherlinkTokenDtoToEtherlinkToken = (contractAddress: string): EtherlinkToken => {
   return {
     type: 'erc20',
-    address: '0x0000000000000000000000000000000000000000'
+    address: etherlinkUtils.toChecksumAddress(contractAddress)
   };
 };
 
 export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto): BridgeTokenDeposit => {
+  const source = dto.l1_transaction.l1_account;
+  const receiver = etherlinkUtils.toChecksumAddress(dto.l1_transaction.l2_account);
+  // TODO: receive the receiverProxy
+  const receiverProxy = null;
+
   const tezosOperation: CreatedBridgeTokenDeposit['tezosOperation'] = {
     blockId: dto.l1_transaction.level,
     hash: dto.l1_transaction.operation_hash,
-    timestamp: dto.l1_transaction.timestamp,
-    token: mapTezosTokenDtoToTezosToken(dto.l1_transaction.ticket.token),
     amount: BigInt(dto.l1_transaction.amount),
+    token: mapTezosTokenDtoToTezosToken(dto.l1_transaction.ticket.token),
+    source,
+    receiver,
+    receiverProxy,
     // TODO: receive the fee
     fee: 0n,
-    source: dto.l1_transaction.initiator,
-    receiver: etherlinkUtils.toChecksumAddress(dto.l1_transaction.l2_account),
-    // TODO: receive the receiverProxy
-    receiverProxy: null
+    timestamp: dto.l1_transaction.timestamp
   };
 
   return dto.l2_transaction
@@ -47,13 +54,12 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
         blockId: dto.l2_transaction.level,
         hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
         amount: BigInt(dto.l2_transaction.amount),
-        token: mapEtherlinkTokenDtoToEtherlinkToken(),
+        token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token.id),
+        source,
+        receiver,
+        receiverProxy,
         // TODO: receive the fee
         fee: 0n,
-        source: etherlinkUtils.toChecksumAddress(dto.l2_transaction.address),
-        receiver: etherlinkUtils.toChecksumAddress(dto.l2_transaction.l2_account),
-        // TODO: receive the receiverProxy
-        receiverProxy: null,
         timestamp: dto.l2_transaction.timestamp
       }
     }
@@ -62,4 +68,71 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
       status: BridgeTokenTransferStatus.Created,
       tezosOperation
     };
+};
+
+export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: BridgeWithdrawalDto): BridgeTokenWithdrawal => {
+  const source = etherlinkUtils.toChecksumAddress(dto.l2_transaction.l2_account);
+  const receiver = dto.l2_transaction.l1_account;
+  // TODO: receive the receiverProxy
+  const receiverProxy = null;
+  const amount = BigInt(dto.l2_transaction.amount);
+
+  const etherlinkOperation: CreatedBridgeTokenWithdrawal['etherlinkOperation'] = {
+    blockId: dto.l2_transaction.level,
+    hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
+    amount,
+    token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token.id),
+    source,
+    receiver,
+    receiverProxy,
+    // TODO: receive the fee
+    fee: 0n,
+    timestamp: dto.l2_transaction.timestamp
+  };
+
+  return dto.l1_transaction
+    ? {
+      kind: BridgeTokenTransferKind.Withdrawal,
+      status: BridgeTokenTransferStatus.Finished,
+      tezosOperation: {
+        blockId: dto.l1_transaction.level,
+        hash: dto.l1_transaction.operation_hash,
+        amount,
+        token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token.ticket.token),
+        source,
+        receiver,
+        receiverProxy,
+        // TODO: receive the fee
+        fee: 0n,
+        timestamp: dto.l1_transaction.timestamp
+      },
+      etherlinkOperation,
+      rollupData: {
+        outboxMessageLevel: dto.l2_transaction.outbox_message.level,
+        outboxMessageIndex: dto.l2_transaction.outbox_message.index,
+        commitment: dto.l2_transaction.outbox_message.commitment?.hash || '',
+        proof: dto.l2_transaction.outbox_message.proof || ''
+      }
+    }
+    : dto.l2_transaction.outbox_message.commitment && dto.l2_transaction.outbox_message.proof
+      ? {
+        kind: BridgeTokenTransferKind.Withdrawal,
+        status: BridgeTokenTransferStatus.Sealed,
+        etherlinkOperation,
+        rollupData: {
+          outboxMessageLevel: dto.l2_transaction.outbox_message.level,
+          outboxMessageIndex: dto.l2_transaction.outbox_message.index,
+          commitment: dto.l2_transaction.outbox_message.commitment.hash,
+          proof: dto.l2_transaction.outbox_message.proof
+        }
+      }
+      : {
+        kind: BridgeTokenTransferKind.Withdrawal,
+        status: BridgeTokenTransferStatus.Created,
+        etherlinkOperation,
+        rollupData: {
+          outboxMessageLevel: dto.l2_transaction.outbox_message.level,
+          outboxMessageIndex: dto.l2_transaction.outbox_message.index
+        }
+      };
 };

@@ -80,7 +80,12 @@ export const expectFinishedDeposit = (
       // receiverProxy: params.etherlinkToken.type === 'native' ? null : params.etherlinkToken.address,
       receiverProxy: null,
       timestamp: expect.any(String),
-      token: params.tezosToken
+      // TODO: wai the backend update
+      // token: params.tezosToken
+      token: {
+        type: 'unknown',
+        address: (params.tezosToken as any).address,
+      } as any
     },
     // TODO: wait when the backend matches Etherlink operation for native tokens.
     etherlinkOperation: params.tezosToken.type === 'native' ? (null as any) : {
@@ -88,15 +93,13 @@ export const expectFinishedDeposit = (
       blockId: expect.any(Number),
       fee: expect.any(BigInt),
       hash: expect.stringMatching('^0x'),
+      source: params.source,
       receiver: params.receiver,
       // TODO: wait the backend update
       // receiverProxy: params.etherlinkToken.type === 'native' ? null : params.etherlinkToken.address,
       receiverProxy: null,
-      source: params.etherlinkKernelAddress,
       timestamp: expect.any(String),
-      // TODO: wait the backend update
-      // token: depositedEtherlinkToken
-      token: expect.anything()
+      token: params.etherlinkToken
     }
   });
 };

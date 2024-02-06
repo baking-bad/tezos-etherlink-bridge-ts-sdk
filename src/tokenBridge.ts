@@ -129,6 +129,8 @@ export class TokenBridge implements TokenBridgeService {
     if (guards.isTokenBridgeService(this.bridgeComponents.transfersBridgeDataProvider))
       this.bridgeComponents.transfersBridgeDataProvider.stop();
 
+    this.rejectAndClearAllStatusWatchers('The TokenBridge has been stopped!');
+
     this._isStarted = false;
   }
 
@@ -410,6 +412,18 @@ export class TokenBridge implements TokenBridgeService {
 
     if (!statusWatchers.size)
       this.tokenTransferOperationWatchers.delete(initialOperationHash);
+  }
+
+  protected rejectAndClearAllStatusWatchers(error: unknown) {
+    for (const statusWatchers of this.tokenTransferOperationWatchers.values()) {
+      for (const statusWatcher of statusWatchers.values()) {
+        statusWatcher.reject(error);
+      }
+
+      statusWatchers.clear();
+    }
+
+    this.tokenTransferOperationWatchers.clear();
   }
 
   protected getInitialOperationHash(tokenTransfer: BridgeTokenTransfer): string {

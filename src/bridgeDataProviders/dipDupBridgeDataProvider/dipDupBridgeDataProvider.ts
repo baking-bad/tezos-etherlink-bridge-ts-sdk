@@ -1,3 +1,4 @@
+import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
 import type { GraphQLResponse, TokenTransferDto } from './dtos';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
@@ -18,46 +19,14 @@ export interface DipDupBridgeDataProviderOptions {
 }
 
 export class DipDupBridgeDataProvider extends RemoteService implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, TokenBridgeService, Disposable {
-  protected static readonly bridgeDepositGraphQLFields = `
-  l1_transaction {
-    amount
-    counter
-    initiator
-    l1_account
-    l2_account
-    level
-    nonce
-    operation_hash
-    sender
-    target
-    timestamp
-    ticket {
-      token {
-        contract_address
-        token_id
-        decimals
-      }
-    }
-    inbox_message {
-      index
-      level
-    }
-  }
-  l2_transaction {
-    address
-    amount
-    l2_account
-    level
-    log_index
-    timestamp
-    transaction_hash
-  }`;
+  protected static readonly defaultLoadDataLimit = 100;
 
   readonly events: TransfersBridgeDataProvider['events'] = {
     tokenTransferCreated: new EventEmitter(),
     tokenTransferUpdated: new EventEmitter()
   };
 
+  protected readonly dipDupGraphQLQueryBuilder: DipDupGraphQLQueryBuilder;
   protected readonly dipDupWebSocketClient: DipDupWebSocketClient | null;
 
   private _isStarted = false;
@@ -68,6 +37,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.dipDupWebSocketClient = options.autoUpdate
       ? new DipDupWebSocketClient(options.autoUpdate.webSocketApiBaseUrl)
       : null;
+    this.dipDupGraphQLQueryBuilder = this.createDipDupGraphQLQueryBuilder();
   }
 
   get isStarted() {
@@ -120,16 +90,20 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     const tokenTransferDtos = await this.fetch<GraphQLResponse<TokenTransferDto>>('/v1/graphql', 'json', {
       method: 'POST',
       body: JSON.stringify({
-        query: this.getTokenTransferGraphQLQuery(operationHash, 'query')
+        query: this.dipDupGraphQLQueryBuilder.getTokenTransferQuery(operationHash)
       })
     });
     if (tokenTransferDtos.errors)
       throw new Error(`Indexer error: ${tokenTransferDtos.errors.join('\n')}`);
 
-    const tokenTransfers = tokenTransferDtos.data.bridge_deposit
-      .map(bridgeDepositDto => mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto));
+    const tokenTransfer = (
+      (tokenTransferDtos.data.bridge_deposit[0]
+        && mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(tokenTransferDtos.data.bridge_deposit[0]))
+      || (tokenTransferDtos.data.bridge_withdrawal[0]
+        && mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(tokenTransferDtos.data.bridge_withdrawal[0]))
+    );
 
-    return tokenTransfers[0] || null;
+    return tokenTransfer || null;
   }
 
   async getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
@@ -143,8 +117,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     _offsetOrLimit?: number,
     limitParameter?: number
   ): Promise<BridgeTokenTransfer[]> {
-    let tezosAddresses: string | readonly string[] | undefined;
-    let etherlinkAddresses: string | readonly string[] | undefined;
+    let accountAddresses: string | readonly string[] | undefined;
     let offset: number | undefined;
     let limit: number | undefined;
 
@@ -154,39 +127,62 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
         limit = _offsetOrLimit;
       }
       else {
-        // TODO: extract addresses
-        tezosAddresses = offsetOrAccountAddressOfAddresses;
-        etherlinkAddresses = offsetOrAccountAddressOfAddresses;
+        accountAddresses = offsetOrAccountAddressOfAddresses;
         offset = _offsetOrLimit;
         limit = limitParameter;
       }
     }
 
+    offset = offset && offset > 0 ? offset : 0;
+    limit = limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
+
     const tokenTransferDtos = await this.fetch<GraphQLResponse<TokenTransferDto>>('/v1/graphql', 'json', {
       method: 'POST',
       body: JSON.stringify({
-        query: this.getTokenTransfersGraphQLQuery(tezosAddresses, etherlinkAddresses, offset, limit)
+        query: this.dipDupGraphQLQueryBuilder.getTokenTransfersQuery(accountAddresses, offset, limit)
       })
     });
     if (tokenTransferDtos.errors)
       throw new Error(`Indexer error: ${tokenTransferDtos.errors.join('\n')}`);
 
-    return tokenTransferDtos.data.bridge_deposit
-      .map(bridgeDepositDto => mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto));
+    const tokenTransfers: BridgeTokenTransfer[] = [];
+
+    for (const bridgeDepositDto of tokenTransferDtos.data.bridge_deposit)
+      tokenTransfers.push(mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto));
+    for (const bridgeWithdrawalDto of tokenTransferDtos.data.bridge_withdrawal)
+      tokenTransfers.push(mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(bridgeWithdrawalDto));
+
+    tokenTransfers.sort((tokenTransferA, tokenTransferB) => {
+      const initialTimestampA = tokenTransferA.kind === BridgeTokenTransferKind.Deposit
+        ? tokenTransferA.tezosOperation.timestamp
+        : tokenTransferA.etherlinkOperation.timestamp;
+      const initialTimestampB = tokenTransferB.kind === BridgeTokenTransferKind.Deposit
+        ? tokenTransferB.tezosOperation.timestamp
+        : tokenTransferB.etherlinkOperation.timestamp;
+
+      return initialTimestampA.localeCompare(initialTimestampB);
+    });
+    tokenTransfers.slice(offset, offset + limit);
+
+    return tokenTransfers;
   }
 
   subscribeToTokenTransfer(operationHash: string): void {
     if (!this.dipDupWebSocketClient)
       throw new Error('AutoUpdate is disabled');
 
-    this.dipDupWebSocketClient.subscribe(this.getTokenTransferGraphQLQuery(operationHash, 'subscription'));
+    const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
+    this.dipDupWebSocketClient.subscribe(subscriptions[0]);
+    this.dipDupWebSocketClient.subscribe(subscriptions[1]);
   }
 
   unsubscribeFromTokenTransfer(operationHash: string): void {
     if (!this.dipDupWebSocketClient)
       throw new Error('AutoUpdate is disabled');
 
-    this.dipDupWebSocketClient.unsubscribe(this.getTokenTransferGraphQLQuery(operationHash, 'subscription'));
+    const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
+    this.dipDupWebSocketClient.unsubscribe(subscriptions[1]);
+    this.dipDupWebSocketClient.unsubscribe(subscriptions[0]);
   }
 
   subscribeToTokenTransfers(): void;
@@ -245,53 +241,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     }
   };
 
-  protected getTokenTransfersGraphQLQuery(
-    tezosAddresses: string | readonly string[] | undefined,
-    etherlinkAddresses: string | readonly string[] | undefined,
-    _offset: number | undefined,
-    _limit: number | undefined
-  ): string {
-    // TODO: remove when the backend will be updated
-    etherlinkAddresses = etherlinkAddresses === undefined
-      ? undefined
-      : typeof etherlinkAddresses === 'string'
-        ? etherlinkUtils.prepareHexPrefix(etherlinkAddresses, false)
-        : etherlinkAddresses.map(address => etherlinkUtils.prepareHexPrefix(address, false));
-
-    const depositWhereArgument = tezosAddresses && etherlinkAddresses
-      ? `,
-      where: {
-			  _or: [
-				  ${tezosAddresses ? `{ l1_transaction: { l1_account: { ${typeof tezosAddresses === 'string' ? `_eq: "${tezosAddresses}"` : `_in: ${tezosAddresses.join()}`} } } },` : ''}
-          ${etherlinkAddresses ? `{ l1_transaction: { l2_account: { ${typeof etherlinkAddresses === 'string' ? `_eq: "${etherlinkAddresses}"` : `_in: ${etherlinkAddresses.join()}`} } },` : ''}
-          ${etherlinkAddresses ? `{ l2_transaction: { l2_account: { ${typeof etherlinkAddresses === 'string' ? `_eq: "${etherlinkAddresses}"` : `_in: ${etherlinkAddresses.join()}`} } },` : ''}
-        ]
-      }`
-      : '';
-
-    return `query TokenTransfers {
-  bridge_deposit(
-    order_by: {l1_transaction: {timestamp: desc}}${depositWhereArgument}
-  ) {
-    ${DipDupBridgeDataProvider.bridgeDepositGraphQLFields}
-}`;
-  }
-
-  protected getTokenTransferGraphQLQuery(operationHash: string, queryType: 'query' | 'subscription'): string {
-    // TODO: remove when the backend will be updated
-    operationHash = etherlinkUtils.prepareHexPrefix(operationHash, false);
-
-    const whereArgument = `where: {
-      _or: [
-        { l1_transaction: { operation_hash: {_eq: "${operationHash}"}} },
-        { l2_transaction: { transaction_hash: {_eq: "${operationHash}"}} }
-      ]
-    }`;
-
-    return `${queryType} TokenTransfers {
-  bridge_deposit(${whereArgument}) {
-    ${DipDupBridgeDataProvider.bridgeDepositGraphQLFields}
-  }
-}`;
+  protected createDipDupGraphQLQueryBuilder(): DipDupGraphQLQueryBuilder {
+    return new DipDupGraphQLQueryBuilder();
   }
 }

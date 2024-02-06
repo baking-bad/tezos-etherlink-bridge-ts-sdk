@@ -15,6 +15,9 @@ import {
   expectFinishedDeposit
 } from '../testHelpers';
 
+// The Taquito Wallet API does not close some handles after tests complete.
+const useWalletApi = false;
+
 describe('Bridge', () => {
   let testConfig: TestConfig;
   let tokens: TestTokens;
@@ -90,12 +93,16 @@ describe('Bridge', () => {
     await tokenBridge.start();
   });
 
+  afterEach(() => {
+    tokenBridge.stop();
+  });
+
   describe('Deposit', () => {
     test.skip('Deposit native token', async () => {
       const amount = 10_000_000n;
       const [tezosToken, etherlinkToken]: [NativeTezosToken, NativeEtherlinkToken] = [{ type: 'native' }, { type: 'native' }];
 
-      const depositResult = await tokenBridge.deposit(tezosToken, amount);
+      const depositResult = await tokenBridge.deposit(tezosToken, amount, { useWalletApi });
       expectPendingDeposit(depositResult.tokenTransfer, {
         amount,
         source: testTezosAccountAddress,
@@ -123,7 +130,7 @@ describe('Bridge', () => {
       const amount = 7n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
 
-      const depositResult = await tokenBridge.deposit(tezosToken, amount);
+      const depositResult = await tokenBridge.deposit(tezosToken, amount, { useWalletApi });
       expectPendingDeposit(depositResult.tokenTransfer, {
         amount,
         source: testTezosAccountAddress,
@@ -147,11 +154,11 @@ describe('Bridge', () => {
       });
     });
 
-    test.skip('Deposit FA2 token', async () => {
+    test('Deposit FA2 token', async () => {
       const amount = 20n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
 
-      const depositResult = await tokenBridge.deposit(tezosToken, amount);
+      const depositResult = await tokenBridge.deposit(tezosToken, amount, { useWalletApi });
       expectPendingDeposit(depositResult.tokenTransfer, {
         amount,
         source: testTezosAccountAddress,
@@ -176,7 +183,7 @@ describe('Bridge', () => {
     });
 
     test('Deposit FA1.2 token, check the transfer status using events', done => {
-      const amount = 7n;
+      const amount = 5n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
       let readyForDone = false;
 
@@ -207,7 +214,7 @@ describe('Bridge', () => {
         done();
       });
 
-      tokenBridge.deposit(tezosToken, amount)
+      tokenBridge.deposit(tezosToken, amount, { useWalletApi })
         .then(result => tokenBridge.subscribeToTokenTransfer(result.tokenTransfer));
     });
   });

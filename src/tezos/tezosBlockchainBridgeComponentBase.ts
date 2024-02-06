@@ -100,8 +100,8 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     return operationHash;
   }
 
-  protected async createDepositNativeTokenOperation(etherlinkReceiverAddress: string, ticketHelperContractAddress: string) {
-    const ticketHelperContract = await this.getNativeTokenTicketHelperContract(ticketHelperContractAddress);
+  protected async createDepositNativeTokenOperation(etherlinkReceiverAddress: string, ticketerContractAddress: string) {
+    const ticketHelperContract = await this.getNativeTokenTicketHelperContract(ticketerContractAddress);
     const routingInfo = this.packDepositRoutingInfo(etherlinkReceiverAddress);
 
     const operation = ticketHelperContract.methodsObject.deposit({
@@ -130,12 +130,12 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     return operation;
   }
 
-  protected packDepositRoutingInfo(etherlinkReceiverAddress: string, etherlinkTokenProxyContractAddress?: string): string {
+  protected packDepositRoutingInfo(etherlinkReceiverAddress: string, etherlinkProxyAddress?: string): string {
     // TODO: validate
     // checkEvmAddressIsCorrect(etherlinkReceiverAddress);
     // checkEvmAddressIsCorrect(etherlinkTokenProxyContractAddress);
-    return (etherlinkTokenProxyContractAddress)
-      ? `${etherlinkReceiverAddress.substring(2)}${etherlinkTokenProxyContractAddress.substring(2)}`
+    return (etherlinkProxyAddress)
+      ? `${etherlinkReceiverAddress.substring(2)}${etherlinkProxyAddress.substring(2)}`
       : etherlinkReceiverAddress.substring(2);
   }
 
