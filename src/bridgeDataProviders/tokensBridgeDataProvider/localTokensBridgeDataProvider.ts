@@ -55,6 +55,7 @@ export class LocalTokensBridgeDataProvider implements TokensBridgeDataProvider {
 
   getRegisteredTokenPairs(): Promise<TokenPairInfo[]>;
   getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPairInfo[]>;
+  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPairInfo[]>;
   getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPairInfo[]> {
     return Promise.resolve(this.tokenPairs.slice(offset, limit && (limit + (offset || 0))));
   }

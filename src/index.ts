@@ -52,3 +52,7 @@ export {
   type TransfersBridgeDataProvider,
   type DipDupBridgeDataProviderOptions
 } from './bridgeDataProviders';
+
+export {
+  bridgeUtils as utils
+} from './utils';

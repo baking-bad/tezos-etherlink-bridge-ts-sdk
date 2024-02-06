@@ -7,4 +7,5 @@ export interface TokensBridgeDataProvider {
 
   getRegisteredTokenPairs(): Promise<TokenPairInfo[]>;
   getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPairInfo[]>;
+  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPairInfo[]>;
 }

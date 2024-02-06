@@ -6,6 +6,7 @@ import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridge'
 import { EventEmitter, RemoteService, ToEventEmitter, type TokenBridgeService } from '../../common';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
+import { bridgeUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
 
@@ -166,18 +167,32 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     return tokenTransfers;
   }
 
-  subscribeToTokenTransfer(operationHash: string): void {
+  subscribeToTokenTransfer(operationHash: string): void;
+  subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
+  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
     if (!this.dipDupWebSocketClient)
       throw new Error('AutoUpdate is disabled');
+
+    const operationHash = typeof operationHashOrTokenTransfer === 'string'
+      ? operationHashOrTokenTransfer
+      : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
 
     const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
     this.dipDupWebSocketClient.subscribe(subscriptions[0]);
     this.dipDupWebSocketClient.subscribe(subscriptions[1]);
   }
 
-  unsubscribeFromTokenTransfer(operationHash: string): void {
+  unsubscribeFromTokenTransfer(operationHash: string): void;
+  unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
+  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
     if (!this.dipDupWebSocketClient)
       throw new Error('AutoUpdate is disabled');
+
+    const operationHash = typeof operationHashOrTokenTransfer === 'string'
+      ? operationHashOrTokenTransfer
+      : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
 
     const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
     this.dipDupWebSocketClient.unsubscribe(subscriptions[1]);

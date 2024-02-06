@@ -8,4 +8,5 @@ export interface BalancesBridgeDataProvider {
   getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
   getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalanceInfo>;
   getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
+  getBalances(accountAddress: string, tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number, limit?: number): Promise<AccountTokenBalanceInfo>;
 }

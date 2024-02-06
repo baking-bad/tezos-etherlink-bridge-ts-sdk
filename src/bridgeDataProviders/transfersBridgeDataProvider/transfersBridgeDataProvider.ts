@@ -11,6 +11,7 @@ export interface TransfersBridgeDataProvider {
 
   getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
   getTokenTransfer(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
+  getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
 
   getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
   getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
@@ -18,10 +19,19 @@ export interface TransfersBridgeDataProvider {
   getTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
   getTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
   getTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  getTokenTransfers(
+    offsetOrAccountAddressOfAddresses?: number | string | readonly string[],
+    offsetOrLimit?: number,
+    limitParameter?: number
+  ): Promise<BridgeTokenTransfer[]>;
 
   subscribeToTokenTransfer(operationHash: string): void;
+  subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
+  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
 
   unsubscribeFromTokenTransfer(operationHash: string): void;
+  unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
+  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
 
   subscribeToTokenTransfers(): void;
   subscribeToTokenTransfers(accountAddress: string): void;

@@ -48,10 +48,10 @@ export enum BridgeTokenTransferKind {
 
 export enum BridgeTokenTransferStatus {
   Pending = 0,
-  Created = 1,
-  Sealed = 2,
-  Finished = 3,
-  Failed = 4
+  Created = 100,
+  Sealed = 200,
+  Finished = 300,
+  Failed = 400
 }
 
 interface BridgeTokenTransferBase {
