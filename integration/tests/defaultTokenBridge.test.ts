@@ -12,11 +12,16 @@ import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
 import {
   createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner,
   expectPendingDeposit,
-  expectFinishedDeposit
+  expectFinishedDeposit,
+  expectPendingWithdrawal,
+  expectCreatedWithdrawal,
+  expectSealedWithdrawal,
+  expectFinishedWithdrawal
 } from '../testHelpers';
 
 // The Taquito Wallet API does not close some handles after tests complete.
 const useWalletApi = false;
+const withdrawTimeout = 15 * 60 * 1000;
 
 describe('Bridge', () => {
   let testConfig: TestConfig;
@@ -125,8 +130,7 @@ describe('Bridge', () => {
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
         tezosToken,
-        etherlinkToken,
-        etherlinkKernelAddress: testConfig.etherlinkKernelAddress
+        etherlinkToken
       });
     });
 
@@ -153,8 +157,7 @@ describe('Bridge', () => {
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
         tezosToken,
-        etherlinkToken,
-        etherlinkKernelAddress: testConfig.etherlinkKernelAddress
+        etherlinkToken
       });
     });
 
@@ -181,8 +184,7 @@ describe('Bridge', () => {
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
         tezosToken,
-        etherlinkToken,
-        etherlinkKernelAddress: testConfig.etherlinkKernelAddress
+        etherlinkToken
       });
     });
 
@@ -208,8 +210,7 @@ describe('Bridge', () => {
           source: testTezosAccountAddress,
           receiver: testEtherlinkAccountAddress,
           tezosToken,
-          etherlinkToken,
-          etherlinkKernelAddress: testConfig.etherlinkKernelAddress
+          etherlinkToken
         });
         if (!readyForDone) {
           fail('The tokenTransferCreated event has not been fired.');
@@ -221,5 +222,113 @@ describe('Bridge', () => {
       tokenBridge.deposit(amount, tezosToken, { useWalletApi })
         .then(result => tokenBridge.subscribeToTokenTransfer(result.tokenTransfer));
     });
+
+    test('Withdraw FA1.2 token', async () => {
+      const amount = 7n;
+      const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+      const tokenPair = (await tokenBridge.data.getRegisteredTokenPair(tezosToken))!;
+      const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
+
+      const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
+      expectPendingWithdrawal(startWithdrawResult.tokenTransfer, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosTicketerAddress
+      });
+
+      const createdBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+        startWithdrawResult.tokenTransfer,
+        BridgeTokenTransferStatus.Created
+      );
+      expectCreatedWithdrawal(createdBridgeTokenWithdrawal, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosTicketerAddress
+      });
+
+      const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+        startWithdrawResult.tokenTransfer,
+        BridgeTokenTransferStatus.Sealed
+      );
+      expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosTicketerAddress
+      });
+
+      const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
+      const finishedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+        finishWithdrawResult.tokenTransfer,
+        BridgeTokenTransferStatus.Finished
+      );
+      expectFinishedWithdrawal(finishedBridgeTokenWithdrawal, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosToken,
+        tezosTicketerAddress
+      });
+    }, withdrawTimeout);
+
+    test('Withdraw FA2 token', async () => {
+      const amount = 20n;
+      const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
+      const tokenPair = (await tokenBridge.data.getRegisteredTokenPair(tezosToken))!;
+      const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
+
+      const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
+      expectPendingWithdrawal(startWithdrawResult.tokenTransfer, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosTicketerAddress
+      });
+
+      const createdBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+        startWithdrawResult.tokenTransfer,
+        BridgeTokenTransferStatus.Created
+      );
+      expectCreatedWithdrawal(createdBridgeTokenWithdrawal, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosTicketerAddress
+      });
+
+      const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+        startWithdrawResult.tokenTransfer,
+        BridgeTokenTransferStatus.Sealed
+      );
+      expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosTicketerAddress
+      });
+
+      const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
+      const finishedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+        finishWithdrawResult.tokenTransfer,
+        BridgeTokenTransferStatus.Finished
+      );
+      expectFinishedWithdrawal(finishedBridgeTokenWithdrawal, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken,
+        tezosToken,
+        tezosTicketerAddress
+      });
+    }, withdrawTimeout);
   });
 });

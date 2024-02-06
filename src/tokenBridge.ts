@@ -23,7 +23,7 @@ import { EtherlinkBlockchainBridgeComponent, EtherlinkToken, type NonNativeEther
 import { TezosBlockchainBridgeComponent, tezosTicketerContentMichelsonType, type TezosToken } from './tezos';
 import { TokenBridgeDataFacade } from './tokenBridgeDataFacade';
 import type { TokenBridgeOptions } from './tokenBridgeOptions';
-import { bridgeUtils, guards } from './utils';
+import { bridgeUtils, etherlinkUtils, guards } from './utils';
 
 interface TokenBridgeComponents {
   readonly tezos: TezosBlockchainBridgeComponent;
@@ -307,7 +307,7 @@ export class TokenBridge implements TokenBridgeService {
         hash: withdrawalTransactionReceipt.transactionHash.toString(),
         timestamp: Date.now().toString(),
         amount,
-        source: withdrawalTransactionReceipt.from,
+        source: etherlinkUtils.toChecksumAddress(withdrawalTransactionReceipt.from),
         receiver: tezosReceiverAddress,
         receiverProxy: tezosProxyAddress,
         token,
@@ -556,9 +556,9 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   private async getTezosTicketerContent(tezosTicketerAddress: string): Promise<string> {
-    const contract = await this.tezosToolkit.contract.at(tezosTicketerAddress);
-    const storage = await contract.storage<{ content: unknown }>();
-    const contentMichelsonData = this.tezosTicketerContentSchema.Encode(storage.content);
+    const storage = await this.tezosToolkit.contract.getStorage<{ content: any }>(tezosTicketerAddress);
+    const content = [...Object.values(storage.content)];
+    const contentMichelsonData = this.tezosTicketerContentSchema.Encode(content);
 
     return '0x' + packDataBytes(contentMichelsonData, tezosTicketerContentMichelsonType).bytes.slice(2);
   }

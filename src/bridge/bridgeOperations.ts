@@ -64,8 +64,8 @@ export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
   readonly status: BridgeTokenTransferStatus.Pending;
   readonly tezosOperation: {
     readonly hash: string;
-    readonly token: TezosToken;
     readonly amount: bigint;
+    readonly token: TezosToken;
     readonly source: string;
     readonly receiver: string;
     readonly receiverProxy: string | null;
@@ -96,8 +96,8 @@ export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly status: BridgeTokenTransferStatus.Pending;
   readonly etherlinkOperation: {
     readonly hash: string;
-    readonly token: EtherlinkToken;
     readonly amount: bigint;
+    readonly token: EtherlinkToken;
     readonly source: string;
     readonly receiver: string;
     readonly receiverProxy: string | null;

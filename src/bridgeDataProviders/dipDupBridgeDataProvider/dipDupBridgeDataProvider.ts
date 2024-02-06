@@ -239,19 +239,23 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }
 
   protected readonly onSocketMessageReceived = (message: DipDupWebSocketResponseDto) => {
-    switch (message.type) {
-      case 'data': {
-        const tokenTransferDto = (message.payload as GraphQLResponse<TokenTransferDto>).data?.bridge_deposit?.[0];
-        if (!tokenTransferDto)
-          return;
+    if (message.type !== 'data' || !message.payload.data)
+      return;
 
-        const tokenTransfer = mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(tokenTransferDto);
-        (this.events.tokenTransferUpdated as ToEventEmitter<typeof this.events.tokenTransferUpdated>).emit(
-          tokenTransfer
-        );
+    const data: any = message.payload.data;
+    if (data?.bridge_deposit?.[0]) {
+      const tokenTransfer = mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(data.bridge_deposit[0]);
 
-        break;
-      }
+      (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
+        tokenTransfer
+      );
+    }
+    else if (data?.bridge_withdrawal?.[0]) {
+      const tokenTransfer = mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(data.bridge_withdrawal[0]);
+
+      (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
+        tokenTransfer
+      );
     }
   };
 
