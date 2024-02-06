@@ -53,31 +53,35 @@ describe('Bridge', () => {
       tokenPairs: [
         {
           tezos: {
-            type: 'native',
+            token: {
+              type: 'native',
+            },
             ticketerContractAddress: 'KT1XsAj9z2DX2LLrq6bTRJBDubrME2auietW'
           },
           etherlink: {
-            type: 'native'
+            token: {
+              type: 'native'
+            }
           }
         },
         {
           tezos: {
-            ...tokens.tezos.ctez,
+            token: tokens.tezos.ctez,
             ticketerContractAddress: 'KT1PmYUomF3HDxsGWYQUCbLi2X8WvT7ZHv8o',
             tickerHelperContractAddress: 'KT1TZg9EwGHKbfWvsHGsqBjm3J5NhJBtHPKX'
           },
           etherlink: {
-            ...tokens.etherlink.ctez,
+            token: tokens.etherlink.ctez
           }
         },
         {
           tezos: {
-            ...tokens.tezos.usdt,
+            token: tokens.tezos.usdt,
             ticketerContractAddress: 'KT1GQEybCQffb6YJ5NH9GhPEeRyufrYP3amN',
             tickerHelperContractAddress: 'KT1LstLU529PtDUQHo2x8WybNXBzLXnF6Tkv'
           },
           etherlink: {
-            ...tokens.etherlink.usdt,
+            token: tokens.etherlink.usdt
           }
         }
       ]
@@ -102,7 +106,7 @@ describe('Bridge', () => {
       const amount = 10_000_000n;
       const [tezosToken, etherlinkToken]: [NativeTezosToken, NativeEtherlinkToken] = [{ type: 'native' }, { type: 'native' }];
 
-      const depositResult = await tokenBridge.deposit(tezosToken, amount, { useWalletApi });
+      const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
       expectPendingDeposit(depositResult.tokenTransfer, {
         amount,
         source: testTezosAccountAddress,
@@ -111,7 +115,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const finishedBridgeTokenDeposit = await tokenBridge.waitBridgeTokenTransferStatus(
+      const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
         depositResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -130,7 +134,7 @@ describe('Bridge', () => {
       const amount = 7n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
 
-      const depositResult = await tokenBridge.deposit(tezosToken, amount, { useWalletApi });
+      const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
       expectPendingDeposit(depositResult.tokenTransfer, {
         amount,
         source: testTezosAccountAddress,
@@ -139,7 +143,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const finishedBridgeTokenDeposit = await tokenBridge.waitBridgeTokenTransferStatus(
+      const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
         depositResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -158,7 +162,7 @@ describe('Bridge', () => {
       const amount = 20n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
 
-      const depositResult = await tokenBridge.deposit(tezosToken, amount, { useWalletApi });
+      const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
       expectPendingDeposit(depositResult.tokenTransfer, {
         amount,
         source: testTezosAccountAddress,
@@ -167,7 +171,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const finishedBridgeTokenDeposit = await tokenBridge.waitBridgeTokenTransferStatus(
+      const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
         depositResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -214,7 +218,7 @@ describe('Bridge', () => {
         done();
       });
 
-      tokenBridge.deposit(tezosToken, amount, { useWalletApi })
+      tokenBridge.deposit(amount, tezosToken, { useWalletApi })
         .then(result => tokenBridge.subscribeToTokenTransfer(result.tokenTransfer));
     });
   });

@@ -6,7 +6,6 @@ import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridge'
 import { EventEmitter, RemoteService, ToEventEmitter, type TokenBridgeService } from '../../common';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
-import { etherlinkUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
 

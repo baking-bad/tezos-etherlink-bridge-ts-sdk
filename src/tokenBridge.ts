@@ -10,7 +10,7 @@ import {
 
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
-  type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal, TokenPair,
+  type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal, TokenPairInfo,
 } from './bridge';
 import type {
   TokensBridgeDataProvider,
@@ -168,16 +168,16 @@ export class TokenBridge implements TokenBridgeService {
     this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
   }
 
-  async waitBridgeTokenTransferStatus(transfer: PendingBridgeTokenDeposit, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenDeposit>;
-  async waitBridgeTokenTransferStatus(transfer: PendingBridgeTokenDeposit | CreatedBridgeTokenDeposit, status: BridgeTokenTransferStatus.Finished): Promise<FinishedBridgeTokenDeposit>;
-  async waitBridgeTokenTransferStatus(transfer: PendingBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenWithdrawal>;
-  async waitBridgeTokenTransferStatus(transfer: PendingBridgeTokenWithdrawal | CreatedBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Sealed): Promise<SealedBridgeTokenWithdrawal>;
-  async waitBridgeTokenTransferStatus(
+  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenDeposit, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenDeposit>;
+  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenDeposit | CreatedBridgeTokenDeposit, status: BridgeTokenTransferStatus.Finished): Promise<FinishedBridgeTokenDeposit>;
+  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenWithdrawal>;
+  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenWithdrawal | CreatedBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Sealed): Promise<SealedBridgeTokenWithdrawal>;
+  async waitForBridgeTokenTransferStatus(
     transfer: PendingBridgeTokenWithdrawal | CreatedBridgeTokenWithdrawal | SealedBridgeTokenWithdrawal,
     status: BridgeTokenTransferStatus.Finished
   ): Promise<FinishedBridgeTokenWithdrawal>;
-  async waitBridgeTokenTransferStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer>;
-  async waitBridgeTokenTransferStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer> {
+  async waitForBridgeTokenTransferStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer>;
+  async waitForBridgeTokenTransferStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer> {
     if (transfer.status >= status)
       return transfer;
 
@@ -222,15 +222,15 @@ export class TokenBridge implements TokenBridgeService {
     return watcherPromise;
   }
 
-  async deposit(token: TezosToken, amount: bigint): Promise<WalletDepositResult>;
-  async deposit(token: TezosToken, amount: bigint, etherlinkReceiverAddress: string): Promise<WalletDepositResult>;
-  async deposit(token: TezosToken, amount: bigint, options: WalletDepositOptions): Promise<WalletDepositResult>;
-  async deposit(token: TezosToken, amount: bigint, options: DepositOptions): Promise<DepositResult>;
-  async deposit(token: TezosToken, amount: bigint, etherlinkReceiverAddress: string, options: WalletDepositOptions): Promise<WalletDepositResult>;
-  async deposit(token: TezosToken, amount: bigint, etherlinkReceiverAddress: string, options: DepositOptions): Promise<DepositResult>;
+  async deposit(amount: bigint, token: TezosToken): Promise<WalletDepositResult>;
+  async deposit(amount: bigint, token: TezosToken, etherlinkReceiverAddress: string): Promise<WalletDepositResult>;
+  async deposit(amount: bigint, token: TezosToken, options: WalletDepositOptions): Promise<WalletDepositResult>;
+  async deposit(amount: bigint, token: TezosToken, options: DepositOptions): Promise<DepositResult>;
+  async deposit(amount: bigint, token: TezosToken, etherlinkReceiverAddress: string, options: WalletDepositOptions): Promise<WalletDepositResult>;
+  async deposit(amount: bigint, token: TezosToken, etherlinkReceiverAddress: string, options: DepositOptions): Promise<DepositResult>;
   async deposit(
-    token: TezosToken,
     amount: bigint,
+    token: TezosToken,
     etherlinkReceiverAddressOrOptions?: string | WalletDepositOptions | DepositOptions,
     options?: WalletDepositOptions | DepositOptions
   ): Promise<WalletDepositResult | DepositResult> {
@@ -246,10 +246,10 @@ export class TokenBridge implements TokenBridgeService {
 
     const ticketHelperContractAddress = token.type === 'native'
       ? tokenPair.tezos.ticketerContractAddress
-      : (tokenPair.tezos as Exclude<typeof tokenPair.tezos, { type: 'native' }>).tickerHelperContractAddress;
+      : (tokenPair.tezos as Exclude<typeof tokenPair.tezos, { token: { type: 'native' } }>).tickerHelperContractAddress;
     const etherlinkTokenProxyContractAddress = token.type === 'native'
       ? undefined
-      : (tokenPair.etherlink as Exclude<typeof tokenPair.etherlink, { type: 'native' }>).address;
+      : (tokenPair.etherlink.token as Exclude<typeof tokenPair.etherlink.token, { type: 'native' }>).address;
 
     const depositOperation = await (useWalletApi
       ? this.depositUsingWalletApi(
@@ -275,7 +275,7 @@ export class TokenBridge implements TokenBridgeService {
     return depositOperation;
   }
 
-  async startWithdraw(token: NonNativeEtherlinkToken, amount: bigint, tezosReceiverAddress?: string): Promise<StartWithdrawResult> {
+  async startWithdraw(amount: bigint, token: NonNativeEtherlinkToken, tezosReceiverAddress?: string): Promise<StartWithdrawResult> {
     if ((token.type as string) === 'native')
       throw new Error('Withdrawal of native tokens is not supported yet');
 
@@ -288,7 +288,7 @@ export class TokenBridge implements TokenBridgeService {
       throw new Error(`Token (${token.address}) is not listed`);
 
     const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
-    const etherlinkTokenProxyContractAddress = (tokenPair.etherlink as Exclude<typeof tokenPair.etherlink, { type: 'native' }>).address;
+    const etherlinkTokenProxyContractAddress = (tokenPair.etherlink.token as Exclude<typeof tokenPair.etherlink.token, { type: 'native' }>).address;
     const tezosProxyAddress = tezosTicketerAddress;
 
     const [etherlinkConnectedAddress, tezosTicketerContent] = await Promise.all([
@@ -365,13 +365,13 @@ export class TokenBridge implements TokenBridgeService {
     return this.bridgeComponents.balancesBridgeDataProvider.getBalances(accountAddress, tokensOrOffset, limit);
   }
 
-  protected getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null> {
+  protected getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPairInfo | null> {
     return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
   }
 
-  protected getRegisteredTokenPairs(): Promise<TokenPair[]>;
-  protected getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
-  protected getRegisteredTokenPairs(offset?: any, limit?: any): Promise<TokenPair[]> {
+  protected getRegisteredTokenPairs(): Promise<TokenPairInfo[]>;
+  protected getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPairInfo[]>;
+  protected getRegisteredTokenPairs(offset?: any, limit?: any): Promise<TokenPairInfo[]> {
     return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPairs(offset, limit);
   }
 

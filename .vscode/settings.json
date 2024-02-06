@@ -24,11 +24,12 @@
   ],
   "cSpell.language": "en",
   "cSpell.words": [
-    "etherlink",
-    "tezos",
-    "ticketer",
-    "mutez",
     "dipdup",
-    "endregion"
+    "endregion",
+    "etherlink",
+    "mutez",
+    "taquito",
+    "tezos",
+    "ticketer"
   ]
 }

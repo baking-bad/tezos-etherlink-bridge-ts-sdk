@@ -1,34 +1,34 @@
 import type { TokensBridgeDataProvider } from './tokensBridgeDataProvider';
-import type { TokenPair } from '../../bridge';
+import type { TokenPairInfo } from '../../bridge';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
 
 type TokenPairsByTokenMap = {
-  native?: TokenPair,
+  native?: TokenPairInfo,
   'fa1.2'?: {
-    [address: string]: TokenPair;
+    [address: string]: TokenPairInfo;
   }
   erc20?: {
-    [address: string]: TokenPair;
+    [address: string]: TokenPairInfo;
   }
   fa2?: {
     [address: string]: {
-      [tokenId: string]: TokenPair;
+      [tokenId: string]: TokenPairInfo;
     }
   }
 };
 
 type ReadonlyTokenPairsByTokenMap = {
-  readonly native?: TokenPair,
+  readonly native?: TokenPairInfo,
   readonly 'fa1.2'?: {
-    readonly [address: string]: TokenPair;
+    readonly [address: string]: TokenPairInfo;
   }
   readonly erc20?: {
-    readonly [address: string]: TokenPair;
+    readonly [address: string]: TokenPairInfo;
   }
   readonly fa2?: {
     readonly [address: string]: {
-      readonly [tokenId: string]: TokenPair;
+      readonly [tokenId: string]: TokenPairInfo;
     }
   }
 };
@@ -37,11 +37,11 @@ type ReadonlyTokenPairsByTokenMap = {
 export class LocalTokensBridgeDataProvider implements TokensBridgeDataProvider {
   private readonly tokenPairsByTokenMap: ReadonlyTokenPairsByTokenMap;
 
-  constructor(readonly tokenPairs: readonly TokenPair[]) {
+  constructor(readonly tokenPairs: readonly TokenPairInfo[]) {
     this.tokenPairsByTokenMap = this.createTokenPairsByTokenMap(tokenPairs);
   }
 
-  getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null> {
+  getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPairInfo | null> {
     const tokenPair = token.type === 'native'
       ? this.tokenPairsByTokenMap[token.type]
       : token.type === 'fa1.2' || token.type === 'erc20'
@@ -53,42 +53,42 @@ export class LocalTokensBridgeDataProvider implements TokensBridgeDataProvider {
     return Promise.resolve(tokenPair || null);
   }
 
-  getRegisteredTokenPairs(): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]> {
+  getRegisteredTokenPairs(): Promise<TokenPairInfo[]>;
+  getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPairInfo[]>;
+  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPairInfo[]> {
     return Promise.resolve(this.tokenPairs.slice(offset, limit && (limit + (offset || 0))));
   }
 
-  private createTokenPairsByTokenMap(tokenPairs: readonly TokenPair[]): TokenPairsByTokenMap {
+  private createTokenPairsByTokenMap(tokenPairs: readonly TokenPairInfo[]): TokenPairsByTokenMap {
     const rootMap: TokenPairsByTokenMap = {};
 
     for (const tokenPair of tokenPairs) {
       // Tezos Part
-      if (tokenPair.tezos.type === 'native') {
+      if (tokenPair.tezos.token.type === 'native') {
         rootMap.native = tokenPair;
       }
       else {
-        if (!rootMap[tokenPair.tezos.type])
-          rootMap[tokenPair.tezos.type] = {};
+        if (!rootMap[tokenPair.tezos.token.type])
+          rootMap[tokenPair.tezos.token.type] = {};
 
-        if (tokenPair.tezos.type === 'fa1.2') {
-          rootMap[tokenPair.tezos.type]![tokenPair.tezos.address] = tokenPair;
+        if (tokenPair.tezos.token.type === 'fa1.2') {
+          rootMap[tokenPair.tezos.token.type]![tokenPair.tezos.token.address] = tokenPair;
         }
         else {
-          if (!rootMap[tokenPair.tezos.type]![tokenPair.tezos.address])
-            rootMap[tokenPair.tezos.type]![tokenPair.tezos.address] = {};
+          if (!rootMap[tokenPair.tezos.token.type]![tokenPair.tezos.token.address])
+            rootMap[tokenPair.tezos.token.type]![tokenPair.tezos.token.address] = {};
 
-          rootMap[tokenPair.tezos.type]![tokenPair.tezos.address]![tokenPair.tezos.tokenId] = tokenPair;
+          rootMap[tokenPair.tezos.token.type]![tokenPair.tezos.token.address]![tokenPair.tezos.token.tokenId] = tokenPair;
         }
       }
 
       // Etherlink
-      if (tokenPair.etherlink.type !== 'native') {
-        if (!rootMap[tokenPair.etherlink.type])
-          rootMap[tokenPair.etherlink.type] = {};
+      if (tokenPair.etherlink.token.type !== 'native') {
+        if (!rootMap[tokenPair.etherlink.token.type])
+          rootMap[tokenPair.etherlink.token.type] = {};
 
-        if (tokenPair.etherlink.type === 'erc20') {
-          rootMap[tokenPair.etherlink.type]![tokenPair.etherlink.address] = tokenPair;
+        if (tokenPair.etherlink.token.type === 'erc20') {
+          rootMap[tokenPair.etherlink.token.type]![tokenPair.etherlink.token.address] = tokenPair;
         }
       }
     }

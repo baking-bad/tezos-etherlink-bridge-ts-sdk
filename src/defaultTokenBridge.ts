@@ -1,7 +1,7 @@
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
-import type { TokenPair } from './bridge';
+import type { TokenPairInfo } from './bridge';
 import {
   DipDupBridgeDataProvider, LocalTokensBridgeDataProvider,
   type TokensBridgeDataProvider, type DipDupBridgeDataProviderOptions
@@ -26,7 +26,7 @@ interface DefaultDipDupBridgeDataProvider {
 export interface DefaultTokenBridgeOptions {
   tezos: DefaultTezosTokenBridgeOptions;
   etherlink: DefaultEtherlinkTokenBridgeOptions;
-  tokenPairs: TokensBridgeDataProvider | ReadonlyArray<Readonly<TokenPair>>;
+  tokenPairs: TokensBridgeDataProvider | ReadonlyArray<Readonly<TokenPairInfo>>;
   dipDup: DefaultDipDupBridgeDataProvider;
 }
 

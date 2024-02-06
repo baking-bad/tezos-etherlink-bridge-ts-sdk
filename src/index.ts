@@ -12,7 +12,7 @@ export {
   BridgeTokenTransferKind,
   BridgeTokenTransferStatus,
 
-  type TokenPair,
+  type TokenPairInfo as TokenPair,
 
   type BridgeTokenTransfer,
   type BridgeTokenDeposit,
