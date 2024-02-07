@@ -35,7 +35,7 @@ export class TezosBlockchainBridgeComponent extends TezosBlockchainBridgeCompone
 }
 
 export class WalletTezosBlockchainBridgeComponent extends TezosBlockchainBridgeComponentBase<Wallet> {
-  protected createBatch(params?: WalletParamsWithKind[] | undefined): WalletOperationBatch {
+  protected createBatch(params?: WalletParamsWithKind[]): WalletOperationBatch {
     return this.tezosToolkit.wallet.batch(params);
   }
 

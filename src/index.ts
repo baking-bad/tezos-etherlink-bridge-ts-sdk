@@ -43,9 +43,9 @@ export type {
 
 export {
   DipDupBridgeDataProvider,
+  LocalTokensBridgeDataProvider,
 
   type TokensBridgeDataProvider,
-  type LocalTokensBridgeDataProvider,
   type TokenBalanceInfo,
   type AccountTokenBalanceInfo,
   type BalancesBridgeDataProvider,

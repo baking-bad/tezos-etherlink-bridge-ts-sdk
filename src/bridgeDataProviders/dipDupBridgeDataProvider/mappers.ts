@@ -15,7 +15,7 @@ const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto): TezosToken 
       type: 'fa1.2',
       address: tezosTokenDto.contract_address,
     }
-    : tezosTokenDto.type === 'fa2'
+    : preparedTokenType === 'fa2'
       ? {
         type: 'fa2',
         address: tezosTokenDto.contract_address,

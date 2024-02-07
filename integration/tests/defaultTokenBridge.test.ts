@@ -58,15 +58,11 @@ describe('Bridge', () => {
       tokenPairs: [
         {
           tezos: {
-            token: {
-              type: 'native',
-            },
+            token: { type: 'native' },
             ticketerContractAddress: 'KT1XsAj9z2DX2LLrq6bTRJBDubrME2auietW'
           },
           etherlink: {
-            token: {
-              type: 'native'
-            }
+            token: { type: 'native' }
           }
         },
         {
