@@ -12,6 +12,7 @@ import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
 import {
   createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner,
   expectPendingDeposit,
+  expectCreatedDeposit,
   expectFinishedDeposit,
   expectPendingWithdrawal,
   expectCreatedWithdrawal,
@@ -197,18 +198,28 @@ describe('Bridge', () => {
       });
 
       tokenBridge.events.tokenTransferUpdated.addListener(tokenTransfer => {
-        expectFinishedDeposit(tokenTransfer, {
-          amount,
-          source: testTezosAccountAddress,
-          receiver: testEtherlinkAccountAddress,
-          tezosToken,
-          etherlinkToken
-        });
-        if (!readyForDone) {
-          fail('The tokenTransferCreated event has not been fired.');
+        if (tokenTransfer.status === BridgeTokenTransferStatus.Created) {
+          expectCreatedDeposit(tokenTransfer, {
+            amount,
+            source: testTezosAccountAddress,
+            receiver: testEtherlinkAccountAddress,
+            tezosToken,
+          });
         }
+        else if (tokenTransfer.status === BridgeTokenTransferStatus.Finished) {
+          expectFinishedDeposit(tokenTransfer, {
+            amount,
+            source: testTezosAccountAddress,
+            receiver: testEtherlinkAccountAddress,
+            tezosToken,
+            etherlinkToken
+          });
+          if (!readyForDone) {
+            fail('The tokenTransferCreated event has not been fired.');
+          }
 
-        done();
+          done();
+        }
       });
 
       tokenBridge.deposit(amount, tezosToken, { useWalletApi })
