@@ -29,17 +29,12 @@ const mapEtherlinkTokenDtoToEtherlinkToken = (contractAddress: string): Etherlin
 export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto): BridgeTokenDeposit => {
   const source = dto.l1_transaction.l1_account;
   const receiver = etherlinkUtils.toChecksumAddress(dto.l1_transaction.l2_account);
-  // TODO: receive the receiverProxy
-  const receiverProxy = null;
 
   const tezosOperation: CreatedBridgeTokenDeposit['tezosOperation'] = {
     blockId: dto.l1_transaction.level,
     hash: dto.l1_transaction.operation_hash,
     amount: BigInt(dto.l1_transaction.amount),
     token: mapTezosTokenDtoToTezosToken(dto.l1_transaction.ticket.token),
-    source,
-    receiver,
-    receiverProxy,
     // TODO: receive the fee
     fee: 0n,
     timestamp: dto.l1_transaction.timestamp
@@ -49,15 +44,14 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
     ? {
       kind: BridgeTokenTransferKind.Deposit,
       status: BridgeTokenTransferStatus.Finished,
+      source,
+      receiver,
       tezosOperation,
       etherlinkOperation: {
         blockId: dto.l2_transaction.level,
         hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
         amount: BigInt(dto.l2_transaction.amount),
         token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token.id),
-        source,
-        receiver,
-        receiverProxy,
         // TODO: receive the fee
         fee: 0n,
         timestamp: dto.l2_transaction.timestamp
@@ -66,6 +60,8 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
     : {
       kind: BridgeTokenTransferKind.Deposit,
       status: BridgeTokenTransferStatus.Created,
+      source,
+      receiver,
       tezosOperation
     };
 };
@@ -73,8 +69,6 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
 export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: BridgeWithdrawalDto): BridgeTokenWithdrawal => {
   const source = etherlinkUtils.toChecksumAddress(dto.l2_transaction.l2_account);
   const receiver = dto.l2_transaction.l1_account;
-  // TODO: receive the receiverProxy
-  const receiverProxy = null;
   const amount = BigInt(dto.l2_transaction.amount);
 
   const etherlinkOperation: CreatedBridgeTokenWithdrawal['etherlinkOperation'] = {
@@ -82,9 +76,6 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
     hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
     amount,
     token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token.id),
-    source,
-    receiver,
-    receiverProxy,
     // TODO: receive the fee
     fee: 0n,
     timestamp: dto.l2_transaction.timestamp
@@ -94,14 +85,13 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
     ? {
       kind: BridgeTokenTransferKind.Withdrawal,
       status: BridgeTokenTransferStatus.Finished,
+      source,
+      receiver,
       tezosOperation: {
         blockId: dto.l1_transaction.level,
         hash: dto.l1_transaction.operation_hash,
         amount,
         token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token.ticket.token),
-        source,
-        receiver,
-        receiverProxy,
         // TODO: receive the fee
         fee: 0n,
         timestamp: dto.l1_transaction.timestamp
@@ -118,6 +108,8 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
       ? {
         kind: BridgeTokenTransferKind.Withdrawal,
         status: BridgeTokenTransferStatus.Sealed,
+        source,
+        receiver,
         etherlinkOperation,
         rollupData: {
           outboxMessageLevel: dto.l2_transaction.outbox_message.level,
@@ -129,6 +121,8 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
       : {
         kind: BridgeTokenTransferKind.Withdrawal,
         status: BridgeTokenTransferStatus.Created,
+        source,
+        receiver,
         etherlinkOperation,
         rollupData: {
           outboxMessageLevel: dto.l2_transaction.outbox_message.level,

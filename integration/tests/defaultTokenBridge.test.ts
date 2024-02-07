@@ -116,8 +116,7 @@ describe('Bridge', () => {
         amount,
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
-        tezosToken,
-        etherlinkToken
+        tezosToken
       });
 
       const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -143,8 +142,7 @@ describe('Bridge', () => {
         amount,
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
-        tezosToken,
-        etherlinkToken
+        tezosToken
       });
 
       const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -170,8 +168,7 @@ describe('Bridge', () => {
         amount,
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
-        tezosToken,
-        etherlinkToken
+        tezosToken
       });
 
       const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -198,8 +195,7 @@ describe('Bridge', () => {
           amount,
           source: testTezosAccountAddress,
           receiver: testEtherlinkAccountAddress,
-          tezosToken,
-          etherlinkToken
+          tezosToken
         });
         readyForDone = true;
       });
@@ -226,16 +222,13 @@ describe('Bridge', () => {
     test('Withdraw FA1.2 token', async () => {
       const amount = 7n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
-      const tokenPair = (await tokenBridge.data.getRegisteredTokenPair(tezosToken))!;
-      const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
 
       const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
       expectPendingWithdrawal(startWithdrawResult.tokenTransfer, {
         amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
-        etherlinkToken,
-        tezosTicketerAddress
+        etherlinkToken
       });
 
       const createdBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -246,8 +239,7 @@ describe('Bridge', () => {
         amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
-        etherlinkToken,
-        tezosTicketerAddress
+        etherlinkToken
       });
 
       const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -258,8 +250,7 @@ describe('Bridge', () => {
         amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
-        etherlinkToken,
-        tezosTicketerAddress
+        etherlinkToken
       });
 
       const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
@@ -272,24 +263,20 @@ describe('Bridge', () => {
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
         etherlinkToken,
-        tezosToken,
-        tezosTicketerAddress
+        tezosToken
       });
     }, withdrawTimeout);
 
     test('Withdraw FA2 token', async () => {
       const amount = 20n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
-      const tokenPair = (await tokenBridge.data.getRegisteredTokenPair(tezosToken))!;
-      const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
 
       const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
       expectPendingWithdrawal(startWithdrawResult.tokenTransfer, {
         amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
-        etherlinkToken,
-        tezosTicketerAddress
+        etherlinkToken
       });
 
       const createdBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -300,8 +287,7 @@ describe('Bridge', () => {
         amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
-        etherlinkToken,
-        tezosTicketerAddress
+        etherlinkToken
       });
 
       const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
@@ -312,8 +298,7 @@ describe('Bridge', () => {
         amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
-        etherlinkToken,
-        tezosTicketerAddress
+        etherlinkToken
       });
 
       const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
@@ -326,8 +311,7 @@ describe('Bridge', () => {
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
         etherlinkToken,
-        tezosToken,
-        tezosTicketerAddress
+        tezosToken
       });
     }, withdrawTimeout);
   });

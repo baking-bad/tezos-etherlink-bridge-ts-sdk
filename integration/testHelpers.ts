@@ -43,19 +43,17 @@ export const expectPendingDeposit = (
     tezosToken: TezosToken,
     source: string,
     receiver: string,
-    etherlinkToken: EtherlinkToken
   }
 ) => {
   expect(pendingBridgeTokenDeposit).toMatchObject<PendingBridgeTokenDeposit>({
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Pending,
+    source: params.source,
+    receiver: params.receiver,
     tezosOperation: {
       hash: expect.stringMatching(tezosOperationRegex),
       amount: params.amount,
       token: params.tezosToken,
-      source: params.source,
-      receiver: params.receiver,
-      receiverProxy: params.etherlinkToken.type === 'native' ? null : params.etherlinkToken.address,
       timestamp: expect.any(String),
     }
   });
@@ -68,21 +66,18 @@ export const expectCreatedDeposit = (
     tezosToken: TezosToken,
     source: string,
     receiver: string,
-    etherlinkToken: EtherlinkToken
   }
 ) => {
   expect(createdBridgeTokenDeposit).toMatchObject<CreatedBridgeTokenDeposit>({
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Created,
+    source: params.source,
+    receiver: params.receiver,
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
       amount: params.amount,
       token: params.tezosToken,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     }
@@ -102,6 +97,8 @@ export const expectFinishedDeposit = (
   expect(finishedBridgeTokenDeposit).toMatchObject<FinishedBridgeTokenDeposit>({
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Finished,
+    source: params.source,
+    receiver: params.receiver,
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
@@ -112,10 +109,6 @@ export const expectFinishedDeposit = (
         type: 'unknown',
         address: (params.tezosToken as any).address,
       } as any,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
@@ -124,10 +117,6 @@ export const expectFinishedDeposit = (
       hash: expect.stringMatching(etherlinkOperationRegex),
       amount: params.amount,
       token: params.etherlinkToken,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     }
@@ -141,19 +130,17 @@ export const expectPendingWithdrawal = (
     source: string,
     receiver: string,
     etherlinkToken: EtherlinkToken,
-    tezosTicketerAddress: string
   }
 ) => {
   expect(pendingBridgeTokenWithdrawal).toMatchObject<PendingBridgeTokenWithdrawal>({
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Pending,
+    source: params.source,
+    receiver: params.receiver,
     etherlinkOperation: {
       hash: expect.stringMatching(etherlinkOperationRegex),
       amount: params.amount,
       token: params.etherlinkToken,
-      source: params.source,
-      receiver: params.receiver,
-      receiverProxy: params.tezosTicketerAddress,
       timestamp: expect.any(String),
     }
   });
@@ -166,21 +153,18 @@ export const expectCreatedWithdrawal = (
     etherlinkToken: EtherlinkToken,
     source: string,
     receiver: string,
-    tezosTicketerAddress: string
   }
 ) => {
   expect(createdBridgeTokenWithdrawal).toMatchObject<CreatedBridgeTokenWithdrawal>({
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Created,
+    source: params.source,
+    receiver: params.receiver,
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
       amount: params.amount,
       token: params.etherlinkToken,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
@@ -198,21 +182,18 @@ export const expectSealedWithdrawal = (
     etherlinkToken: EtherlinkToken,
     source: string,
     receiver: string,
-    tezosTicketerAddress: string
   }
 ) => {
   expect(sealedBridgeTokenWithdrawal).toMatchObject<SealedBridgeTokenWithdrawal>({
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Sealed,
+    source: params.source,
+    receiver: params.receiver,
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
       amount: params.amount,
       token: params.etherlinkToken,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
@@ -233,21 +214,18 @@ export const expectFinishedWithdrawal = (
     source: string,
     receiver: string,
     tezosToken: TezosToken,
-    tezosTicketerAddress: string
   }
 ) => {
   expect(finishedBridgeTokenWithdrawal).toMatchObject<FinishedBridgeTokenWithdrawal>({
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Finished,
+    source: params.source,
+    receiver: params.receiver,
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
       amount: params.amount,
       token: params.etherlinkToken,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
@@ -261,10 +239,6 @@ export const expectFinishedWithdrawal = (
         type: 'unknown',
         address: (params.tezosToken as any).address,
       } as any,
-      source: params.source,
-      receiver: params.receiver,
-      // TODO: wait the backend update
-      receiverProxy: null,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },

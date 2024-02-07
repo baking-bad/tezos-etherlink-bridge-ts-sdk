@@ -6,9 +6,6 @@ export interface TezosTransferTokensOperation {
   readonly hash: string;
   readonly amount: bigint;
   readonly token: TezosToken;
-  readonly source: string;
-  readonly receiver: string;
-  readonly receiverProxy: string | null;
   readonly fee: bigint;
   readonly timestamp: string;
 }
@@ -18,9 +15,6 @@ export interface EtherlinkTransferTokensOperation {
   readonly hash: string;
   readonly amount: bigint;
   readonly token: EtherlinkToken;
-  readonly source: string;
-  readonly receiver: string;
-  readonly receiverProxy: string | null;
   readonly fee: bigint;
   readonly timestamp: string;
 }
@@ -57,6 +51,8 @@ export enum BridgeTokenTransferStatus {
 interface BridgeTokenTransferBase {
   readonly kind: BridgeTokenTransferKind;
   readonly status: BridgeTokenTransferStatus;
+  readonly source: string;
+  readonly receiver: string;
 }
 
 export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
@@ -66,9 +62,6 @@ export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
     readonly hash: string;
     readonly amount: bigint;
     readonly token: TezosToken;
-    readonly source: string;
-    readonly receiver: string;
-    readonly receiverProxy: string | null;
     readonly timestamp: string;
   }
 }
@@ -98,9 +91,6 @@ export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
     readonly hash: string;
     readonly amount: bigint;
     readonly token: EtherlinkToken;
-    readonly source: string;
-    readonly receiver: string;
-    readonly receiverProxy: string | null;
     readonly timestamp: string;
   }
 }

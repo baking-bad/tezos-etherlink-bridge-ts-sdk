@@ -303,13 +303,12 @@ export class TokenBridge implements TokenBridgeService {
     const bridgeTokenWithdrawal: StartWithdrawResult['tokenTransfer'] = {
       kind: BridgeTokenTransferKind.Withdrawal,
       status: BridgeTokenTransferStatus.Pending,
+      source: etherlinkUtils.toChecksumAddress(withdrawalTransactionReceipt.from),
+      receiver: tezosReceiverAddress,
       etherlinkOperation: {
         hash: withdrawalTransactionReceipt.transactionHash.toString(),
         timestamp: Date.now().toString(),
         amount,
-        source: etherlinkUtils.toChecksumAddress(withdrawalTransactionReceipt.from),
-        receiver: tezosReceiverAddress,
-        receiverProxy: tezosProxyAddress,
         token,
       }
     };
@@ -495,13 +494,12 @@ export class TokenBridge implements TokenBridgeService {
       tokenTransfer: {
         kind: BridgeTokenTransferKind.Deposit,
         status: BridgeTokenTransferStatus.Pending,
+        source: sourceAddress,
+        receiver: etherlinkReceiverAddress,
         tezosOperation: {
           hash: depositOperation.opHash,
           timestamp: new Date().toISOString(),
           amount,
-          source: sourceAddress,
-          receiver: etherlinkReceiverAddress,
-          receiverProxy: etherlinkTokenProxyContractAddress || null,
           token,
         }
       },
@@ -541,13 +539,12 @@ export class TokenBridge implements TokenBridgeService {
       tokenTransfer: {
         kind: BridgeTokenTransferKind.Deposit,
         status: BridgeTokenTransferStatus.Pending,
+        source: depositOperation.source,
+        receiver: etherlinkReceiverAddress,
         tezosOperation: {
           hash: depositOperation.hash,
           timestamp: new Date().toISOString(),
           amount,
-          source: depositOperation.source,
-          receiver: etherlinkReceiverAddress,
-          receiverProxy: etherlinkTokenProxyContractAddress || null,
           token,
         }
       },
