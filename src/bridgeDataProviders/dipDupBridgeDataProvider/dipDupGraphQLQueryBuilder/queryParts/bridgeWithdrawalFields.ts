@@ -10,9 +10,9 @@ l2_transaction {
   amount
   l2_token {
     id
-    ticket {
+    tezos_ticket {
       token {
-        id
+        type
         contract_address
         token_id
       }

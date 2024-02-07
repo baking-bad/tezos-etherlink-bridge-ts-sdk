@@ -8,15 +8,20 @@ import type { TezosToken } from '../../tezos';
 import { etherlinkUtils } from '../../utils';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto): TezosToken => {
-  if (tezosTokenDto.id === 'xtz')
-    return { type: 'native' };
+  const preparedTokenType = tezosTokenDto.type.toLowerCase();
 
-  // TODO: detect fa2 token
-  return {
-    type: 'unknown',
-    address: tezosTokenDto.contract_address,
-    tokenId: tezosTokenDto.token_id
-  } as any;
+  return preparedTokenType === 'fa1.2'
+    ? {
+      type: 'fa1.2',
+      address: tezosTokenDto.contract_address,
+    }
+    : tezosTokenDto.type === 'fa2'
+      ? {
+        type: 'fa2',
+        address: tezosTokenDto.contract_address,
+        tokenId: tezosTokenDto.token_id
+      }
+      : { type: 'native' };
 };
 
 const mapEtherlinkTokenDtoToEtherlinkToken = (contractAddress: string): EtherlinkToken => {
@@ -91,7 +96,7 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
         blockId: dto.l1_transaction.level,
         hash: dto.l1_transaction.operation_hash,
         amount,
-        token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token.ticket.token),
+        token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token.tezos_ticket.token),
         // TODO: receive the fee
         fee: 0n,
         timestamp: dto.l1_transaction.timestamp

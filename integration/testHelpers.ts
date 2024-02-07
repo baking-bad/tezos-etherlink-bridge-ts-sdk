@@ -103,12 +103,7 @@ export const expectFinishedDeposit = (
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
       amount: params.amount,
-      // TODO: wai the backend update
-      // token: params.tezosToken
-      token: {
-        type: 'unknown',
-        address: (params.tezosToken as any).address,
-      } as any,
+      token: params.tezosToken,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
@@ -233,12 +228,7 @@ export const expectFinishedWithdrawal = (
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
       amount: params.amount,
-      // TODO: wai the backend update
-      // token: params.tezosToken
-      token: {
-        type: 'unknown',
-        address: (params.tezosToken as any).address,
-      } as any,
+      token: params.tezosToken,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },

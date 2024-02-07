@@ -5,7 +5,7 @@ l1_transaction {
   amount
   ticket {
     token {
-      id
+      type
       contract_address
       token_id
     }

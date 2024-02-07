@@ -1,6 +1,5 @@
 export interface TezosTokenDto {
-  id: string;
-  // type: string;
+  type: string;
   contract_address: string;
   token_id: string;
 }
@@ -11,13 +10,15 @@ interface InboxMessageDto {
   index: number;
 }
 
+interface TezosTicketDto {
+  token: TezosTokenDto;
+}
+
 interface DepositL1TransactionDto {
   level: number;
   operation_hash: string;
   amount: string;
-  ticket: {
-    token: TezosTokenDto;
-  };
+  ticket: TezosTicketDto;
   l1_account: string;
   l2_account: string;
   timestamp: string;
@@ -51,9 +52,7 @@ interface WithdrawalL2TransactionDto {
   amount: string;
   l2_token: {
     id: string;
-    ticket: {
-      token: TezosTokenDto
-    };
+    tezos_ticket: TezosTicketDto;
   };
   l1_account: string;
   l2_account: string;
