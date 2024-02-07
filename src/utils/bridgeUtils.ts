@@ -5,3 +5,7 @@ export const getInitialOperationHash = (tokenTransfer: BridgeTokenTransfer): str
     ? tokenTransfer.tezosOperation.hash
     : tokenTransfer.etherlinkOperation.hash;
 };
+
+export const isBridgeTokenTransferOwner = (tokenTransfer: BridgeTokenTransfer, address: string): boolean => {
+  return tokenTransfer.source === address || tokenTransfer.receiver === address;
+};
