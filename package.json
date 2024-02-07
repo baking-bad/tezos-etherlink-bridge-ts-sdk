@@ -29,7 +29,7 @@
     "default": "./dist/node/index.js"
   },
   "peerDependencies": {
-    "@taquito/taquito": "^19.0.0",
+    "@taquito/taquito": ">=19.0.0",
     "web3": "^4.4.0",
     "ws": "^8.16.0"
   },
