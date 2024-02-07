@@ -54,11 +54,14 @@ const web3 = new Web3(window.ethereum);
 
 ### SDK Usage
 
-The SDK only allows registered (listed) tokens to be transferred between Tezos and Etherlink. ([see details](https://github.com/baking-bad/etherlink-bridge?tab=readme-ov-file#bridge-configuration-listing-new-token-pairs)). 
+The SDK only allows registered (listed) tokens to be transferred between Tezos and Etherlink ([see details](https://github.com/baking-bad/etherlink-bridge?tab=readme-ov-file#bridge-configuration-listing-new-token-pairs)). 
 Configure a list of token pairs or the corresponding provider:  
 
+<details>
+<summary><b>Code of the token pairs configurtaion</b></summary>
+
 ```ts
-import type { FA12TezosToken, ERC20EtherlinkToken, TokenPair } from '@baking-bad/tezos-etherlink-bridge-sdk';
+import type { FA12TezosToken, FA2TezosToken, ERC20EtherlinkToken, TokenPair } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 
@@ -71,17 +74,51 @@ const ctezEtherlinkToken: ERC20EtherlinkToken = {
   address: '0x8554cd57c0c3e5ab9d1782c9063279fa9bfa4680'
 };
 
+const fxhashTezosToken: FA2TezosToken = {
+  type: 'fa2',
+  address: 'KT1GemMPvp2bV8TUV1DzWTwdhT27TtMgJiTw',
+  tokenId: '42'
+};
+const fxhashEtherlinkToken: ERC20EtherlinkToken = {
+  type: 'erc20',
+  address: '0xcB5d40c6B1bdf5Cd51b3801351b0A68D101a561b'
+};
+
 const tokenPairs: TokenPair[] = [
   {
     tezos: {
-      ...ctezTezosToken,
+      token: { type: 'native' },
+      ticketerContractAddress: 'KT1XsAj9z2DX2LLrq6bTRJBDubrME2auietW',
+    },
+    etherlink: {
+      token: { type: 'native' }
+    }
+  },
+  {
+    tezos: {
+      token: ctezTezosToken,
       ticketerContractAddress: 'KT1PmYUomF3HDxsGWYQUCbLi2X8WvT7ZHv8o',
       tickerHelperContractAddress: 'KT1TZg9EwGHKbfWvsHGsqBjm3J5NhJBtHPKX'
     },
-    etherlink: ctezEtherlinkToken
+    etherlink: {
+      token: ctezEtherlinkToken
+    }
+  },
+  {
+    tezos: {
+      token: fxhashTezosToken,
+      ticketerContractAddress: 'KT1GQEybCQffb6YJ5NH9GhPEeRyufrYP3amN',
+      tickerHelperContractAddress: 'KT1LstLU529PtDUQHo2x8WybNXBzLXnF6Tkv'
+    },
+    etherlink: {
+      token: fxhashEtherlinkToken
+    }
   }
 ];
 ```
+
+</details>  
+
 
 Once token pairs are configured, creating an instance of `TokenBridge` is a type through which you can deposit, withdraw tokens, and receive token transfers between layers. There two approaches to create the `TokenBridge` instance.
 
@@ -102,7 +139,11 @@ const tokenBridge = createDefaultTokenBridge({
   },
   tokenPairs,
   dipDup: {
-    baseUrl: 'https://etherlink-indexer.dipdup.net/'
+    baseUrl: 'https://etherlink-indexer.dipdup.net',
+    autoUpdate: {
+      type: 'websocket',
+      webSocketApiBaseUrl: 'wss://etherlink-indexer.dipdup.net'
+    }
   }
 });
 ```
@@ -119,7 +160,10 @@ import {
 
 const dipDup = new DipDupBridgeDataProvider({
   baseUrl: 'https://etherlink-indexer.dipdup.net/',
-  autoUpdate: 'websocket'
+  autoUpdate: {
+    type: 'websocket',
+    webSocketApiBaseUrl: 'wss://etherlink-indexer.dipdup.net'
+  }
 });
 const tokenBridge = new TokenBridge({
   tezos: {
@@ -142,8 +186,7 @@ const tokenBridge = new TokenBridge({
   }
 });
 ```
-
-Start the TokenBridge instance to receive real-time updates of user transfers, use caching and other internal mechanisms:
+Start the TokenBridge instance to set up a websocket connection for future real-time updates of user transfers, initiate caching, and enable other internal mechanisms:
 
 ```ts
 // ...
@@ -155,15 +198,9 @@ await tokenBridge.start();
 
 ```ts
 import {
-  type FA12TezosToken, type ERC20EtherlinkToken, type TokenPair,
+  type FA12TezosToken, type FA2TezosToken, type ERC20EtherlinkToken, type TokenPair,
   createDefaultTokenBridge
 } from '@baking-bad/tezos-etherlink-bridge-sdk';
-
-// ...
-
-// Creating and configurating tezosToolkit and web3 
-
-// ...
 
 const ctezTezosToken: FA12TezosToken = {
   type: 'fa1.2',
@@ -173,14 +210,46 @@ const ctezEtherlinkToken: ERC20EtherlinkToken = {
   type: 'erc20',
   address: '0x8554cd57c0c3e5ab9d1782c9063279fa9bfa4680'
 };
+
+const fxhashTezosToken: FA2TezosToken = {
+  type: 'fa2',
+  address: 'KT1GemMPvp2bV8TUV1DzWTwdhT27TtMgJiTw',
+  tokenId: '42'
+};
+const fxhashEtherlinkToken: ERC20EtherlinkToken = {
+  type: 'erc20',
+  address: '0xcB5d40c6B1bdf5Cd51b3801351b0A68D101a561b'
+};
+
 const tokenPairs: TokenPair[] = [
   {
     tezos: {
-      ...ctezTezosToken,
+      token: { type: 'native' },
+      ticketerContractAddress: 'KT1XsAj9z2DX2LLrq6bTRJBDubrME2auietW',
+    },
+    etherlink: {
+      token: { type: 'native' }
+    }
+  },
+  {
+    tezos: {
+      token: ctezTezosToken,
       ticketerContractAddress: 'KT1PmYUomF3HDxsGWYQUCbLi2X8WvT7ZHv8o',
       tickerHelperContractAddress: 'KT1TZg9EwGHKbfWvsHGsqBjm3J5NhJBtHPKX'
     },
-    etherlink: ctezEtherlinkToken
+    etherlink: {
+      token: ctezEtherlinkToken
+    }
+  },
+  {
+    tezos: {
+      token: fxhashTezosToken,
+      ticketerContractAddress: 'KT1GQEybCQffb6YJ5NH9GhPEeRyufrYP3amN',
+      tickerHelperContractAddress: 'KT1LstLU529PtDUQHo2x8WybNXBzLXnF6Tkv'
+    },
+    etherlink: {
+      token: fxhashEtherlinkToken
+    }
   }
 ];
 
@@ -194,7 +263,11 @@ const tokenBridge = createDefaultTokenBridge({
   },
   tokenPairs,
   dipDup: {
-    baseUrl: 'https://etherlink-indexer.dipdup.net/'
+    baseUrl: 'https://etherlink-indexer.dipdup.net',
+    autoUpdate: {
+      type: 'websocket',
+      webSocketApiBaseUrl: 'wss://etherlink-indexer.dipdup.net'
+    }
   }
 });
 
@@ -215,21 +288,23 @@ There are two type of token transfers:
 
 ### Deposit
 
-To deposit tokens, use the asynchronous `TokenBridge.deposit` method, passing Tezos token and amount in raw type (not divided by token decimals). The method returns a bridge transfer with `BridgeTokenTransferKind.Deposit` type and `BridgeTokenTransferStatus.Pending` status, along with the Taquito object of the corresponding Tezos operation.
+To deposit tokens, use the asynchronous `TokenBridge.deposit` method, passing amount in raw type (not divided by token decimals) and Tezos token. The method returns a bridge transfer with `BridgeTokenTransferKind.Deposit` type and `BridgeTokenTransferStatus.Pending` status, along with the Taquito object of the corresponding Tezos operation.
 
 The Deposit transfer has the following statuses(`BridgeTokenTransferStatus`):
 
 1. Pending (Code: 0)
-2. Created (Code: 1)
-3. Finished (Code: 3)
-4. Failed (Code: 4)
+2. Created (Code: 100)
+3. Finished (Code: 300)
+4. Failed (Code: 400)
 
-Use the asynchronous `TokenBridge.waitBridgeTokenTransferStatus` method to wait until the specified token transfer reaches the specified status.
+Use the asynchronous `TokenBridge.waitForBridgeTokenTransferStatus` method to wait until the specified token transfer reaches the specified status. 
+
+> ℹ️ This `TokenBridge.waitForBridgeTokenTransferStatus` method subscribes to real-time updates of the specified token transfer. Consequently, you may receive updates through the `TokenBridge.events.tokenTransferUpdated` event if it is utilized.
 
 > ℹ️ The SDK automatically adds token approval operations. However, if needed, you can disable this feature by passing the set option flag: `useApprove: false`.
 
 ```ts
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
+import { BridgeTokenTransferStatus, type FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -240,41 +315,24 @@ const ctezTezosToken: FA12TezosToken = {
   address: 'KT1GM2AnBAJWdzrChp3hTYFTSb6Dmh61peBP'
 };
 // Deposit 1 Ctez to Etherlink (L2)
-const depositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n);
-const depositTransfer = depositResult.tokenTransfer;
-console.log(`
-  The ${depositTransfer.tezosOperation.source} start to deposit ${depositTransfer.tezosOperation.amount} ${depositTransfer.tezosOperation.token.address} [${depositTransfer.tezosOperation.token.type}] tokens to Etherlink.
-
-  Transfer Kind: ${BridgeTokenTransferKind[depositTransfer.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[depositTransfer.status]}
-  Tezos Operation Hash: ${depositTransfer.tezosOperation.hash}
-  Tezos Operation Timestamp: ${depositTransfer.tezosOperation.timestamp}
-`);
+const depositResult = await tokenBridge.deposit(1_000_000n, ctezTezosToken);
+console.dir(depositResult.tokenTransfer, { depth: null });
 
 // Wait until the deposit status is Finished
-const finishedBridgeTokenDeposit = await tokenBridge.waitBridgeTokenTransferStatus(
-  depositTransfer,
+const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
+  depositResult.tokenTransfer,
   BridgeTokenTransferStatus.Finished
 );
-console.log(`
-  The ${finishedBridgeTokenDeposit.tezosOperation.source} deposited ${finishedBridgeTokenDeposit.tezosOperation.amount} ${finishedBridgeTokenDeposit.tezosOperation.token.address} [${finishedBridgeTokenDeposit.tezosOperation.token.type}] tokens to Etherlink as ${finishedBridgeTokenDeposit.etherlinkOperation.token.address} [${finishedBridgeTokenDeposit.etherlinkOperation.token.type}] token.
-
-  Transfer Kind: ${BridgeTokenTransferKind[finishedBridgeTokenDeposit.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[finishedBridgeTokenDeposit.status]}
-  Tezos Operation Hash: ${finishedBridgeTokenDeposit.tezosOperation.hash}
-  Tezos Operation Timestamp: ${finishedBridgeTokenDeposit.tezosOperation.timestamp}
-  Etherlink Operation Hash: ${finishedBridgeTokenDeposit.etherlinkOperation.hash}
-  Etherlink Operation Timestamp: ${finishedBridgeTokenDeposit.etherlinkOperation.timestamp}
-`);
+console.dir(finishedBridgeTokenDeposit, { depth: null });
 
 // Done!
 
 ```
 
-Also, you can use the `TokenBridge.events.accountTokenTransferUpdated` event to receive the actual status of token transfers in real-time:
+Additionally, you have the option to manually subscribe to token transfers and utilize the `TokenBridge.events.tokenTransferUpdated` event to receive real-time updates on the current status of subscribed token transfers:
 
 ```ts
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
+import { BridgeTokenTransferStatus, type FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -285,35 +343,20 @@ const ctezTezosToken: FA12TezosToken = {
   address: 'KT1GM2AnBAJWdzrChp3hTYFTSb6Dmh61peBP'
 };
 
-tokenBridge.events.accountTokenTransferUpdated.addListener(
-  tokenTransfer => {
-    if (tokenTransfer.kind === BridgeTokenTransferKind.Deposit && tokenTransfer.status === BridgeTokenTransferStatus.Finished) {
-      console.log(`
-  The ${finishedBridgeTokenDeposit.tezosOperation.source} deposited ${finishedBridgeTokenDeposit.tezosOperation.amount} ${finishedBridgeTokenDeposit.tezosOperation.token.address} [${finishedBridgeTokenDeposit.tezosOperation.token.type}] tokens to Etherlink as ${finishedBridgeTokenDeposit.etherlinkOperation.token.address} [${finishedBridgeTokenDeposit.etherlinkOperation.token.type}] token.
+tokenBridge.events.tokenTransferUpdated.addListener(tokenTransfer => {
+  console.dir(tokenTransfer, { depth: null });
 
-  Transfer Kind: ${BridgeTokenTransferKind[finishedBridgeTokenDeposit.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[finishedBridgeTokenDeposit.status]}
-  Tezos Operation Hash: ${finishedBridgeTokenDeposit.tezosOperation.hash}
-  Tezos Operation Timestamp: ${finishedBridgeTokenDeposit.tezosOperation.timestamp}
-  Etherlink Operation Hash: ${finishedBridgeTokenDeposit.etherlinkOperation.hash}
-  Etherlink Operation Timestamp: ${finishedBridgeTokenDeposit.etherlinkOperation.timestamp}
-`);
-
-    }
+  if (tokenTransfer.status === BridgeTokenTransferStatus.Finished) {
+    // Unsubscribe from the token transfer as the transfer is finished and there is no need to use the subscription
+    tokenBridge.unsubscribeFromTokenTransfer(tokenTransfer);
   }
-);
+});
 
 // Deposit 1 Ctez to Etherlink (L2)
-const depositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n);
-const depositTransfer = depositResult.tokenTransfer;
-console.log(`
-  The ${depositTransfer.tezosOperation.source} start to deposit ${depositTransfer.tezosOperation.amount} ${depositTransfer.tezosOperation.token.address} [${depositTransfer.tezosOperation.token.type}] tokens to Etherlink.
+const depositResult = await tokenBridge.deposit(1_000_000n, ctezTezosToken);
+console.dir(depositResult.tokenTransfer, { depth: null });
 
-  Transfer Kind: ${BridgeTokenTransferKind[depositTransfer.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[depositTransfer.status]}
-  Tezos Operation Hash: ${depositTransfer.tezosOperation.hash}
-  Tezos Operation Timestamp: ${depositTransfer.tezosOperation.timestamp}
-`);
+tokenBridge.subscribeToTokenTransfer(depositResult.tokenTransfer);
 ```
 
 By default, the receiver address on Etherlink (L2) is the address of the connected account in Web3. If you need to deposit tokens to a custom Etherlink address, you can pass this address as the third parameter:
@@ -322,7 +365,7 @@ By default, the receiver address on Etherlink (L2) is the address of the connect
 // ...
 
 const etherlinkReceiverAddress = '0x...';
-const depositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n, etherlinkReceiverAddress);
+const depositResult = await tokenBridge.deposit(1_000_000n, ctezTezosToken, etherlinkReceiverAddress);
 
 // ...
 ```
@@ -331,21 +374,22 @@ const depositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n, ethe
 
 The tokens withdrawal process consists of two stages. Use the asynchronous `TokenBridge.startWithdraw` and `TokenBridge.finishWithdraw` methods.
 
-To start withdraw, call `TokenBridge.startWithdraw` method, passing Etherlink token and amount in raw type (not divided by token decimals).  The method returns a bridge transfer with `BridgeTokenTransferKind.Withdrawal` type and `BridgeTokenTransferStatus.Pending` status, along with the Web3 object of the corresponding Etherlink operation.
+To start withdraw, call `TokenBridge.startWithdraw` method, passing amount in raw type (not divided by token decimals) and Etherlink token. The method returns a bridge transfer with `BridgeTokenTransferKind.Withdrawal` type and `BridgeTokenTransferStatus.Pending` status, along with the Web3 object of the corresponding Etherlink operation.
 
 The Withdrawal transfer has the following statuses (`BridgeTokenTransferStatus`):
 
 1. Pending (Code: 0)
-2. Created (Code: 1)
-3. Sealed (Code: 2)
-4. Finished (Code: 3)
-5. Failed (Code: 4)
+2. Created (Code: 100)
+3. Sealed (Code: 200)
+4. Finished (Code: 300)
+5. Failed (Code: 400)
 
-You can you the asynchronous `TokenBridge.waitBridgeTokenTransferStatus` method to waiting when the specified token transfer will be has specified status.
-Use the asynchronous `TokenBridge.waitBridgeTokenTransferStatus` method to wait until the specified token transfer reaches the specified status.
+Use the asynchronous `TokenBridge.waitForBridgeTokenTransferStatus` method to wait until the specified token transfer reaches the specified status. 
+
+> ℹ️ This `TokenBridge.waitForBridgeTokenTransferStatus` method subscribes to real-time updates of the specified token transfer. Consequently, you may receive updates through the `TokenBridge.events.tokenTransferUpdated` event if it is utilized.
 
 ```ts
-import type { ERC20EtherlinkToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
+import { BridgeTokenTransferStatus, type ERC20EtherlinkToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 
 // ...
 // const tokenBridge: TokenBridge = ...
@@ -357,73 +401,43 @@ const ctezEtherlinkToken: ERC20EtherlinkToken = {
 };
 // Withdraw 1 Ctez from Etherlink (L2)
 // The first stage
-const startWithdrawResult = await tokenBridge.startWithdraw(ctezEtherlinkToken, 1_000_000n);
-const withdrawalTransfer = startWithdrawResult.tokenTransfer;
-console.log(`
-  The ${withdrawalTransfer.etherlinkOperation.source} start to withdraw ${withdrawalTransfer.etherlinkOperation.amount} ${withdrawalTransfer.etherlinkOperation.token.address} [${withdrawalTransfer.etherlinkOperation.token.type}] tokens from Etherlink.
-
-  Transfer Kind: ${BridgeTokenTransferKind[withdrawalTransfer.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[withdrawalTransfer.status]}
-  Etherlink Operation Hash: ${withdrawalTransfer.etherlinkOperation.hash}
-  Etherlink Operation Timestamp: ${withdrawalTransfer.etherlinkOperation.timestamp}
-`);
+const startWithdrawResult = await tokenBridge.startWithdraw(1_000_000n, ctezEtherlinkToken);
+console.dir(startWithdrawResult.tokenTransfer, { depth: null });
 
 // Wait until the withdrawal status is Sealed
-const sealedBridgeTokenWithdrawal = await tokenBridge.waitBridgeTokenTransferStatus(
-  withdrawalTransfer,
+const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+  startWithdrawResult.tokenTransfer,
   BridgeTokenTransferStatus.Sealed
 );
-console.log(`
-  The ${sealedBridgeTokenWithdrawal.etherlinkOperation.source} completed the first stage of the ${sealedBridgeTokenWithdrawal.etherlinkOperation.amount} ${sealedBridgeTokenWithdrawal.etherlinkOperation.token.address} [${sealedBridgeTokenWithdrawal.etherlinkOperation.token.type}] tokens withdrawal.
-
-  Transfer Kind: ${BridgeTokenTransferKind[sealedBridgeTokenWithdrawal.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[sealedBridgeTokenWithdrawal.status]}
-  Etherlink Operation Hash: ${sealedBridgeTokenWithdrawal.etherlinkOperation.hash}
-  Etherlink Operation Timestamp: ${sealedBridgeTokenWithdrawal.etherlinkOperation.timestamp}
-  Tezos Rollup Commitment: ${sealedBridgeTokenWithdrawal.rollupData.commitment}
-  Tezos Rollup Proof: ${sealedBridgeTokenWithdrawal.rollupData.proof}
-`);
+console.dir(sealedBridgeTokenWithdrawal, { depth: null });
 
 // The second stage
 const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
 // Wait until the withdrawal status is Finished
-const finishedBridgeTokenWithdrawal = await tokenBridge.waitBridgeTokenTransferStatus(
+const finishedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
   finishWithdrawResult.tokenTransfer,
   BridgeTokenTransferStatus.Finished
 );
-console.log(`
-  The ${finishedBridgeTokenWithdrawal.etherlinkOperation.source} withdrew ${finishedBridgeTokenWithdrawal.etherlinkOperation.amount} ${finishedBridgeTokenWithdrawal.etherlinkOperation.token.address} [${finishedBridgeTokenWithdrawal.etherlinkOperation.token.type}] tokens from Etherlink to Tezos as ${finishedBridgeTokenWithdrawal.tezosOperation.token.address} [${finishedBridgeTokenWithdrawal.tezosOperation.token.type}] token.
-
-  Transfer Kind: ${BridgeTokenTransferKind[finishedBridgeTokenWithdrawal.kind]}
-  Transfer Status: ${BridgeTokenTransferStatus[finishedBridgeTokenWithdrawal.status]}
-  Etherlink Operation Hash: ${finishedBridgeTokenWithdrawal.etherlinkOperation.hash}
-  Etherlink Operation Timestamp: ${finishedBridgeTokenWithdrawal.etherlinkOperation.timestamp}
-  Tezos Operation Hash: ${finishedBridgeTokenWithdrawal.tezosOperation.hash}
-  Tezos Operation Timestamp: ${finishedBridgeTokenWithdrawal.tezosOperation.timestamp}
-  Tezos Rollup Commitment: ${finishedBridgeTokenWithdrawal.rollupData.commitment}
-  Tezos Rollup Proof: ${finishedBridgeTokenWithdrawal.rollupData.proof}
-`);
+console.dir(finishedBridgeTokenWithdrawal, { depth: null });
 
 // Done!
 
 ```
 
-Also, you can use the `TokenBridge.events.accountTokenTransferUpdated` event to receive actual status of token transfers in real-time.
+Additionally, you have the option to manually subscribe to token transfers and utilize the `TokenBridge.events.tokenTransferUpdated` event to receive real-time updates on the current status of subscribed token transfers:
 
-### Events
+### Subscriptions and Events
 
-To receive real-time updates of token transfers, use the `TokenBridge.events`:
-1. `tokenTransferCreated` emits when a new token transfer is created for any account;
-2. `tokenTransferUpdated` emits when the data of an existing token transfer for any account is updated;
-3. `accountTokenTransferUpdated` emits when the data of an existing token transfer is updated for the currently connected accounts;
-4. `accountTokenTransferCreated` emits when a new token transfer is created for the currently connected accounts.
+To receive real-time updates of token transfers, use the `TokenBridge.subscribeToTokenTransfer` method and `TokenBridge.events`:
+1. `tokenTransferCreated` emits when a new token transfer is created;
+2. `tokenTransferUpdated` emits when the data of an existing token transfer is updated.
 
 ```ts
 // ...
 // const tokenBridge: TokenBridge = ...
+// const tokenTransfer: BridgeTokenTransfer =
 // ...
 
-// Subscribe to all token transfers of the bridge.
 tokenBridge.events.tokenTransferCreated.addListener(
   tokenTransfer => {
     console.log('Created a new token transfer:');
@@ -431,7 +445,6 @@ tokenBridge.events.tokenTransferCreated.addListener(
   }
 );
 
-// Subscribe to updates of all token transfers of the bridge.
 tokenBridge.events.tokenTransferUpdated.addListener(
   tokenTransfer => {
     console.log('Token transfer is updated:');
@@ -439,116 +452,73 @@ tokenBridge.events.tokenTransferUpdated.addListener(
   }
 );
 
-// Subscribe to only token transfers of the connected account addresses.
-tokenBridge.events.accountTokenTransferCreated.addListener(
-  tokenTransfer => {
-    console.log('Created a new token transfer:');
-    console.dir(tokenTransfer, { depth: null });
-  }
-);
-
-// Subscribe only to updates of token transfers for the connected account addresses.
-tokenBridge.events.accountTokenTransferUpdated.addListener(
-  tokenTransfer => {
-    console.log('Token transfer is updated:');
-    console.dir(tokenTransfer, { depth: null });
-  }
-);
+tokenBridge.subscribeToTokenTransfer(tokenTransfer);
+// Subscribe to token transfers by operation hash
+// Tezos operation
+tokenBridge.subscribeToTokenTransfer('o...');
+// Etherlink transaction
+tokenBridge.subscribeToTokenTransfer('0x...');
 ```
 
-### Use data providers
+### Data
 
-To make token transfers, the SDK requires actual blockchain data, and it uses data providers for this purpose. There are the following types of data providers:
-1. `TransfersBridgeDataProvider` provides token transfers by requested addresses and operation hashes. Monitors for new transfers and updates, emitting corresponding events.  
-**Default provider:** `DipDupBridgeDataProvider`.  
+With the SDK, you can access useful data such as token transfers and token balances.
 
-2. `BalancesBridgeDataProvider` helps to receive actual token balances in Tezos and Etherlink blockchains.  
-**Default provider:** `DipDupBridgeDataProvider`.  
+**Token Transfers**
 
-3. `TokensBridgeDataProvider` is required for the SDK to receive the listed token pairs.  
-**Default provider:** `LocalTokensBridgeDataProvider`, which receives an array of listed token pairs upon creation.
-
-**TransfersBridgeDataProvider**
-
-Use this provider to receive token transfers.
-To get token transfers where the sender (in the case of deposit) or receiver (in the case of withdrawal) is the specified address/addresses, use the `getTokenTransfers` method.
-
+To receive all token transfers over the Etherlink bridge:
 ```ts
 // ...
 // const tokenBridge: TokenBridge = ...
 // ...
 
-let tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...']);
-tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...', '0x...']);
-tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...', 'tz1...', '0x...']);
+const tokenTransfers = tokenBridge.data.getTokenTransfers();
 ```
 
-The method has an overload with offset/limit parameters to specify how many entries you want to load.
-
+Since the number of token transfers can be large, use the `offset` and `limit` parameters to specify the number of entries you want to load:
 ```ts
 // ...
 // const tokenBridge: TokenBridge = ...
 // ...
 
-// Load 100 entries
-let tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...', '0x...'], 0, 100);
-// skip the first 300 entries and load 50
-tokenTransfers = tokenBridge.transfersBridgeDataProvider.getTokenTransfers(['tz1...', '0x...'], 300, 50);
+// Load last 100 token transfers
+let tokenTransfers = tokenBridge.data.getTokenTransfers(0, 100);
 ```
 
-If you need to find the transfer by Tezos or Etherlink operation hash, use the `getTokenTransfer` method.
-
+To receive token transfers for specific accounts:
 ```ts
 // ...
 // const tokenBridge: TokenBridge = ...
 // ...
 
-let tokenTransfer = tokenBridge.transfersBridgeDataProvider.getTokenTransfer('op...');
-tokenTransfer = tokenBridge.transfersBridgeDataProvider.getTokenTransfer('0x...');
+let tokenTransfers = tokenBridge.data.getTokenTransfers(['tz1...']);
+tokenTransfers = tokenBridge.data.getTokenTransfers(['tz1...', '0x...']);
+tokenTransfers = tokenBridge.data.getTokenTransfers(['tz1...', 'tz1...', '0x...']);
+```
+
+You can also use the `offset` and `limit` parameters to specify the number of entries you want to load:
+```ts
+// ...
+// const tokenBridge: TokenBridge = ...
+// ...
+
+// Load last 100 token transfers
+let tokenTransfers = tokenBridge.data.getTokenTransfers(['tz1...', '0x...'], 0, 100);
+// skip the last 300 token transfers and load 50
+tokenTransfers = tokenBridge.data.getTokenTransfers(['tz1...', '0x...'], 300, 50);
+```
+
+To find a transfer by Tezos or Etherlink operation hash, use the `getTokenTransfer` method:
+```ts
+// ...
+// const tokenBridge: TokenBridge = ...
+// ...
+
+let tokenTransfer = tokenBridge.data.getTokenTransfer('o...');
+tokenTransfer = tokenBridge.data.getTokenTransfer('0x...');
 ```
 
 ## Advanced usage
-
-### Deposit with additional operations
-
-If you need to perform operations before or after deposit operations in the same batch, pass such operations to the `TokenBridge.deposit` method:
-
-```ts
-import { OpKind, type WalletParamsWithKind } from '@taquito/taquito';
-import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
-
-// ...
-// const tokenBridge: TokenBridge = ...
-// ...
-
-const ctezTezosToken: FA12TezosToken = {
-  type: 'fa1.2',
-  address: 'KT1GM2AnBAJWdzrChp3hTYFTSb6Dmh61peBP'
-};
-// Deposit 1 Ctez to Etherlink (L2)
-const beforeCalls: WalletParamsWithKind[] = [
-  {
-    kind: OpKind.TRANSACTION,
-    amount: 1000,
-    to: 'tz1...',
-  }
-];
-const afterCalls: WalletParamsWithKind[] = [
-  {
-    kind: OpKind.TRANSACTION,
-    amount: 3000,
-    to: 'tz1...',
-  }
-];
-const depositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n, {
-  beforeCalls,
-  afterCalls
-});
-```
-In this case, the batch operation will consist of:
-1. Operations of the `beforeCalls` array;
-2. Deposit operations with approving token;
-3. Operations of the `afterCalls` array.
 
 ### Select a type of Taquito API
 
@@ -568,13 +538,24 @@ import type { FA12TezosToken } from '@baking-bad/tezos-etherlink-bridge-sdk';
 // const tokenBridge: TokenBridge = ...
 // ...
 
-const walletDepositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n);
+const walletDepositResult = await tokenBridge.deposit(1_000_000n, ctezTezosToken);
 // depositResult.depositOperation is the BatchWalletOperation type
-const contractDepositResult = await tokenBridge.deposit(ctezTezosToken, 1_000_000n, {
+const contractDepositResult = await tokenBridge.deposit(1_000_000n, ctezTezosToken, {
   useWalletApi: false
 });
 // depositResult.depositOperation is the BatchOperation type
 ```
 
 ### Create own data providers
+
+To make token transfers, the SDK requires actual blockchain data, and it uses data providers for this purpose. There are the following types of data providers:
+1. `TransfersBridgeDataProvider` provides token transfers by requested addresses and operation hashes. Monitors for new transfers and updates, emitting corresponding events.  
+**Default provider:** `DipDupBridgeDataProvider`.  
+
+2. `BalancesBridgeDataProvider` helps to receive actual token balances in Tezos and Etherlink blockchains.  
+**Default provider:** `DipDupBridgeDataProvider`.  
+
+3. `TokensBridgeDataProvider` is required for the SDK to receive the listed token pairs.  
+**Default provider:** `LocalTokensBridgeDataProvider`, which receives an array of listed token pairs upon creation.
+
 > TODO: Insert a link of demo data provider
