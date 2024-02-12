@@ -49,6 +49,7 @@
     "eslint": "^8.56.0",
     "eslint-plugin-import": "^2.29.1",
     "jest": "^29.7.0",
+    "patch-package": "^8.0.0",
     "ts-jest": "^29.1.2",
     "typescript": "^5.3.3",
     "web3": "^4.4.0",
@@ -62,7 +63,8 @@
     "test:integration": "jest ./integration --runInBand --config=./integration/jest.config.js",
     "watch": "npm run build -- -w",
     "check:types": "tsc -p tsconfig.json",
-    "lint": "eslint . --ext .ts"
+    "lint": "eslint . --ext .ts",
+    "postinstall": "patch-package"
   },
   "keywords": [
     "tezos",
