@@ -2,6 +2,17 @@ export { TokenBridge } from './tokenBridge';
 export type { TokenBridgeOptions } from './tokenBridgeOptions';
 
 export {
+  EventEmitter,
+  RemoteService,
+
+  type PublicEventEmitter,
+  type ToEventEmitter,
+  type ToEventEmitters,
+  type RemoteServiceResponseFormat,
+  type TokenBridgeService
+} from './common';
+
+export {
   createDefaultTokenBridge,
   defaultEtherlinkKernelAddress,
   defaultEtherlinkWithdrawPrecompileAddress,
