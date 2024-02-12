@@ -1,5 +1,5 @@
 import { utils } from 'web3';
-import web3Validator from 'web3-validator';
+import * as web3Validator from 'web3-validator';
 
 export const isAddress = (address: string): boolean => web3Validator.isAddress(address, true);
 
