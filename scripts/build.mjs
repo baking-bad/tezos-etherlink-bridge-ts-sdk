@@ -93,16 +93,20 @@ try {
   console.info(`Type checking is completed (${getElapsedTimeMs()}ms)`);
   console.info('Building...');
 
+  // Node
   const buildPromises = [['cjs', '.cjs'], ['cjs', '.js'], ['esm', '.mjs']]
     .map(([format, outExtension]) => build({
       ...getNodeJsOptions(),
       format,
       outExtension: { '.js': outExtension }
     }));
-  buildPromises.push(build({
-    ...getBrowserJsOptions(),
-    format: 'esm'
-  }));
+  // Browser
+  buildPromises.concat([['esm', '.js'], ['esm', '.mjs']]
+    .map(([format, outExtension]) => build({
+      ...getBrowserJsOptions(),
+      format,
+      outExtension: { '.js': outExtension }
+    })));
 
   await Promise.all(buildPromises);
 

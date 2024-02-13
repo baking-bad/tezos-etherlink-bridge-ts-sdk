@@ -23,9 +23,10 @@
       "default": "./dist/node/index.mjs"
     },
     "browser": {
-      "import": "./dist/browser/index.js",
+      "import": "./dist/browser/index.mjs",
       "default": "./dist/browser/index.js"
     },
+    "types": "./dist/types/index.d.ts",
     "default": "./dist/node/index.js"
   },
   "peerDependencies": {
