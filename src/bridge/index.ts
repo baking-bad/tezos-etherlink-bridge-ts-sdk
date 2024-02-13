@@ -1,4 +1,4 @@
-export type { TokenPairInfo } from './tokenPairInfo';
+export type { TokenPair } from './tokenPair';
 
 export {
   BridgeTokenTransferKind,

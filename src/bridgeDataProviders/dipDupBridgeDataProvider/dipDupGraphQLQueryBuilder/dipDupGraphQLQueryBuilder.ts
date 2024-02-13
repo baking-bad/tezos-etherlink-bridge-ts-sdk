@@ -32,10 +32,10 @@ export class DipDupGraphQLQueryBuilder {
 
   getTokenTransfersQuery(
     addressOrAddresses: string | readonly string[] | undefined | null,
-    offset: number,
-    limit: number
+    _offset: number,
+    _limit: number
   ): string {
-    const graphQLLimit = offset + limit;
+    // TODO: Support the limit and offset when DipDup returns an array of union of bridge_deposit and bridge_withdrawal records.
 
     let depositWhereArgument = '';
     let withdrawalWhereArgument = '';
@@ -59,15 +59,13 @@ export class DipDupGraphQLQueryBuilder {
 
     return `query TokenTransfers {
       bridge_deposit(
-        order_by: { l1_transaction: { timestamp: desc } },
-        limit: ${graphQLLimit}
+        order_by: { l1_transaction: { timestamp: desc } }
         ${depositWhereArgument}
       ) {
         ${this.queryParts.bridgeDepositFields}
       }
       bridge_withdrawal(
-        order_by: { l2_transaction: { timestamp: desc } },
-        limit: ${graphQLLimit}
+        order_by: { l2_transaction: { timestamp: desc } }
         ${withdrawalWhereArgument}
       ) {
         ${this.queryParts.bridgeWithdrawalFields}

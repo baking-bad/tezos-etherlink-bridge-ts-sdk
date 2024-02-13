@@ -4,7 +4,7 @@ export type NonNativeTokenTicketHelper<T extends ContractProvider | Wallet = Con
   methodsObject: {
     deposit(params: {
       rollup: string;
-      routing_info: string;
+      receiver: string;
       amount: bigint
     }): ContractMethod<T>;
   }

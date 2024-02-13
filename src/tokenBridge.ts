@@ -5,12 +5,13 @@ import type Web3 from 'web3';
 
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
+  type TokenPair,
   type DepositOptions, type WalletDepositOptions, type DepositResult, type WalletDepositResult,
   type StartWithdrawResult, type FinishWithdrawResult,
 
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
-  type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal, TokenPairInfo,
+  type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from './bridge';
 import type {
   TokensBridgeDataProvider,
@@ -239,12 +240,7 @@ export class TokenBridge implements TokenBridgeService {
     if (!tokenPair)
       throw new Error(`Token (${token.type}${token.type === 'fa1.2' ? ', ' + token.address : ''}${token.type === 'fa2' ? ', ' + token.tokenId : ''}) is not listed`);
 
-    const ticketHelperContractAddress = token.type === 'native'
-      ? tokenPair.tezos.ticketerContractAddress
-      : (tokenPair.tezos as Exclude<typeof tokenPair.tezos, { token: { type: 'native' } }>).tickerHelperContractAddress;
-    const etherlinkTokenProxyContractAddress = token.type === 'native'
-      ? undefined
-      : (tokenPair.etherlink.token as Exclude<typeof tokenPair.etherlink.token, { type: 'native' }>).address;
+    const ticketHelperContractAddress = tokenPair.tezos.ticketHelperContractAddress;
 
     const depositOperation = await (useWalletApi
       ? this.depositUsingWalletApi(
@@ -252,16 +248,14 @@ export class TokenBridge implements TokenBridgeService {
         amount,
         etherlinkReceiverAddress,
         depositOptions as WalletDepositOptions,
-        ticketHelperContractAddress,
-        etherlinkTokenProxyContractAddress
+        ticketHelperContractAddress
       )
       : this.depositUsingContractApi(
         token,
         amount,
         etherlinkReceiverAddress,
         depositOptions as DepositOptions,
-        ticketHelperContractAddress,
-        etherlinkTokenProxyContractAddress
+        ticketHelperContractAddress
       )
     );
 
@@ -271,9 +265,6 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   async startWithdraw(amount: bigint, token: NonNativeEtherlinkToken, tezosReceiverAddress?: string): Promise<StartWithdrawResult> {
-    if ((token.type as string) === 'native')
-      throw new Error('Withdrawal of native tokens is not supported yet');
-
     if (!tezosReceiverAddress) {
       tezosReceiverAddress = await this.getTezosConnectedAddress();
     }
@@ -281,9 +272,11 @@ export class TokenBridge implements TokenBridgeService {
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
     if (!tokenPair)
       throw new Error(`Token (${token.address}) is not listed`);
+    if (tokenPair.etherlink.type === 'native' || tokenPair.tezos.type === 'native')
+      throw new Error('Withdrawal of native tokens is not supported yet');
 
     const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
-    const etherlinkTokenProxyContractAddress = (tokenPair.etherlink.token as Exclude<typeof tokenPair.etherlink.token, { type: 'native' }>).address;
+    const etherlinkTokenProxyContractAddress = tokenPair.etherlink.address;
     const tezosProxyAddress = tezosTicketerAddress;
 
     const [etherlinkConnectedAddress, tezosTicketerContent] = await Promise.all([
@@ -321,15 +314,15 @@ export class TokenBridge implements TokenBridgeService {
     };
   }
 
-  async finishWithdraw(bridgeTokenPartialWithdrawal: SealedBridgeTokenWithdrawal): Promise<FinishWithdrawResult> {
-    const _finishWithdrawOperation = await this.bridgeComponents.tezos.finishWithdraw(
-      bridgeTokenPartialWithdrawal.rollupData.commitment,
-      bridgeTokenPartialWithdrawal.rollupData.proof
+  async finishWithdraw(sealedBridgeTokenWithdrawal: SealedBridgeTokenWithdrawal): Promise<FinishWithdrawResult> {
+    const finishWithdrawOperation = await this.bridgeComponents.tezos.finishWithdraw(
+      sealedBridgeTokenWithdrawal.rollupData.commitment,
+      sealedBridgeTokenWithdrawal.rollupData.proof
     );
 
     return {
-      tokenTransfer: bridgeTokenPartialWithdrawal,
-      // finishWithdrawOperation
+      tokenTransfer: sealedBridgeTokenWithdrawal,
+      finishWithdrawOperation
     };
   }
 
@@ -368,14 +361,14 @@ export class TokenBridge implements TokenBridgeService {
     return this.bridgeComponents.balancesBridgeDataProvider.getBalances(accountAddress, tokensOrOffset, limit);
   }
 
-  protected getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPairInfo | null> {
+  protected getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null> {
     return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
   }
 
-  protected getRegisteredTokenPairs(): Promise<TokenPairInfo[]>;
-  protected getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPairInfo[]>;
-  protected getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPairInfo[]>;
-  protected getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPairInfo[]> {
+  protected getRegisteredTokenPairs(): Promise<TokenPair[]>;
+  protected getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
+  protected getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]>;
+  protected getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]> {
     return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPairs(offset, limit);
   }
 
@@ -465,27 +458,22 @@ export class TokenBridge implements TokenBridgeService {
     amount: bigint,
     etherlinkReceiverAddress: string,
     options: WalletDepositOptions | undefined | null,
-    ticketHelperOrNativeTokenTicketerContractAddress: string,
-    etherlinkTokenProxyContractAddress?: string
+    ticketHelperOrNativeTokenTicketerContractAddress: string
   ): Promise<WalletDepositResult> {
     const isNativeToken = token.type === 'native';
-    if (!isNativeToken && !etherlinkTokenProxyContractAddress) {
-      throw new Error('Etherlink Token Proxy contract not specified');
-    }
 
     const [depositOperation, sourceAddress] = await Promise.all([
       isNativeToken
         ? this.bridgeComponents.tezos.wallet.depositNativeToken({
           amount,
           etherlinkReceiverAddress,
-          ticketerContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
+          ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
         })
         : this.bridgeComponents.tezos.wallet.depositNonNativeToken({
           token,
           amount,
           etherlinkReceiverAddress,
-          ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
-          etherlinkTokenProxyContractAddress: etherlinkTokenProxyContractAddress!
+          ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress
         }),
       this.getTezosConnectedAddress()
     ]);
@@ -512,26 +500,21 @@ export class TokenBridge implements TokenBridgeService {
     amount: bigint,
     etherlinkReceiverAddress: string,
     options: DepositOptions | undefined | null,
-    ticketHelperOrNativeTokenTicketerContractAddress: string,
-    etherlinkTokenProxyContractAddress?: string
+    ticketHelperOrNativeTokenTicketerContractAddress: string
   ): Promise<DepositResult> {
     const isNativeToken = token.type === 'native';
-    if (!isNativeToken && !etherlinkTokenProxyContractAddress) {
-      throw new Error('Etherlink Token Proxy contract not specified');
-    }
 
     const depositOperation = await (isNativeToken
       ? this.bridgeComponents.tezos.depositNativeToken({
         amount,
         etherlinkReceiverAddress,
-        ticketerContractAddress: ticketHelperOrNativeTokenTicketerContractAddress
+        ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress
       })
       : this.bridgeComponents.tezos.depositNonNativeToken({
         token,
         amount,
         etherlinkReceiverAddress,
-        ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress,
-        etherlinkTokenProxyContractAddress: etherlinkTokenProxyContractAddress!
+        ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress
       })
     );
 

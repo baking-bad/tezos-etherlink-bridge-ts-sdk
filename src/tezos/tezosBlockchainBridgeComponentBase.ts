@@ -1,6 +1,5 @@
 import { LocalForger } from '@taquito/local-forging';
-import type { OperationContentsSmartRollupExecuteOutboxMessage } from '@taquito/rpc';
-import { OpKind, type TezosToolkit, type Wallet, type ContractProvider, type ContractMethod } from '@taquito/taquito';
+import { type TezosToolkit, type Wallet, type ContractProvider, type ContractMethod } from '@taquito/taquito';
 
 import type { FA12Contract, FA2Contract, NativeTokenTicketHelper, NonNativeTokenTicketHelper } from './contracts';
 import { fa12helper, fa2helper } from './helpers';
@@ -11,14 +10,13 @@ import { tezosUtils } from '../utils';
 export interface DepositNativeTokenParams {
   amount: bigint;
   etherlinkReceiverAddress: string;
-  ticketerContractAddress: string;
+  ticketHelperContractAddress: string;
 }
 
 export interface DepositNonNativeTokensParams {
   token: NonNativeTezosToken;
   amount: bigint;
   etherlinkReceiverAddress: string;
-  etherlinkTokenProxyContractAddress: string;
   ticketHelperContractAddress: string;
 }
 
@@ -35,7 +33,7 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
   async depositNativeToken(params: DepositNativeTokenParams): Promise<ReturnType<ReturnType<TApi['batch']>['send']>> {
     const depositOperation = await this.createDepositNativeTokenOperation(
       params.etherlinkReceiverAddress,
-      params.ticketerContractAddress
+      params.ticketHelperContractAddress
     );
 
     const batch = this.createBatch()
@@ -48,7 +46,6 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     const depositOperation = await this.createDepositNonNativeTokenOperation(
       params.etherlinkReceiverAddress,
       params.amount,
-      params.etherlinkTokenProxyContractAddress,
       params.ticketHelperContractAddress
     );
 
@@ -60,44 +57,12 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     return batch.send() as ReturnType<ReturnType<TApi['batch']>['send']>;
   }
 
-  async finishWithdraw(commitment: string, proof: string): Promise<string> {
-    const sourceAddress = await this.tezosToolkit.wallet.pkh();
-    const chainId = await this.tezosToolkit.rpc.getChainId();
-    const branch = await this.tezosToolkit.rpc.getBlockHash();
-    const accountRpcData = await this.tezosToolkit.rpc.getContract(sourceAddress);
-
-    const executeOutboxMessageRawOperation: OperationContentsSmartRollupExecuteOutboxMessage = {
-      kind: OpKind.SMART_ROLLUP_EXECUTE_OUTBOX_MESSAGE,
-      source: sourceAddress,
-      fee: '3000',
-      counter: (parseInt(accountRpcData.counter || '0') + 1).toString(),
-      gas_limit: '10000',
-      storage_limit: '100',
+  async finishWithdraw(commitment: string, proof: string) {
+    return this.tezosToolkit.contract.smartRollupExecuteOutboxMessage({
       rollup: this.rollupAddress,
-      cemented_commitment: commitment,
-      output_proof: proof,
-    };
-
-    const operationPreRun = await this.tezosToolkit.rpc.runOperation({
-      chain_id: chainId,
-      operation: {
-        branch,
-        contents: [executeOutboxMessageRawOperation]
-      }
+      cementedCommitment: commitment,
+      outputProof: proof
     });
-
-    if (operationPreRun.contents.some((content: any) => content.metadata?.operation_result?.status === 'failed'))
-      throw new Error('No possible to execute an outbox message');
-
-    const forgedBytes = await this.localForger.forge({
-      branch,
-      contents: [executeOutboxMessageRawOperation]
-    });
-
-    const signed = await this.tezosToolkit.signer.sign(forgedBytes, new Uint8Array([3]));
-    const operationHash = await this.tezosToolkit.rpc.injectOperation(signed.sbytes);
-
-    return operationHash;
   }
 
   protected async createDepositNativeTokenOperation(etherlinkReceiverAddress: string, ticketerContractAddress: string) {
@@ -115,15 +80,14 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
   protected async createDepositNonNativeTokenOperation(
     etherlinkReceiverAddress: string,
     amount: bigint,
-    etherlinkTokenProxyContractAddress: string,
     ticketHelperContractAddress: string
   ) {
     const ticketHelperContract = await this.getNonNativeTokenTicketHelperContract(ticketHelperContractAddress);
-    const routingInfo = this.packDepositRoutingInfo(etherlinkReceiverAddress, etherlinkTokenProxyContractAddress);
+    const routingInfo = this.packDepositRoutingInfo(etherlinkReceiverAddress);
 
     const operation = ticketHelperContract.methodsObject.deposit({
       rollup: this.rollupAddress,
-      routing_info: routingInfo,
+      receiver: routingInfo,
       amount
     });
 

@@ -57,18 +57,18 @@ const createTestTokens = (): TestTokens => {
     tezos: {
       ctez: {
         type: 'fa1.2',
-        address: 'KT1GM2AnBAJWdzrChp3hTYFTSb6Dmh61peBP'
+        address: 'KT1LpdETWYvPWCQTR2FEW6jE6dVqJqxYjdeW'
       },
       usdt: {
         type: 'fa2',
-        address: 'KT1GemMPvp2bV8TUV1DzWTwdhT27TtMgJiTw',
+        address: 'KT195Eb8T524v5VJ99ZzH2wpnPfQ2wJfMi6h',
         tokenId: '42'
       }
     },
     etherlink: {
       ctez: {
         type: 'erc20',
-        address: '0xe448b46E3c9167961ae4bD498E8dFb78Ae97da8a'
+        address: '0x87dcBf128677ba36E79D47dAf4eb4e51610e0150'
       },
       usdt: {
         type: 'erc20',

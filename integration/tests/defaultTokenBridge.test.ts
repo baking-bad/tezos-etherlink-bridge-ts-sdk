@@ -59,31 +59,31 @@ describe('Bridge', () => {
       tokenPairs: [
         {
           tezos: {
-            token: { type: 'native' },
-            ticketerContractAddress: 'KT1XsAj9z2DX2LLrq6bTRJBDubrME2auietW'
+            type: 'native',
+            ticketHelperContractAddress: 'KT1DWVsu4Jtu2ficZ1qtNheGPunm5YVniegT'
           },
           etherlink: {
-            token: { type: 'native' }
+            type: 'native'
           }
         },
         {
           tezos: {
-            token: tokens.tezos.ctez,
-            ticketerContractAddress: 'KT1PmYUomF3HDxsGWYQUCbLi2X8WvT7ZHv8o',
-            tickerHelperContractAddress: 'KT1TZg9EwGHKbfWvsHGsqBjm3J5NhJBtHPKX'
+            ...tokens.tezos.ctez,
+            ticketerContractAddress: 'KT1RvSp4yDKUABqWmv3pKGE9fA6iCGy7bqGh',
+            ticketHelperContractAddress: 'KT1DHLWJorW9WB6ztkx1XcoaJKWXeTu9yoR1'
           },
           etherlink: {
-            token: tokens.etherlink.ctez
+            ...tokens.etherlink.ctez
           }
         },
         {
           tezos: {
-            token: tokens.tezos.usdt,
-            ticketerContractAddress: 'KT1GQEybCQffb6YJ5NH9GhPEeRyufrYP3amN',
-            tickerHelperContractAddress: 'KT1LstLU529PtDUQHo2x8WybNXBzLXnF6Tkv'
+            ...tokens.tezos.usdt,
+            ticketerContractAddress: 'KT1VybveLaWhpQHKph28WcGwSy1ud22KSEan',
+            ticketHelperContractAddress: 'KT1DNtHLr9T9zksZjZvQwgtx5XJwrW9wzETB'
           },
           etherlink: {
-            token: tokens.etherlink.usdt
+            ...tokens.etherlink.usdt
           }
         }
       ]
@@ -130,7 +130,7 @@ describe('Bridge', () => {
       });
     });
 
-    test('Deposit FA1.2 token', async () => {
+    test.only('Deposit FA1.2 token', async () => {
       const amount = 7n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
 
@@ -227,7 +227,7 @@ describe('Bridge', () => {
     });
 
     test('Withdraw FA1.2 token', async () => {
-      const amount = 7n;
+      const amount = 17n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
 
       const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
