@@ -3,6 +3,18 @@ import { EtherlinkToken } from '../etherlink';
 import { TezosToken } from '../tezos';
 import { bridgeUtils } from '../utils';
 
+export const getErrorLogMessage = (error: any): string => {
+  if (!error)
+    return `[error is ${error === null ? 'null' : 'undefined'}]`;
+
+  if (typeof error === 'string')
+    return error;
+  else if (typeof error?.message === 'string')
+    return error.message;
+
+  return '[unknown error type]';
+};
+
 export const getTokenLogMessage = (token: TezosToken | EtherlinkToken): string => {
   if (!token)
     return `[token is ${token === null ? 'null' : 'undefined'}]`;

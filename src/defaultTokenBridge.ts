@@ -2,10 +2,7 @@ import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
 import type { TokenPair } from './bridgeCore';
-import {
-  DipDupBridgeDataProvider, LocalTokensBridgeDataProvider,
-  type TokensBridgeDataProvider, type DipDupBridgeDataProviderOptions
-} from './bridgeDataProviders';
+import { DipDupBridgeDataProvider, LocalTokensBridgeDataProvider, type TokensBridgeDataProvider } from './bridgeDataProviders';
 import { LogLevel, loggerProvider, type Logger } from './logging';
 import { TokenBridge } from './tokenBridge/tokenBridge';
 import { guards } from './utils';
@@ -20,8 +17,8 @@ interface DefaultEtherlinkTokenBridgeOptions {
 }
 
 interface DefaultDipDupBridgeDataProvider {
-  baseUrl: DipDupBridgeDataProviderOptions['baseUrl'];
-  autoUpdate: DipDupBridgeDataProviderOptions['autoUpdate'];
+  baseUrl: string;
+  webSocketApiBaseUrl: string;
 }
 
 interface LoggingOptions {
@@ -47,7 +44,14 @@ export const createDefaultTokenBridge = (options: DefaultTokenBridgeOptions): To
   }
   loggerProvider.logger.debug('Creating the default token bridge...');
 
-  const dipDup = new DipDupBridgeDataProvider(options.dipDup);
+  const dipDup = new DipDupBridgeDataProvider({
+    baseUrl: options.dipDup.baseUrl,
+    autoUpdate: {
+      type: 'websocket',
+      webSocketApiBaseUrl: options.dipDup.webSocketApiBaseUrl,
+      startImmediately: false
+    }
+  });
   const tokensProvider = guards.isReadonlyArray(options.tokenPairs)
     ? new LocalTokensBridgeDataProvider(options.tokenPairs)
     : options.tokenPairs;

@@ -7,3 +7,6 @@ export abstract class TokenBridgeError extends Error {
     this.name = this.constructor.name;
   }
 }
+
+export class DisposedError extends Error {
+}

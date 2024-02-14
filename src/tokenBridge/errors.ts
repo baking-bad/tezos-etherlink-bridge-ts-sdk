@@ -11,4 +11,4 @@ export class TokenPairNotFoundError extends TokenBridgeError {
   private static getMessage(token: TezosToken | EtherlinkToken): string {
     return `Token pair not found for the ${getTokenLogMessage(token)} token`;
   }
-}
+} 

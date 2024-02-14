@@ -55,10 +55,7 @@ describe('Bridge', () => {
       },
       dipDup: {
         baseUrl: testConfig.dipDupBaseUrl,
-        autoUpdate: {
-          type: 'websocket',
-          webSocketApiBaseUrl: testConfig.dipDupBaseUrl.replace('https', 'wss')
-        }
+        webSocketApiBaseUrl: testConfig.dipDupBaseUrl.replace('https', 'wss'),
       },
       tokenPairs: [
         {
@@ -99,12 +96,10 @@ describe('Bridge', () => {
     ]);
     testTezosAccountAddress = connectedAddresses[0];
     testEtherlinkAccountAddress = connectedAddresses[1];
-
-    await tokenBridge.start();
   });
 
   afterEach(() => {
-    tokenBridge.stop();
+    tokenBridge[Symbol.dispose]();
   });
 
   describe('Deposit', () => {

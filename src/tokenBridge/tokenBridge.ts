@@ -19,11 +19,11 @@ import {
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../bridgeCore';
 import type { AccountTokenBalanceInfo } from '../bridgeDataProviders';
-import { EventEmitter, ToEventEmitter, type PublicEventEmitter, type TokenBridgeService } from '../common';
+import { EventEmitter, ToEventEmitter, type PublicEventEmitter, DisposedError } from '../common';
 import { EtherlinkBlockchainBridgeComponent, EtherlinkToken, type NonNativeEtherlinkToken } from '../etherlink';
 import {
   loggerProvider,
-  getTokenLogMessage, getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage
+  getTokenLogMessage, getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage, getErrorLogMessage
 } from '../logging';
 import { TezosBlockchainBridgeComponent, tezosTicketerContentMichelsonType, type TezosToken } from '../tezos';
 import { bridgeUtils, etherlinkUtils, guards } from '../utils';
@@ -33,7 +33,7 @@ interface TokenBridgeComponentsEvents {
   readonly tokenTransferUpdated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
 }
 
-export class TokenBridge implements TokenBridgeService {
+export class TokenBridge implements Disposable {
   readonly data: TokenBridgeDataApi;
   readonly stream: TokenBridgeStreamApi;
   readonly bridgeComponents: TokenBridgeComponents;
@@ -55,7 +55,7 @@ export class TokenBridge implements TokenBridgeService {
     }>
   >();
 
-  private _isStarted = false;
+  private _isDisposed = false;
 
   constructor(options: TokenBridgeOptions) {
     this.tezosToolkit = options.tezos.toolkit;
@@ -96,10 +96,15 @@ export class TokenBridge implements TokenBridgeService {
     };
   }
 
+  get isDisposed() {
+    return this._isDisposed;
+  }
+
   addEventListener<EventType extends keyof TokenBridgeComponentsEvents>(
     type: EventType,
     listener: Parameters<TokenBridgeComponentsEvents[EventType]['addListener']>[0]
   ): void {
+    this.ensureIsNotDisposed();
     this.events[type].addListener(listener);
   }
 
@@ -107,54 +112,13 @@ export class TokenBridge implements TokenBridgeService {
     type: EventType,
     listener: Parameters<TokenBridgeComponentsEvents[EventType]['addListener']>[0]
   ): void {
+    this.ensureIsNotDisposed();
     this.events[type].removeListener(listener);
   }
 
   removeAllEventListeners<EventType extends keyof TokenBridgeComponentsEvents>(type: EventType): void {
+    this.ensureIsNotDisposed();
     this.events[type].removeAllListeners();
-  }
-
-  get isStarted() {
-    return this._isStarted;
-  }
-
-  async start(): Promise<void> {
-    if (this.isStarted)
-      return;
-
-    this.attachEvents();
-
-    const dataProviderPromises: Array<Promise<void>> = [];
-    if (guards.isTokenBridgeService(this.bridgeComponents.tokensBridgeDataProvider))
-      dataProviderPromises.push(this.bridgeComponents.tokensBridgeDataProvider.start());
-
-    if (guards.isTokenBridgeService(this.bridgeComponents.balancesBridgeDataProvider))
-      dataProviderPromises.push(this.bridgeComponents.balancesBridgeDataProvider.start());
-
-    if (guards.isTokenBridgeService(this.bridgeComponents.transfersBridgeDataProvider))
-      dataProviderPromises.push(this.bridgeComponents.transfersBridgeDataProvider.start());
-
-    await Promise.all(dataProviderPromises);
-
-    this._isStarted = true;
-  }
-
-  stop(): void {
-    if (!this.isStarted)
-      return;
-
-    if (guards.isTokenBridgeService(this.bridgeComponents.tokensBridgeDataProvider))
-      this.bridgeComponents.tokensBridgeDataProvider.stop();
-
-    if (guards.isTokenBridgeService(this.bridgeComponents.balancesBridgeDataProvider))
-      this.bridgeComponents.balancesBridgeDataProvider.stop();
-
-    if (guards.isTokenBridgeService(this.bridgeComponents.transfersBridgeDataProvider))
-      this.bridgeComponents.transfersBridgeDataProvider.stop();
-
-    this.rejectAndClearAllStatusWatchers('The TokenBridge has been stopped!');
-
-    this._isStarted = false;
   }
 
   async waitForStatus(transfer: PendingBridgeTokenDeposit, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenDeposit>;
@@ -167,6 +131,7 @@ export class TokenBridge implements TokenBridgeService {
   ): Promise<FinishedBridgeTokenWithdrawal>;
   async waitForStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer>;
   async waitForStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer> {
+    this.ensureIsNotDisposed();
     if (transfer.status >= status)
       return transfer;
 
@@ -193,18 +158,24 @@ export class TokenBridge implements TokenBridgeService {
       }
 
       setTimeout(() => {
-        this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(operationHash);
-        statusWatchers.set(status, {
-          promise: watcherPromise,
-          resolve: (updatedTransfer: BridgeTokenTransfer) => {
-            this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
-            resolve(updatedTransfer);
-          },
-          reject: (error: unknown) => {
-            this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
-            reject(error);
-          }
-        });
+        try {
+          this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(operationHash);
+          statusWatchers.set(status, {
+            promise: watcherPromise,
+            resolve: (updatedTransfer: BridgeTokenTransfer) => {
+              this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
+              resolve(updatedTransfer);
+            },
+            reject: (error: unknown) => {
+              this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
+              reject(error);
+            }
+          });
+        }
+        catch (error) {
+          loggerProvider.logger.error(getErrorLogMessage(error));
+          reject(error);
+        }
       }, 0);
     });
 
@@ -223,6 +194,7 @@ export class TokenBridge implements TokenBridgeService {
     etherlinkReceiverAddressOrOptions?: string | WalletDepositOptions | DepositOptions,
     options?: WalletDepositOptions | DepositOptions
   ): Promise<WalletDepositResult | DepositResult> {
+    this.ensureIsNotDisposed();
     const etherlinkReceiverAddress = typeof etherlinkReceiverAddressOrOptions === 'string'
       ? etherlinkReceiverAddressOrOptions
       : await this.getEtherlinkConnectedAddress();
@@ -271,6 +243,7 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   async startWithdraw(amount: bigint, token: NonNativeEtherlinkToken, tezosReceiverAddress?: string): Promise<StartWithdrawResult> {
+    this.ensureIsNotDisposed();
     if (!tezosReceiverAddress) {
       tezosReceiverAddress = await this.getTezosConnectedAddress();
     }
@@ -323,6 +296,7 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   async finishWithdraw(sealedBridgeTokenWithdrawal: SealedBridgeTokenWithdrawal): Promise<FinishWithdrawResult> {
+    this.ensureIsNotDisposed();
     const finishWithdrawOperation = await this.bridgeComponents.tezos.finishWithdraw(
       sealedBridgeTokenWithdrawal.rollupData.commitment,
       sealedBridgeTokenWithdrawal.rollupData.proof
@@ -335,16 +309,36 @@ export class TokenBridge implements TokenBridgeService {
   }
 
   async getTezosConnectedAddress(): Promise<string> {
+    this.ensureIsNotDisposed();
     return this.tezosToolkit.wallet.pkh();
   }
 
   async getEtherlinkConnectedAddress(): Promise<string> {
+    this.ensureIsNotDisposed();
     const accounts = await this.etherlinkToolkit.eth.getAccounts();
     const address = accounts[0] || this.etherlinkToolkit.eth.defaultAccount;
     if (!address)
       throw new Error('Address is unavailable');
 
     return address;
+  }
+
+  [Symbol.dispose](): void {
+    if (!this._isDisposed)
+      return;
+
+    if (guards.isDisposable(this.bridgeComponents.tokensBridgeDataProvider))
+      this.bridgeComponents.tokensBridgeDataProvider[Symbol.dispose]();
+
+    if (guards.isDisposable(this.bridgeComponents.balancesBridgeDataProvider))
+      this.bridgeComponents.balancesBridgeDataProvider[Symbol.dispose]();
+
+    if (guards.isDisposable(this.bridgeComponents.transfersBridgeDataProvider))
+      this.bridgeComponents.transfersBridgeDataProvider[Symbol.dispose]();
+
+    this.rejectAndClearAllStatusWatchers('The TokenBridge has been stopped!');
+
+    this._isDisposed = true;
   }
 
   // #region Data API
@@ -505,6 +499,14 @@ export class TokenBridge implements TokenBridgeService {
 
     (this.events.tokenTransferUpdated as ToEventEmitter<typeof this.events.tokenTransferUpdated>).emit(updatedTokenTransfer);
   };
+
+  protected ensureIsNotDisposed() {
+    if (!this._isDisposed)
+      return;
+
+    loggerProvider.logger.error('Attempting to call the disposed TokenBridge instance');
+    throw new DisposedError('TokenBridge is disposed');
+  }
 
   private async depositUsingWalletApi(
     token: TezosToken,

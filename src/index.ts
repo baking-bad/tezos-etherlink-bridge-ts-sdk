@@ -6,7 +6,6 @@ export {
   type ToEventEmitter,
   type ToEventEmitters,
   type RemoteServiceResponseFormat,
-  type TokenBridgeService,
 } from './common';
 
 export {

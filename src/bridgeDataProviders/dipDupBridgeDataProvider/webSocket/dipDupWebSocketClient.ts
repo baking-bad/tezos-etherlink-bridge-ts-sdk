@@ -114,6 +114,9 @@ export class DipDupWebSocketClient {
   }
 
   protected subscribeToSubscription(subscription: Subscription) {
+    if (!this.isStarted)
+      return;
+
     const message: SubscribeToSubscriptionWebSocketRequestDto = {
       type: 'start',
       id: subscription.id.toString(),
@@ -126,6 +129,9 @@ export class DipDupWebSocketClient {
   }
 
   protected unsubscribeFromSubscription(subscriptionId: Subscription['id']) {
+    if (!this.isStarted)
+      return;
+
     const message: UnsubscribeFromSubscriptionWebSocketRequestDto = {
       type: 'stop',
       id: subscriptionId.toString()

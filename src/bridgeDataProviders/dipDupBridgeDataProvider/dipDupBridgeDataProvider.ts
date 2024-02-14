@@ -1,24 +1,20 @@
+import type { DipDupBridgeDataProviderOptions } from './dipDupBridgeDataProviderOptions';
 import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
 import type { GraphQLResponse, TokenTransferDto } from './dtos';
+import { DipDupAutoUpdateIsDisabledError } from './errors';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
+import { loggerProvider } from '../..';
 import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridgeCore';
-import { EventEmitter, RemoteService, ToEventEmitter, type TokenBridgeService } from '../../common';
+import { EventEmitter, RemoteService, ToEventEmitter } from '../../common';
 import type { EtherlinkToken } from '../../etherlink';
+import { getErrorLogMessage } from '../../logging';
 import type { TezosToken } from '../../tezos';
 import { bridgeUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
 
-export interface DipDupBridgeDataProviderOptions {
-  baseUrl: string;
-  autoUpdate: {
-    type: 'websocket'
-    webSocketApiBaseUrl: string;
-  } | false;
-}
-
-export class DipDupBridgeDataProvider extends RemoteService implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, TokenBridgeService, Disposable {
+export class DipDupBridgeDataProvider extends RemoteService implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, Disposable {
   protected static readonly defaultLoadDataLimit = 100;
 
   readonly events: TransfersBridgeDataProvider['events'] = {
@@ -27,55 +23,42 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   };
 
   protected readonly dipDupGraphQLQueryBuilder: DipDupGraphQLQueryBuilder;
-  protected readonly dipDupWebSocketClient: DipDupWebSocketClient | null;
-
-  private _isStarted = false;
-  private _isStarting = false;
+  protected readonly _dipDupWebSocketClient: DipDupWebSocketClient | null;
 
   constructor(options: DipDupBridgeDataProviderOptions) {
     super(options.baseUrl);
-    this.dipDupWebSocketClient = options.autoUpdate
-      ? new DipDupWebSocketClient(options.autoUpdate.webSocketApiBaseUrl)
-      : null;
     this.dipDupGraphQLQueryBuilder = this.createDipDupGraphQLQueryBuilder();
+
+    if (options.autoUpdate && options.autoUpdate.type === 'websocket') {
+      this._dipDupWebSocketClient = new DipDupWebSocketClient(options.autoUpdate.webSocketApiBaseUrl);
+      this._dipDupWebSocketClient.events.messageReceived.addListener(this.onSocketMessageReceived);
+      if (options.autoUpdate.startImmediately)
+        this.startDipDupWebSocketClientIfNeeded();
+    }
+    else {
+      this._dipDupWebSocketClient = null;
+    }
   }
 
-  get isStarted() {
-    return this._isStarted;
+  protected get dipDupWebSocketClient(): DipDupWebSocketClient {
+    if (this._dipDupWebSocketClient)
+      return this._dipDupWebSocketClient;
+
+    const error = new DipDupAutoUpdateIsDisabledError();
+    loggerProvider.logger.error(getErrorLogMessage(error));
+    throw error;
   }
 
-  async start() {
-    if (this.isStarted || this._isStarting)
+  startDipDupWebSocketClientIfNeeded() {
+    if (!this._dipDupWebSocketClient)
       return;
 
-    this._isStarting = true;
-
-    try {
-      if (this.dipDupWebSocketClient) {
-        this.dipDupWebSocketClient.events.messageReceived.addListener(this.onSocketMessageReceived);
-        await this.dipDupWebSocketClient.start();
-      }
-
-      this._isStarted = true;
-    }
-    catch (error: unknown) {
-      this._isStarting = false;
-      this._isStarted = false;
-
-      throw new Error(undefined, { cause: error });
-    }
+    this._dipDupWebSocketClient.start()
+      .catch(error => loggerProvider.logger.error(`DipDup Web Socket has not bee started. Error = ${getErrorLogMessage(error)}`));
   }
 
-  stop(): void {
-    if (!this.isStarted)
-      return;
-
-    if (this.dipDupWebSocketClient) {
-      this.dipDupWebSocketClient.events.messageReceived.removeListener(this.onSocketMessageReceived);
-      this.dipDupWebSocketClient.stop();
-    }
-
-    this._isStarted = false;
+  stopDipDupWebSocketClient(): void {
+    this._dipDupWebSocketClient?.stop();
   }
 
   async getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
@@ -167,9 +150,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
   subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
   subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    if (!this.dipDupWebSocketClient)
-      throw new Error('AutoUpdate is disabled');
-
+    this.startDipDupWebSocketClientIfNeeded();
     const operationHash = typeof operationHashOrTokenTransfer === 'string'
       ? operationHashOrTokenTransfer
       : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
@@ -183,9 +164,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
   unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
   unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    if (!this.dipDupWebSocketClient)
-      throw new Error('AutoUpdate is disabled');
-
+    this.startDipDupWebSocketClientIfNeeded();
     const operationHash = typeof operationHashOrTokenTransfer === 'string'
       ? operationHashOrTokenTransfer
       : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
@@ -233,7 +212,12 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }
 
   [Symbol.dispose]() {
-    this.stop();
+    this._dipDupWebSocketClient?.events.messageReceived.removeListener(this.onSocketMessageReceived);
+    this.stopDipDupWebSocketClient();
+  }
+
+  protected createDipDupGraphQLQueryBuilder(): DipDupGraphQLQueryBuilder {
+    return new DipDupGraphQLQueryBuilder();
   }
 
   protected readonly onSocketMessageReceived = (message: DipDupWebSocketResponseDto) => {
@@ -256,8 +240,4 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
       );
     }
   };
-
-  protected createDipDupGraphQLQueryBuilder(): DipDupGraphQLQueryBuilder {
-    return new DipDupGraphQLQueryBuilder();
-  }
 }
