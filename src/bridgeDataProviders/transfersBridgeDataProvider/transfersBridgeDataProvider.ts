@@ -1,8 +1,8 @@
-import type { BridgeTokenTransfer } from '../../bridgeCore';
+import type { BridgeTokenTransfer, CreatedBridgeTokenDeposit, CreatedBridgeTokenWithdrawal } from '../../bridgeCore';
 import type { PublicEventEmitter } from '../../common';
 
 interface TransfersBridgeDataProviderEvents {
-  readonly tokenTransferCreated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
+  readonly tokenTransferCreated: PublicEventEmitter<readonly [tokenTransfer: CreatedBridgeTokenDeposit | CreatedBridgeTokenWithdrawal]>;
   readonly tokenTransferUpdated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
 }
 
@@ -15,14 +15,16 @@ export interface TransfersBridgeDataProvider {
 
   getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
   getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(
-    offsetOrAccountAddressOfAddresses?: number | string | readonly string[],
-    offsetOrLimit?: number,
-    limitParameter?: number
+  getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
+
+  getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(
+    accountAddressOfAddresses: string | readonly string[],
+    offset?: number,
+    limit?: number
   ): Promise<BridgeTokenTransfer[]>;
 
   subscribeToTokenTransfer(operationHash: string): void;

@@ -33,8 +33,13 @@ export const getTokenLogMessage = (token: TezosToken | EtherlinkToken): string =
   }
 };
 
-export const getBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer): string => {
-  return `Bridge Token Transfer:
+const getNullOrUndefinedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: null | undefined): string => {
+  return `Bridge Token transfer is ${bridgeTokenTransfer === null ? 'null' : 'undefined'}`;
+};
+
+export const getBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer | null | undefined): string => {
+  return bridgeTokenTransfer
+    ? `Bridge Token Transfer:
   Kind: ${BridgeTokenTransferKind[bridgeTokenTransfer.kind]}
   Status: ${BridgeTokenTransferKind[bridgeTokenTransfer.status]}
   Source: ${bridgeTokenTransfer.source}
@@ -42,13 +47,22 @@ export const getBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeToke
   Tezos operation hash: ${(bridgeTokenTransfer as FinishedBridgeTokenDeposit)?.tezosOperation?.hash}
   Etherlink operation hash: ${(bridgeTokenTransfer as FinishedBridgeTokenDeposit)?.etherlinkOperation?.hash}
 
-`;
+`
+    : getNullOrUndefinedBridgeTokenTransferLogMessage(bridgeTokenTransfer);
 };
 
-export const getDetailedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer): string => {
-  return `Bridge Token Transfer [${bridgeUtils.getInitialOperationHash(bridgeTokenTransfer)}]:
+export const getDetailedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer | null | undefined): string => {
+  return bridgeTokenTransfer
+    ? `Bridge Token Transfer [${bridgeUtils.getInitialOperationHash(bridgeTokenTransfer)}]:
 
 ${bridgeUtils.stringifyBridgeTokenTransfer(bridgeTokenTransfer, 2)}
 
-`;
+`
+    : getNullOrUndefinedBridgeTokenTransferLogMessage(bridgeTokenTransfer);
+};
+
+export const getDipDupGraphQLErrorsLogMessage = (errors: ReadonlyArray<Record<'message', string>> | undefined | null): string => {
+  return errors
+    ? errors.reduce((result, error, index) => `${result}\n  ${index + 1}. ${error.message};`, 'DipDup GraphQL Errors:')
+    : '[no errors]';
 };

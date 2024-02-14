@@ -38,6 +38,7 @@ interface DepositL2TransactionDto {
 export interface BridgeDepositDto {
   l1_transaction: DepositL1TransactionDto;
   l2_transaction: DepositL2TransactionDto | null;
+  updated_at: string;
 }
 
 interface WithdrawalL1TransactionDto {
@@ -68,6 +69,7 @@ interface WithdrawalL2TransactionDto {
 export interface BridgeWithdrawalDto {
   l1_transaction: WithdrawalL1TransactionDto | null;
   l2_transaction: WithdrawalL2TransactionDto;
+  updated_at: string;
 }
 
 export interface TokenTransferDto {
@@ -75,7 +77,11 @@ export interface TokenTransferDto {
   bridge_withdrawal: BridgeWithdrawalDto[];
 }
 
+export interface GraphQLError {
+  message: string;
+}
+
 export interface GraphQLResponse<TData> {
   data: TData;
-  errors?: string[];
+  errors?: GraphQLError[];
 }

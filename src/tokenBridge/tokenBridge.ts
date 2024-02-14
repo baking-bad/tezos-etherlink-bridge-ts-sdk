@@ -28,8 +28,12 @@ import {
 import { TezosBlockchainBridgeComponent, tezosTicketerContentMichelsonType, type TezosToken } from '../tezos';
 import { bridgeUtils, etherlinkUtils, guards } from '../utils';
 
+type TokenTransferCreatedEventArgument = readonly [
+  tokenTransfer: PendingBridgeTokenDeposit | PendingBridgeTokenWithdrawal | CreatedBridgeTokenDeposit | CreatedBridgeTokenWithdrawal
+];
+
 interface TokenBridgeComponentsEvents {
-  readonly tokenTransferCreated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
+  readonly tokenTransferCreated: PublicEventEmitter<TokenTransferCreatedEventArgument>;
   readonly tokenTransferUpdated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
 }
 
@@ -84,6 +88,7 @@ export class TokenBridge implements Disposable {
       getRegisteredTokenPairs: this.getRegisteredTokenPairs.bind(this),
       getTokenTransfer: this.getTokenTransfer.bind(this),
       getTokenTransfers: this.getTokenTransfers.bind(this),
+      getAccountTokenTransfers: this.getAccountTokenTransfers.bind(this),
     };
     this.stream = {
       subscribeToTokenTransfer: this.subscribeToTokenTransfer.bind(this),
@@ -105,7 +110,7 @@ export class TokenBridge implements Disposable {
     listener: Parameters<TokenBridgeComponentsEvents[EventType]['addListener']>[0]
   ): void {
     this.ensureIsNotDisposed();
-    this.events[type].addListener(listener);
+    this.events[type].addListener(listener as any);
   }
 
   removeEventListener<EventType extends keyof TokenBridgeComponentsEvents>(
@@ -113,7 +118,7 @@ export class TokenBridge implements Disposable {
     listener: Parameters<TokenBridgeComponentsEvents[EventType]['addListener']>[0]
   ): void {
     this.ensureIsNotDisposed();
-    this.events[type].removeListener(listener);
+    this.events[type].removeListener(listener as any);
   }
 
   removeAllEventListeners<EventType extends keyof TokenBridgeComponentsEvents>(type: EventType): void {
@@ -383,25 +388,19 @@ export class TokenBridge implements Disposable {
 
   protected getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
   protected getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(
-    offsetOrAccountAddressOfAddresses?: number | string | readonly string[],
-    offsetOrLimit?: number,
-    limitParameter?: number
-  ): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(
-    offsetOrAccountAddressOfAddresses?: number | string | readonly string[],
-    offsetOrLimit?: number,
-    limitParameter?: number
-  ): Promise<BridgeTokenTransfer[]> {
-    return this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfers(
-      offsetOrAccountAddressOfAddresses,
-      offsetOrLimit,
-      limitParameter
-    );
+  protected getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
+  protected getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
+    return this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfers(offset, limit);
+  }
+
+  protected getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
+    return this.bridgeComponents.transfersBridgeDataProvider
+      .getAccountTokenTransfers(accountAddressOfAddresses, offset, limit);
   }
 
   // #endregion
@@ -490,7 +489,7 @@ export class TokenBridge implements Disposable {
     this.bridgeComponents.transfersBridgeDataProvider.events.tokenTransferCreated.removeListener(this.handleTransfersBridgeDataProviderTokenTransferCreated);
   }
 
-  protected handleTransfersBridgeDataProviderTokenTransferCreated = (createdTokenTransfer: BridgeTokenTransfer) => {
+  protected handleTransfersBridgeDataProviderTokenTransferCreated = (createdTokenTransfer: TokenTransferCreatedEventArgument[0]) => {
     (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(createdTokenTransfer);
   };
 

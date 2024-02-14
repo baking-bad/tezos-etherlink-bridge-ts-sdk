@@ -1,5 +1,5 @@
 import { bridgeDepositFields, bridgeWithdrawalFields } from './queryParts';
-import { etherlinkUtils } from '../../../utils';
+import { etherlinkUtils, guards } from '../../../utils';
 
 type GraphQLQuery = string;
 
@@ -73,6 +73,23 @@ export class DipDupGraphQLQueryBuilder {
     }`;
   }
 
+  getTokenTransfersSubscriptions(addressOrAddresses: string | readonly string[] | undefined | null): GraphQLQuery[] {
+    const queries: GraphQLQuery[] = [];
+
+    if (guards.isReadonlyArray(addressOrAddresses)) {
+      for (const address of addressOrAddresses) {
+        queries.push(this.getAccountTokenTransfersSubscription(address, true));
+        queries.push(this.getAccountTokenTransfersSubscription(address, false));
+      }
+    }
+    else {
+      queries.push(this.getAccountTokenTransfersSubscription(addressOrAddresses, true));
+      queries.push(this.getAccountTokenTransfersSubscription(addressOrAddresses, false));
+    }
+
+    return queries;
+  }
+
   protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: true): GraphQLQuery;
   protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: false, isDeposit: boolean): GraphQLQuery;
   protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: boolean, isDeposit?: boolean): GraphQLQuery {
@@ -110,6 +127,31 @@ export class DipDupGraphQLQueryBuilder {
             ${this.queryParts.bridgeWithdrawalFields}
           }
         }`;
+  }
+
+  protected getAccountTokenTransfersSubscription(address: string | undefined | null, isDeposit: boolean): GraphQLQuery {
+    const whereArgument = address ? `, ${this.getWhereArgumentForOneAddress(address, isDeposit)}` : '';
+    let rootFieldName: string;
+    let fields: string;
+
+    if (isDeposit) {
+      rootFieldName = 'bridge_deposit';
+      fields = this.queryParts.bridgeDepositFields;
+    }
+    else {
+      rootFieldName = 'bridge_withdrawal';
+      fields = this.queryParts.bridgeWithdrawalFields;
+    }
+
+    return `subscription TokenTransfers {
+      ${rootFieldName}(
+        order_by: { updated_at: desc },
+        limit: 1
+        ${whereArgument}
+      ) {
+        ${fields}
+      }
+    }`;
   }
 
   private getWhereArgumentForOneAddress(address: string, isDeposit: boolean): string {

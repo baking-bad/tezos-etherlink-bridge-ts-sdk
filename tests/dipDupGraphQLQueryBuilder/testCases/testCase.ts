@@ -2,7 +2,7 @@ export interface PositiveTestCaseData {
   expectedQuery: string;
 }
 
-export type PositiveTestCaseBase<TData> = [
+export type PositiveTestCaseBase<TData = object, IncludeBaseType extends boolean = true> = [
   testName: string,
-  testData: PositiveTestCaseData & TData
+  testData: IncludeBaseType extends true ? PositiveTestCaseData & TData : TData
 ];

@@ -1,14 +1,14 @@
 import type { DipDupBridgeDataProviderOptions } from './dipDupBridgeDataProviderOptions';
 import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
 import type { GraphQLResponse, TokenTransferDto } from './dtos';
-import { DipDupAutoUpdateIsDisabledError } from './errors';
+import { DipDupAutoUpdateIsDisabledError, DipDupGraphQLError } from './errors';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
 import { loggerProvider } from '../..';
 import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridgeCore';
 import { EventEmitter, RemoteService, ToEventEmitter } from '../../common';
 import type { EtherlinkToken } from '../../etherlink';
-import { getErrorLogMessage } from '../../logging';
+import { getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage, getErrorLogMessage } from '../../logging';
 import type { TezosToken } from '../../tezos';
 import { bridgeUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
@@ -49,18 +49,6 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     throw error;
   }
 
-  startDipDupWebSocketClientIfNeeded() {
-    if (!this._dipDupWebSocketClient)
-      return;
-
-    this._dipDupWebSocketClient.start()
-      .catch(error => loggerProvider.logger.error(`DipDup Web Socket has not bee started. Error = ${getErrorLogMessage(error)}`));
-  }
-
-  stopDipDupWebSocketClient(): void {
-    this._dipDupWebSocketClient?.stop();
-  }
-
   async getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
   async getTokenTransfer(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
   async getTokenTransfer(_operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null> {
@@ -70,80 +58,49 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
         ? _operationHashOrTokenTransfer.tezosOperation.hash
         : _operationHashOrTokenTransfer.etherlinkOperation.hash;
 
-    const tokenTransferDtos = await this.fetch<GraphQLResponse<TokenTransferDto>>('/v1/graphql', 'json', {
+    loggerProvider.logger.log('Getting token transfer by the operation hash:', operationHash);
+
+    const tokenTransfersResponse = await this.fetch<GraphQLResponse<TokenTransferDto>>('/v1/graphql', 'json', {
       method: 'POST',
       body: JSON.stringify({
         query: this.dipDupGraphQLQueryBuilder.getTokenTransferQuery(operationHash)
       })
     });
-    if (tokenTransferDtos.errors)
-      throw new Error(`Indexer error: ${tokenTransferDtos.errors.join('\n')}`);
+    this.ensureNoDipDupGraphQLErrors(tokenTransfersResponse);
+
+    loggerProvider.logger.log('Token transfer has been received by the operation hash:', operationHash);
+    loggerProvider.logger.debug('Mapping the first of bridge_deposit or bridge_withdrawal DTOs to BridgeTokenTransfer...');
 
     const tokenTransfer = (
-      (tokenTransferDtos.data.bridge_deposit[0]
-        && mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(tokenTransferDtos.data.bridge_deposit[0]))
-      || (tokenTransferDtos.data.bridge_withdrawal[0]
-        && mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(tokenTransferDtos.data.bridge_withdrawal[0]))
+      (tokenTransfersResponse.data.bridge_deposit[0]
+        && mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(tokenTransfersResponse.data.bridge_deposit[0]))
+      || (tokenTransfersResponse.data.bridge_withdrawal[0]
+        && mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(tokenTransfersResponse.data.bridge_withdrawal[0]))
     );
+
+    loggerProvider.logger.debug('Mapping has been completed.');
+    loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(tokenTransfer));
+    loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(tokenTransfer));
 
     return tokenTransfer || null;
   }
 
   async getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
   async getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(
-    offsetOrAccountAddressOfAddresses?: number | string | readonly string[],
-    _offsetOrLimit?: number,
-    limitParameter?: number
+  async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
+    return this.getTokenTransfersInternal(undefined, offset, limit);
+  }
+
+  async getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(
+    accountAddressOfAddresses: string | readonly string[],
+    offset?: number,
+    limit?: number
   ): Promise<BridgeTokenTransfer[]> {
-    let accountAddresses: string | readonly string[] | undefined;
-    let offset: number | undefined;
-    let limit: number | undefined;
-
-    if (offsetOrAccountAddressOfAddresses !== undefined) {
-      if (typeof offsetOrAccountAddressOfAddresses === 'number') {
-        offset = offsetOrAccountAddressOfAddresses;
-        limit = _offsetOrLimit;
-      }
-      else {
-        accountAddresses = offsetOrAccountAddressOfAddresses;
-        offset = _offsetOrLimit;
-        limit = limitParameter;
-      }
-    }
-
-    offset = offset && offset > 0 ? offset : 0;
-    limit = limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
-
-    const tokenTransferDtos = await this.fetch<GraphQLResponse<TokenTransferDto>>('/v1/graphql', 'json', {
-      method: 'POST',
-      body: JSON.stringify({
-        query: this.dipDupGraphQLQueryBuilder.getTokenTransfersQuery(accountAddresses, offset, limit)
-      })
-    });
-    if (tokenTransferDtos.errors)
-      throw new Error(`Indexer error: ${tokenTransferDtos.errors.join('\n')}`);
-
-    const tokenTransfers: BridgeTokenTransfer[] = [];
-
-    for (const bridgeDepositDto of tokenTransferDtos.data.bridge_deposit)
-      tokenTransfers.push(mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto));
-    for (const bridgeWithdrawalDto of tokenTransferDtos.data.bridge_withdrawal)
-      tokenTransfers.push(mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(bridgeWithdrawalDto));
-
-    tokenTransfers.sort((tokenTransferA, tokenTransferB) => {
-      const initialOperationA = bridgeUtils.getInitialOperation(tokenTransferA);
-      const initialOperationB = bridgeUtils.getInitialOperation(tokenTransferB);
-
-      return initialOperationB.timestamp.localeCompare(initialOperationA.timestamp);
-    });
-    tokenTransfers.slice(offset, offset + limit);
-
-    return tokenTransfers;
+    return this.getTokenTransfersInternal(accountAddressOfAddresses, offset, limit);
   }
 
   subscribeToTokenTransfer(operationHash: string): void;
@@ -164,10 +121,11 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
   unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
   unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    this.startDipDupWebSocketClientIfNeeded();
     const operationHash = typeof operationHashOrTokenTransfer === 'string'
       ? operationHashOrTokenTransfer
       : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
+
+    loggerProvider.logger.log('Unsubscribe from the token transfer by the initial operation:', operationHash);
 
     const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
     this.dipDupWebSocketClient.unsubscribe(subscriptions[1]);
@@ -175,25 +133,32 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }
 
   subscribeToTokenTransfers(): void {
+    this.startDipDupWebSocketClientIfNeeded();
+    this.subscribeToTokenTransfersInternal(null);
   }
 
   unsubscribeFromTokenTransfers(): void {
+    this.unsubscribeFromTokenTransfersInternal(null);
   }
 
   subscribeToAccountTokenTransfers(accountAddress: string): void;
   subscribeToAccountTokenTransfers(accountAddresses: readonly string[]): void;
   subscribeToAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
-  subscribeToAccountTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
+  subscribeToAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void {
+    this.startDipDupWebSocketClientIfNeeded();
+    this.subscribeToTokenTransfersInternal(accountAddressOrAddresses);
   }
 
   unsubscribeFromAccountTokenTransfers(): void;
   unsubscribeFromAccountTokenTransfers(accountAddress: string): void;
   unsubscribeFromAccountTokenTransfers(accountAddresses: readonly string[]): void;
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
-  unsubscribeFromAccountTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
+  unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void {
+    this.unsubscribeFromTokenTransfersInternal(accountAddressOrAddresses);
   }
 
   unsubscribeFromAllSubscriptions(): void {
+    this.dipDupWebSocketClient.unsubscribeFromAllSubscriptions();
   }
 
   getBalance(_accountAddress: string, _token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {
@@ -216,28 +181,145 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.stopDipDupWebSocketClient();
   }
 
+  protected startDipDupWebSocketClientIfNeeded() {
+    if (!this._dipDupWebSocketClient)
+      return;
+
+    this._dipDupWebSocketClient.start()
+      .catch(error => loggerProvider.logger.error(`DipDup Web Socket has not bee started. Error = ${getErrorLogMessage(error)}`));
+  }
+
+  protected stopDipDupWebSocketClient(): void {
+    this._dipDupWebSocketClient?.stop();
+  }
+
+  protected async getTokenTransfersInternal(
+    addressOrAddresses: string | readonly string[] | undefined | null,
+    offset: number | undefined | null,
+    limit: number | undefined | null
+  ): Promise<BridgeTokenTransfer[]> {
+    offset = offset && offset > 0 ? offset : 0;
+    limit = limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
+
+    loggerProvider.lazyLogger.log?.(addressOrAddresses
+      ? `Getting token transfers for ${typeof addressOrAddresses === 'string'
+        ? `${addressOrAddresses} address.`
+        : `[${addressOrAddresses.join(', ')}] addresses.`}`
+      : 'Getting all token transfers.',
+      `Offset == ${offset}; Limit == ${limit}`
+    );
+
+    const tokenTransfersResponse = await this.fetch<GraphQLResponse<TokenTransferDto>>('/v1/graphql', 'json', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: this.dipDupGraphQLQueryBuilder.getTokenTransfersQuery(addressOrAddresses, offset, limit)
+      })
+    });
+    this.ensureNoDipDupGraphQLErrors(tokenTransfersResponse);
+
+    loggerProvider.lazyLogger.log?.(addressOrAddresses
+      ? `Token transfers have been received for ${typeof addressOrAddresses === 'string'
+        ? `${addressOrAddresses} address.`
+        : `[${addressOrAddresses.join(', ')}] addresses.`}`
+      : 'Token transfers have been received.',
+      `Offset == ${offset}; Limit == ${limit}.`,
+      `Deposits Count == ${tokenTransfersResponse.data.bridge_deposit.length}; Withdrawal Count == ${tokenTransfersResponse.data.bridge_withdrawal.length}`
+    );
+
+    loggerProvider.logger.debug('Mapping bridge_deposit and bridge_withdrawal DTOs to BridgeTokenTransfers...');
+    const tokenTransfers: BridgeTokenTransfer[] = [];
+
+    for (const bridgeDepositDto of tokenTransfersResponse.data.bridge_deposit)
+      tokenTransfers.push(mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto));
+    for (const bridgeWithdrawalDto of tokenTransfersResponse.data.bridge_withdrawal)
+      tokenTransfers.push(mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(bridgeWithdrawalDto));
+
+    tokenTransfers.sort((tokenTransferA, tokenTransferB) => {
+      const initialOperationA = bridgeUtils.getInitialOperation(tokenTransferA);
+      const initialOperationB = bridgeUtils.getInitialOperation(tokenTransferB);
+
+      return initialOperationB.timestamp.localeCompare(initialOperationA.timestamp);
+    });
+    tokenTransfers.slice(offset, offset + limit);
+
+    loggerProvider.logger.debug('Mapping has been completed.', `BridgeTokenTransfers Count = ${tokenTransfers.length}`);
+
+    return tokenTransfers;
+  }
+
+  protected subscribeToTokenTransfersInternal(addressOrAddresses: string | readonly string[] | undefined | null) {
+    loggerProvider.lazyLogger.log?.(addressOrAddresses
+      ? `Subscribe to token transfers of the ${typeof addressOrAddresses === 'string'
+        ? `${addressOrAddresses} address.`
+        : `[${addressOrAddresses.join(', ')}] addresses.`}`
+      : 'Subscribe to all token transfers.'
+    );
+
+    const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransfersSubscriptions(addressOrAddresses);
+    loggerProvider.logger.debug('Requested subscriptions count', subscriptions.length);
+
+    for (const subscription of subscriptions) {
+      this.dipDupWebSocketClient.subscribe(subscription);
+      this.dipDupWebSocketClient.subscribe(subscription);
+    }
+  }
+
+  protected unsubscribeFromTokenTransfersInternal(addressOrAddresses: string | readonly string[] | undefined | null) {
+    loggerProvider.lazyLogger.log?.(addressOrAddresses
+      ? `Unsubscribe from token transfers of the ${typeof addressOrAddresses === 'string'
+        ? `${addressOrAddresses} address.`
+        : `[${addressOrAddresses.join(', ')}] addresses.`}`
+      : 'Unsubscribe from all token transfers.'
+    );
+
+    const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransfersSubscriptions(addressOrAddresses);
+    loggerProvider.logger.debug('Requested subscriptions count', subscriptions.length);
+
+    for (const subscription of subscriptions) {
+      this.dipDupWebSocketClient.unsubscribe(subscription);
+      this.dipDupWebSocketClient.unsubscribe(subscription);
+    }
+  }
+
   protected createDipDupGraphQLQueryBuilder(): DipDupGraphQLQueryBuilder {
     return new DipDupGraphQLQueryBuilder();
   }
 
-  protected readonly onSocketMessageReceived = (message: DipDupWebSocketResponseDto) => {
-    if (message.type !== 'data' || !message.payload.data)
+  protected ensureNoDipDupGraphQLErrors<TData>(response: GraphQLResponse<TData>) {
+    if (!response.errors || !response.errors.length)
       return;
 
-    const data: any = message.payload.data;
-    if (data?.bridge_deposit?.[0]) {
-      const tokenTransfer = mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(data.bridge_deposit[0]);
+    const error = new DipDupGraphQLError(response.errors);
+    loggerProvider.logger.error(getErrorLogMessage(error));
 
-      (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
-        tokenTransfer
-      );
-    }
-    else if (data?.bridge_withdrawal?.[0]) {
-      const tokenTransfer = mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(data.bridge_withdrawal[0]);
+    throw error;
+  }
 
-      (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
-        tokenTransfer
-      );
+  protected readonly onSocketMessageReceived = (message: DipDupWebSocketResponseDto) => {
+    try {
+      if (message.type !== 'data' || !message.payload.data)
+        return;
+
+      loggerProvider.logger.debug('DipDup data message was received.', `Message Id == ${message.id}`);
+
+      const data: any = message.payload.data;
+      const deposit = data?.bridge_deposit?.[0];
+      const withdrawal = data?.bridge_withdrawal?.[0];
+      if (deposit || withdrawal) {
+        const tokenTransfer = deposit
+          ? mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(data.bridge_deposit[0])
+          : mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(data.bridge_withdrawal[0]);
+
+        loggerProvider.logger.log(`${deposit ? 'Deposit' : 'Withdrawal'} updated was received`);
+        loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(tokenTransfer));
+        loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(tokenTransfer));
+
+        (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
+          tokenTransfer
+        );
+      }
+    } catch (error: unknown) {
+      loggerProvider.logger.error('Unknown error in the socket message handler.', getErrorLogMessage(error));
     }
   };
 }

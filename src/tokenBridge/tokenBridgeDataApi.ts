@@ -2,5 +2,5 @@ import type { TokensBridgeDataProvider, BalancesBridgeDataProvider, TransfersBri
 
 export interface TokenBridgeDataApi extends Pick<TokensBridgeDataProvider, 'getRegisteredTokenPair' | 'getRegisteredTokenPairs'>,
   Pick<BalancesBridgeDataProvider, 'getBalance' | 'getBalances'>,
-  Pick<TransfersBridgeDataProvider, 'getTokenTransfer' | 'getTokenTransfers'> {
+  Pick<TransfersBridgeDataProvider, 'getTokenTransfer' | 'getTokenTransfers' | 'getAccountTokenTransfers'> {
 }

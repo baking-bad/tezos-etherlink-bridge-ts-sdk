@@ -96,6 +96,18 @@ export class DipDupWebSocketClient {
     return true;
   }
 
+  unsubscribeFromAllSubscriptions(): boolean {
+    if (!this.subscriptions.size)
+      return false;
+
+    for (const subscription of this.subscriptions.values()) {
+      this.unsubscribeFromSubscription(subscription.id);
+    }
+    this.subscriptions.clear();
+
+    return true;
+  }
+
   protected async connect(): Promise<void> {
     await this.socket.connect();
     this.socket.send({

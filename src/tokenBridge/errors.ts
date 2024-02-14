@@ -4,8 +4,8 @@ import { getTokenLogMessage } from '../logging';
 import type { TezosToken } from '../tezos';
 
 export class TokenPairNotFoundError extends TokenBridgeError {
-  constructor(token: TezosToken | EtherlinkToken, options?: ErrorOptions) {
-    super(TokenPairNotFoundError.getMessage(token), options);
+  constructor(token: TezosToken | EtherlinkToken) {
+    super(TokenPairNotFoundError.getMessage(token));
   }
 
   private static getMessage(token: TezosToken | EtherlinkToken): string {

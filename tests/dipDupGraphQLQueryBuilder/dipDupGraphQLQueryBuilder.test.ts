@@ -1,7 +1,10 @@
 import {
-  getTokenTransferQueryByEtherlinkOperationTestCases,
-  getTokenTransferQueryByTezosOperationTestCases,
-  getTokenTransfersQueryByAccountAddressesTestCases
+  getTokenTransferQueryByTestCases,
+  getTokenTransfersQueryTestCases,
+  getTokenTransfersQueryByAccountAddressesTestCases,
+  getTokenTransferSubscriptionTestCases,
+  getTokenTransfersSubscriptionsByAccountAddressesTestCases,
+  getTokenTransfersSubscriptionsTestCases
 } from './testCases';
 import { prepareQueryFormatting } from './testHelper';
 import { DipDupGraphQLQueryBuilder } from '../../src/bridgeDataProviders/dipDupBridgeDataProvider';
@@ -13,7 +16,7 @@ describe('DipDup GraphQL Query Builder', () => {
     queryBuilder = new DipDupGraphQLQueryBuilder();
   });
 
-  test.each(getTokenTransferQueryByTezosOperationTestCases.concat(getTokenTransferQueryByEtherlinkOperationTestCases))(
+  test.each(getTokenTransferQueryByTestCases)(
     'Build the getTokenTransfer query %s',
     (_, testData) => {
       const query = queryBuilder.getTokenTransferQuery(testData.operationHash);
@@ -23,7 +26,17 @@ describe('DipDup GraphQL Query Builder', () => {
     }
   );
 
-  test.each(getTokenTransfersQueryByAccountAddressesTestCases.slice(4))(
+  test.each(getTokenTransfersQueryTestCases)(
+    'Build the getTokenTransfers query %s',
+    (_, testData) => {
+      const query = queryBuilder.getTokenTransfersQuery(null, 0, 100);
+      const preparedQuery = prepareQueryFormatting(query);
+
+      expect(preparedQuery).toBe(testData.expectedQuery);
+    }
+  );
+
+  test.each(getTokenTransfersQueryByAccountAddressesTestCases)(
     'Build the getTokenTransfers query %s',
     (_, testData) => {
       const query = queryBuilder.getTokenTransfersQuery(testData.address, 0, 100);
@@ -33,4 +46,44 @@ describe('DipDup GraphQL Query Builder', () => {
     }
   );
 
+  test.each(getTokenTransferSubscriptionTestCases)(
+    'Build the getTokenTransferSubscriptions query %s',
+    (_, testData) => {
+      const [depositQuery, withdrawalQuery] = queryBuilder.getTokenTransferSubscriptions(testData.operationHash);
+      const preparedDepositQuery = prepareQueryFormatting(depositQuery);
+      const preparedWithdrawalQuery = prepareQueryFormatting(withdrawalQuery);
+
+      expect(preparedDepositQuery).toBe(testData.expectedQueries[0]);
+      expect(preparedWithdrawalQuery).toBe(testData.expectedQueries[1]);
+    }
+  );
+
+  test.each(getTokenTransfersSubscriptionsByAccountAddressesTestCases)(
+    'Build the getTokenTransferSubscriptions query %s',
+    (_, testData) => {
+      const queries = queryBuilder.getTokenTransfersSubscriptions(testData.address);
+
+      expect(queries).toHaveLength(testData.expectedQueries.length);
+      for (let i = 0; i < queries.length; i++) {
+        const query = queries[i]!;
+        const preparedQuery = prepareQueryFormatting(query);
+        expect(preparedQuery).toBe(testData.expectedQueries[i]);
+      }
+    }
+  );
+
+  test.each(getTokenTransfersSubscriptionsTestCases)(
+    'Build the getTokenTransferSubscriptions query %s',
+    (_, testData) => {
+      const queries = queryBuilder.getTokenTransfersSubscriptions(null);
+
+      expect(queries).toHaveLength(testData.expectedQueries.length);
+      for (let i = 0; i < queries.length; i++) {
+        const query = queries[i]!;
+        const preparedQuery = prepareQueryFormatting(query);
+        expect(preparedQuery).toBe(testData.expectedQueries[i]);
+      }
+    }
+  );
 });
+
