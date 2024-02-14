@@ -4,6 +4,7 @@ import Web3 from 'web3';
 import {
   BridgeTokenTransferStatus,
   createDefaultTokenBridge,
+  LogLevel,
   NativeEtherlinkToken,
   NativeTezosToken,
   type TokenBridge
@@ -42,6 +43,9 @@ describe('Bridge', () => {
 
   beforeEach(async () => {
     tokenBridge = createDefaultTokenBridge({
+      logging: {
+        logLevel: LogLevel.Debug
+      },
       tezos: {
         toolkit: tezosToolkit,
         rollupAddress: testConfig.tezosRollupAddress
@@ -116,7 +120,7 @@ describe('Bridge', () => {
         tezosToken
       });
 
-      const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const finishedBridgeTokenDeposit = await tokenBridge.waitForStatus(
         depositResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -142,7 +146,7 @@ describe('Bridge', () => {
         tezosToken
       });
 
-      const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const finishedBridgeTokenDeposit = await tokenBridge.waitForStatus(
         depositResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -168,7 +172,7 @@ describe('Bridge', () => {
         tezosToken
       });
 
-      const finishedBridgeTokenDeposit = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const finishedBridgeTokenDeposit = await tokenBridge.waitForStatus(
         depositResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -187,7 +191,7 @@ describe('Bridge', () => {
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
       let readyForDone = false;
 
-      tokenBridge.events.tokenTransferCreated.addListener(tokenTransfer => {
+      tokenBridge.addEventListener('tokenTransferCreated', tokenTransfer => {
         expectPendingDeposit(tokenTransfer, {
           amount,
           source: testTezosAccountAddress,
@@ -197,7 +201,7 @@ describe('Bridge', () => {
         readyForDone = true;
       });
 
-      tokenBridge.events.tokenTransferUpdated.addListener(tokenTransfer => {
+      tokenBridge.addEventListener('tokenTransferUpdated', tokenTransfer => {
         if (tokenTransfer.status === BridgeTokenTransferStatus.Created) {
           expectCreatedDeposit(tokenTransfer, {
             amount,
@@ -223,7 +227,7 @@ describe('Bridge', () => {
       });
 
       tokenBridge.deposit(amount, tezosToken, { useWalletApi })
-        .then(result => tokenBridge.subscribeToTokenTransfer(result.tokenTransfer));
+        .then(result => tokenBridge.stream.subscribeToTokenTransfer(result.tokenTransfer));
     });
 
     test('Withdraw FA1.2 token', async () => {
@@ -238,7 +242,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const createdBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const createdBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
         startWithdrawResult.tokenTransfer,
         BridgeTokenTransferStatus.Created
       );
@@ -249,7 +253,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
         startWithdrawResult.tokenTransfer,
         BridgeTokenTransferStatus.Sealed
       );
@@ -261,7 +265,7 @@ describe('Bridge', () => {
       });
 
       const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
-      const finishedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const finishedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
         finishWithdrawResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );
@@ -286,7 +290,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const createdBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const createdBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
         startWithdrawResult.tokenTransfer,
         BridgeTokenTransferStatus.Created
       );
@@ -297,7 +301,7 @@ describe('Bridge', () => {
         etherlinkToken
       });
 
-      const sealedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
         startWithdrawResult.tokenTransfer,
         BridgeTokenTransferStatus.Sealed
       );
@@ -309,7 +313,7 @@ describe('Bridge', () => {
       });
 
       const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
-      const finishedBridgeTokenWithdrawal = await tokenBridge.waitForBridgeTokenTransferStatus(
+      const finishedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
         finishWithdrawResult.tokenTransfer,
         BridgeTokenTransferStatus.Finished
       );

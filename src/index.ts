@@ -1,6 +1,3 @@
-export { TokenBridge } from './tokenBridge';
-export type { TokenBridgeOptions } from './tokenBridgeOptions';
-
 export {
   EventEmitter,
   RemoteService,
@@ -9,7 +6,7 @@ export {
   type ToEventEmitter,
   type ToEventEmitters,
   type RemoteServiceResponseFormat,
-  type TokenBridgeService
+  type TokenBridgeService,
 } from './common';
 
 export {
@@ -18,6 +15,19 @@ export {
   defaultEtherlinkWithdrawPrecompileAddress,
   type DefaultTokenBridgeOptions
 } from './defaultTokenBridge';
+
+export {
+  TokenBridge,
+  type TokenBridgeOptions,
+} from './tokenBridge';
+
+export {
+  loggerProvider,
+  LogLevel,
+
+  type Logger,
+  type LazyLogger
+} from './logging';
 
 export {
   BridgeTokenTransferKind,
@@ -35,7 +45,7 @@ export {
   type CreatedBridgeTokenWithdrawal,
   type SealedBridgeTokenWithdrawal,
   type FinishedBridgeTokenWithdrawal
-} from './bridge';
+} from './bridgeCore';
 
 export type {
   FA12TezosToken,

@@ -3,6 +3,11 @@ import { Schema } from '@taquito/michelson-encoder';
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
+import { TokenPairNotFoundError } from './errors';
+import type { TokenBridgeComponents } from './tokenBridgeComponents';
+import type { TokenBridgeDataApi } from './tokenBridgeDataApi';
+import type { TokenBridgeOptions } from './tokenBridgeOptions';
+import type { TokenBridgeStreamApi } from './tokenBridgeStreamApi';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
   type TokenPair,
@@ -12,27 +17,16 @@ import {
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
-} from './bridge';
-import type {
-  TokensBridgeDataProvider,
-  BalancesBridgeDataProvider,
-  TransfersBridgeDataProvider,
-  AccountTokenBalanceInfo
-} from './bridgeDataProviders';
-import { EventEmitter, ToEventEmitter, type PublicEventEmitter, type TokenBridgeService } from './common';
-import { EtherlinkBlockchainBridgeComponent, EtherlinkToken, type NonNativeEtherlinkToken } from './etherlink';
-import { TezosBlockchainBridgeComponent, tezosTicketerContentMichelsonType, type TezosToken } from './tezos';
-import { TokenBridgeDataFacade } from './tokenBridgeDataFacade';
-import type { TokenBridgeOptions } from './tokenBridgeOptions';
-import { bridgeUtils, etherlinkUtils, guards } from './utils';
-
-interface TokenBridgeComponents {
-  readonly tezos: TezosBlockchainBridgeComponent;
-  readonly etherlink: EtherlinkBlockchainBridgeComponent;
-  readonly balancesBridgeDataProvider: BalancesBridgeDataProvider;
-  readonly tokensBridgeDataProvider: TokensBridgeDataProvider;
-  readonly transfersBridgeDataProvider: TransfersBridgeDataProvider;
-}
+} from '../bridgeCore';
+import type { AccountTokenBalanceInfo } from '../bridgeDataProviders';
+import { EventEmitter, ToEventEmitter, type PublicEventEmitter, type TokenBridgeService } from '../common';
+import { EtherlinkBlockchainBridgeComponent, EtherlinkToken, type NonNativeEtherlinkToken } from '../etherlink';
+import {
+  loggerProvider,
+  getTokenLogMessage, getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage
+} from '../logging';
+import { TezosBlockchainBridgeComponent, tezosTicketerContentMichelsonType, type TezosToken } from '../tezos';
+import { bridgeUtils, etherlinkUtils, guards } from '../utils';
 
 interface TokenBridgeComponentsEvents {
   readonly tokenTransferCreated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
@@ -40,13 +34,14 @@ interface TokenBridgeComponentsEvents {
 }
 
 export class TokenBridge implements TokenBridgeService {
-  readonly data: TokenBridgeDataFacade;
+  readonly data: TokenBridgeDataApi;
+  readonly stream: TokenBridgeStreamApi;
   readonly bridgeComponents: TokenBridgeComponents;
-  readonly events: TokenBridgeComponentsEvents = {
+
+  protected readonly events: TokenBridgeComponentsEvents = {
     tokenTransferCreated: new EventEmitter(),
     tokenTransferUpdated: new EventEmitter()
   };
-
   protected readonly tezosToolkit: TezosToolkit;
   protected readonly etherlinkToolkit: Web3;
 
@@ -90,6 +85,33 @@ export class TokenBridge implements TokenBridgeService {
       getTokenTransfer: this.getTokenTransfer.bind(this),
       getTokenTransfers: this.getTokenTransfers.bind(this),
     };
+    this.stream = {
+      subscribeToTokenTransfer: this.subscribeToTokenTransfer.bind(this),
+      subscribeToTokenTransfers: this.subscribeToTokenTransfers.bind(this),
+      subscribeToAccountTokenTransfers: this.subscribeToAccountTokenTransfers.bind(this),
+      unsubscribeFromTokenTransfer: this.unsubscribeFromTokenTransfer.bind(this),
+      unsubscribeFromTokenTransfers: this.unsubscribeFromTokenTransfers.bind(this),
+      unsubscribeFromAccountTokenTransfers: this.unsubscribeFromAccountTokenTransfers.bind(this),
+      unsubscribeFromAllSubscriptions: this.unsubscribeFromAllSubscriptions.bind(this)
+    };
+  }
+
+  addEventListener<EventType extends keyof TokenBridgeComponentsEvents>(
+    type: EventType,
+    listener: Parameters<TokenBridgeComponentsEvents[EventType]['addListener']>[0]
+  ): void {
+    this.events[type].addListener(listener);
+  }
+
+  removeEventListener<EventType extends keyof TokenBridgeComponentsEvents>(
+    type: EventType,
+    listener: Parameters<TokenBridgeComponentsEvents[EventType]['addListener']>[0]
+  ): void {
+    this.events[type].removeListener(listener);
+  }
+
+  removeAllEventListeners<EventType extends keyof TokenBridgeComponentsEvents>(type: EventType): void {
+    this.events[type].removeAllListeners();
   }
 
   get isStarted() {
@@ -135,45 +157,16 @@ export class TokenBridge implements TokenBridgeService {
     this._isStarted = false;
   }
 
-  subscribeToAccount(accountAddress: string): void;
-  subscribeToAccount(accountAddresses: readonly string[]): void;
-  subscribeToAccount(accountAddressOrAddresses: string | readonly string[]): void;
-  subscribeToAccount(accountAddressOrAddresses: string | readonly string[]): void {
-    this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfers(accountAddressOrAddresses);
-  }
-
-  unsubscribeFromAccount(accountAddress: string): void;
-  unsubscribeFromAccount(accountAddresses: readonly string[]): void;
-  unsubscribeFromAccount(accountAddressOrAddresses: string | readonly string[]): void;
-  unsubscribeFromAccount(accountAddressOrAddresses: string | readonly string[]): void {
-    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfers(accountAddressOrAddresses);
-  }
-
-  subscribeToTokenTransfer(transfer: BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHash: BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(operationHashOrTokenTransfer);
-  }
-
-  unsubscribeFromTokenTransfer(transfer: BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHash: BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHashOrTokenTransfer);
-  }
-
-  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenDeposit, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenDeposit>;
-  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenDeposit | CreatedBridgeTokenDeposit, status: BridgeTokenTransferStatus.Finished): Promise<FinishedBridgeTokenDeposit>;
-  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenWithdrawal>;
-  async waitForBridgeTokenTransferStatus(transfer: PendingBridgeTokenWithdrawal | CreatedBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Sealed): Promise<SealedBridgeTokenWithdrawal>;
-  async waitForBridgeTokenTransferStatus(
+  async waitForStatus(transfer: PendingBridgeTokenDeposit, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenDeposit>;
+  async waitForStatus(transfer: PendingBridgeTokenDeposit | CreatedBridgeTokenDeposit, status: BridgeTokenTransferStatus.Finished): Promise<FinishedBridgeTokenDeposit>;
+  async waitForStatus(transfer: PendingBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Created): Promise<CreatedBridgeTokenWithdrawal>;
+  async waitForStatus(transfer: PendingBridgeTokenWithdrawal | CreatedBridgeTokenWithdrawal, status: BridgeTokenTransferStatus.Sealed): Promise<SealedBridgeTokenWithdrawal>;
+  async waitForStatus(
     transfer: PendingBridgeTokenWithdrawal | CreatedBridgeTokenWithdrawal | SealedBridgeTokenWithdrawal,
     status: BridgeTokenTransferStatus.Finished
   ): Promise<FinishedBridgeTokenWithdrawal>;
-  async waitForBridgeTokenTransferStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer>;
-  async waitForBridgeTokenTransferStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer> {
+  async waitForStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer>;
+  async waitForStatus(transfer: BridgeTokenTransfer, status: BridgeTokenTransferStatus): Promise<BridgeTokenTransfer> {
     if (transfer.status >= status)
       return transfer;
 
@@ -236,9 +229,16 @@ export class TokenBridge implements TokenBridgeService {
     const depositOptions = typeof etherlinkReceiverAddressOrOptions !== 'string' && etherlinkReceiverAddressOrOptions ? etherlinkReceiverAddressOrOptions : options;
     const useWalletApi = depositOptions && depositOptions.useWalletApi !== undefined ? depositOptions.useWalletApi : true;
 
+    loggerProvider.lazyLogger.log?.(
+      `Depositing ${amount.toString(10)} ${getTokenLogMessage(token)} from ${await this.getTezosConnectedAddress()} to ${etherlinkReceiverAddress}`
+    );
+    loggerProvider.logger.debug(`Use the Taquito ${useWalletApi ? 'Wallet' : 'Contract'} API`);
+
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
-    if (!tokenPair)
-      throw new Error(`Token (${token.type}${token.type === 'fa1.2' ? ', ' + token.address : ''}${token.type === 'fa2' ? ', ' + token.tokenId : ''}) is not listed`);
+    if (!tokenPair) {
+      loggerProvider.lazyLogger.error?.(`Token pair not found for the ${getTokenLogMessage(token)} token`);
+      throw new TokenPairNotFoundError(token);
+    }
 
     const ticketHelperContractAddress = tokenPair.tezos.ticketHelperContractAddress;
 
@@ -259,7 +259,13 @@ export class TokenBridge implements TokenBridgeService {
       )
     );
 
+    loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(depositOperation.tokenTransfer));
+    loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(depositOperation.tokenTransfer));
+    loggerProvider.logger.log('Emitting the tokenTransferCreated event...');
+
     (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(depositOperation.tokenTransfer);
+
+    loggerProvider.logger.log('The tokenTransferCreated event has been emitted');
 
     return depositOperation;
   }
@@ -270,8 +276,10 @@ export class TokenBridge implements TokenBridgeService {
     }
 
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
-    if (!tokenPair)
-      throw new Error(`Token (${token.address}) is not listed`);
+    if (!tokenPair) {
+      loggerProvider.lazyLogger.error?.(`Token pair not found for the ${getTokenLogMessage(token)} token`);
+      throw new TokenPairNotFoundError(token);
+    }
     if (tokenPair.etherlink.type === 'native' || tokenPair.tezos.type === 'native')
       throw new Error('Withdrawal of native tokens is not supported yet');
 
@@ -404,6 +412,51 @@ export class TokenBridge implements TokenBridgeService {
 
   // #endregion
 
+  // #region Stream API
+
+  protected subscribeToTokenTransfer(transfer: BridgeTokenTransfer): void;
+  protected subscribeToTokenTransfer(operationHash: BridgeTokenTransfer): void;
+  protected subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  protected subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(operationHashOrTokenTransfer);
+  }
+
+  protected unsubscribeFromTokenTransfer(transfer: BridgeTokenTransfer): void;
+  protected unsubscribeFromTokenTransfer(operationHash: BridgeTokenTransfer): void;
+  protected unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  protected unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  protected unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHashOrTokenTransfer);
+  }
+
+  protected subscribeToTokenTransfers(): void {
+    this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfers();
+  }
+
+  protected unsubscribeFromTokenTransfers(): void {
+    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfers();
+  }
+
+  protected subscribeToAccountTokenTransfers(accountAddress: string): void;
+  protected subscribeToAccountTokenTransfers(accountAddresses: readonly string[]): void;
+  protected subscribeToAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
+  protected subscribeToAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void {
+    this.bridgeComponents.transfersBridgeDataProvider.subscribeToAccountTokenTransfers(accountAddressOrAddresses);
+  }
+
+  protected unsubscribeFromAccountTokenTransfers(accountAddress: string): void;
+  protected unsubscribeFromAccountTokenTransfers(accountAddresses: readonly string[]): void;
+  protected unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
+  protected unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void {
+    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses);
+  }
+
+  protected unsubscribeFromAllSubscriptions(): void {
+    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromAllSubscriptions();
+  }
+
+  // #endregion
+
   protected resolveStatusWatcherIfNeeded(tokenTransfer: BridgeTokenTransfer) {
     const initialOperationHash = bridgeUtils.getInitialOperationHash(tokenTransfer);
     const statusWatchers = this.tokenTransferOperationWatchers.get(initialOperationHash);
@@ -462,6 +515,7 @@ export class TokenBridge implements TokenBridgeService {
   ): Promise<WalletDepositResult> {
     const isNativeToken = token.type === 'native';
 
+    loggerProvider.logger.log('Creating the deposit operation using Wallet API...');
     const [depositOperation, sourceAddress] = await Promise.all([
       isNativeToken
         ? this.bridgeComponents.tezos.wallet.depositNativeToken({
@@ -477,6 +531,7 @@ export class TokenBridge implements TokenBridgeService {
         }),
       this.getTezosConnectedAddress()
     ]);
+    loggerProvider.logger.log('The deposit operation has been created:', depositOperation.opHash);
 
     return {
       tokenTransfer: {
@@ -504,6 +559,7 @@ export class TokenBridge implements TokenBridgeService {
   ): Promise<DepositResult> {
     const isNativeToken = token.type === 'native';
 
+    loggerProvider.logger.log('Creating the deposit operation using Contract API...');
     const depositOperation = await (isNativeToken
       ? this.bridgeComponents.tezos.depositNativeToken({
         amount,
@@ -517,6 +573,7 @@ export class TokenBridge implements TokenBridgeService {
         ticketHelperContractAddress: ticketHelperOrNativeTokenTicketerContractAddress
       })
     );
+    loggerProvider.logger.log('The deposit operation has been created:', depositOperation.hash);
 
     return {
       tokenTransfer: {

@@ -2,7 +2,7 @@ import type { BridgeDepositDto, BridgeWithdrawalDto, TezosTokenDto } from './dto
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
   type BridgeTokenDeposit, type CreatedBridgeTokenDeposit, BridgeTokenWithdrawal, CreatedBridgeTokenWithdrawal
-} from '../../bridge';
+} from '../../bridgeCore';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
 import { etherlinkUtils } from '../../utils';

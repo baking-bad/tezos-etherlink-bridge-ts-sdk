@@ -2,7 +2,7 @@ import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
 import type { GraphQLResponse, TokenTransferDto } from './dtos';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
-import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridge';
+import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridgeCore';
 import { EventEmitter, RemoteService, ToEventEmitter, type TokenBridgeService } from '../../common';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
@@ -195,24 +195,26 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.dipDupWebSocketClient.unsubscribe(subscriptions[0]);
   }
 
-  subscribeToTokenTransfers(): void;
-  subscribeToTokenTransfers(accountAddress: string): void;
-  subscribeToTokenTransfers(accountAddresses: readonly string[]): void;
-  subscribeToTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
-  subscribeToTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
-
+  subscribeToTokenTransfers(): void {
   }
 
-  unsubscribeFromTokenTransfers(): void;
-  unsubscribeFromTokenTransfers(accountAddress: string): void;
-  unsubscribeFromTokenTransfers(accountAddresses: readonly string[]): void;
-  unsubscribeFromTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
-  unsubscribeFromTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
-
+  unsubscribeFromTokenTransfers(): void {
   }
 
-  unsubscribeFromAllTokenTransfers(): void {
+  subscribeToAccountTokenTransfers(accountAddress: string): void;
+  subscribeToAccountTokenTransfers(accountAddresses: readonly string[]): void;
+  subscribeToAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
+  subscribeToAccountTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
+  }
 
+  unsubscribeFromAccountTokenTransfers(): void;
+  unsubscribeFromAccountTokenTransfers(accountAddress: string): void;
+  unsubscribeFromAccountTokenTransfers(accountAddresses: readonly string[]): void;
+  unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
+  unsubscribeFromAccountTokenTransfers(_accountAddressOrAddresses?: string | readonly string[]): void {
+  }
+
+  unsubscribeFromAllSubscriptions(): void {
   }
 
   getBalance(_accountAddress: string, _token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {

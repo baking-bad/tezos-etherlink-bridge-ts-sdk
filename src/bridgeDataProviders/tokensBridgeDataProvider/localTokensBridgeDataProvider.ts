@@ -1,5 +1,5 @@
 import type { TokensBridgeDataProvider } from './tokensBridgeDataProvider';
-import type { TokenPair } from '../../bridge';
+import type { TokenPair } from '../../bridgeCore';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
 

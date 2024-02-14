@@ -5,7 +5,7 @@ import type {
   TokensBridgeDataProvider,
   BalancesBridgeDataProvider,
   TransfersBridgeDataProvider
-} from './bridgeDataProviders';
+} from '../bridgeDataProviders';
 
 interface TezosTokenBridgeOptions {
   toolkit: TezosToolkit;

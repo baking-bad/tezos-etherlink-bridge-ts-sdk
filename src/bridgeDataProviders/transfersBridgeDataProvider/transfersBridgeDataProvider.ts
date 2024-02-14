@@ -1,4 +1,4 @@
-import type { BridgeTokenTransfer } from '../../bridge';
+import type { BridgeTokenTransfer } from '../../bridgeCore';
 import type { PublicEventEmitter } from '../../common';
 
 interface TransfersBridgeDataProviderEvents {
@@ -28,20 +28,21 @@ export interface TransfersBridgeDataProvider {
   subscribeToTokenTransfer(operationHash: string): void;
   subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
   subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-
   unsubscribeFromTokenTransfer(operationHash: string): void;
   unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
   unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
 
   subscribeToTokenTransfers(): void;
-  subscribeToTokenTransfers(accountAddress: string): void;
-  subscribeToTokenTransfers(accountAddresses: readonly string[]): void;
-  subscribeToTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
 
   unsubscribeFromTokenTransfers(): void;
-  unsubscribeFromTokenTransfers(accountAddress: string): void;
-  unsubscribeFromTokenTransfers(accountAddresses: readonly string[]): void;
-  unsubscribeFromTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
 
-  unsubscribeFromAllTokenTransfers(): void;
+  subscribeToAccountTokenTransfers(accountAddress: string): void;
+  subscribeToAccountTokenTransfers(accountAddresses: readonly string[]): void;
+  subscribeToAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
+
+  unsubscribeFromAccountTokenTransfers(accountAddress: string): void;
+  unsubscribeFromAccountTokenTransfers(accountAddresses: readonly string[]): void;
+  unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
+
+  unsubscribeFromAllSubscriptions(): void;
 }
