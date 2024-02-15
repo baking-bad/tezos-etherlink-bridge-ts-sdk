@@ -112,6 +112,8 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
       ? operationHashOrTokenTransfer
       : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
 
+    loggerProvider.logger.log('Subscribe to the token transfer by the initial operation:', operationHash);
+
     const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
     this.dipDupWebSocketClient.subscribe(subscriptions[0]);
     this.dipDupWebSocketClient.subscribe(subscriptions[1]);

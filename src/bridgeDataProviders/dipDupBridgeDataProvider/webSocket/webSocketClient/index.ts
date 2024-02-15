@@ -1,5 +1,3 @@
 export * from './index.abstract';
 
-export type {
-  Subscription
-} from '../subscription';
+export { ReadyState } from './shared';

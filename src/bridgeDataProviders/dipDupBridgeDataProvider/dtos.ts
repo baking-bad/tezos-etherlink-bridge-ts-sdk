@@ -53,7 +53,7 @@ interface WithdrawalL2TransactionDto {
   amount: string;
   l2_token: {
     id: string;
-    tezos_ticket: TezosTicketDto;
+    ticket: TezosTicketDto;
   };
   l1_account: string;
   l2_account: string;

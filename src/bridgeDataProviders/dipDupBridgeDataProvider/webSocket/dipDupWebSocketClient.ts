@@ -3,7 +3,9 @@ import type {
   SubscribeToSubscriptionWebSocketRequestDto, UnsubscribeFromSubscriptionWebSocketRequestDto,
   WebSocketResponseDto
 } from './dtos';
-import { WebSocketClient, type WebSocketCloseEvent, type Subscription } from './webSocketClient';
+import type { Subscription } from './subscription';
+import { ReadyState, WebSocketClient, type WebSocketCloseEvent } from './webSocketClient';
+import { loggerProvider } from '../../..';
 import { EventEmitter, TimeoutScheduler, type PublicEventEmitter, type ToEventEmitter } from '../../../common';
 import { textUtils } from '../../../utils';
 
@@ -30,6 +32,10 @@ export class DipDupWebSocketClient {
 
   get isStarted() {
     return this._isStarted;
+  }
+
+  protected get isSocketOpen() {
+    return this.socket.readyState === ReadyState.Open;
   }
 
   async start(): Promise<void> {
@@ -120,13 +126,19 @@ export class DipDupWebSocketClient {
       }
     });
 
-    for (const subscription of this.subscriptions.values()) {
+    this.subscribeToAllSubscriptions();
+  }
+
+  protected subscribeToAllSubscriptions() {
+    if (!this.isSocketOpen)
+      return;
+
+    for (const subscription of this.subscriptions.values())
       this.subscribeToSubscription(subscription);
-    }
   }
 
   protected subscribeToSubscription(subscription: Subscription) {
-    if (!this.isStarted)
+    if (!this.isSocketOpen)
       return;
 
     const message: SubscribeToSubscriptionWebSocketRequestDto = {
@@ -141,7 +153,7 @@ export class DipDupWebSocketClient {
   }
 
   protected unsubscribeFromSubscription(subscriptionId: Subscription['id']) {
-    if (!this.isStarted)
+    if (!this.isSocketOpen)
       return;
 
     const message: UnsubscribeFromSubscriptionWebSocketRequestDto = {
@@ -157,8 +169,10 @@ export class DipDupWebSocketClient {
     this.subscriptions.clear();
   }
 
-  protected onSocketClosed = (_socket: WebSocketClient, _event: WebSocketCloseEvent) => {
+  protected onSocketClosed = (_socket: WebSocketClient, event: WebSocketCloseEvent) => {
+    loggerProvider.logger.warn('DipDup socket is closed. Reason:', event.reason);
     this.reconnectScheduler.setTimeout(() => {
+      loggerProvider.logger.log('DipDup socket reconnection...');
       this.connect();
     });
   };

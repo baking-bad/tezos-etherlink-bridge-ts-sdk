@@ -87,7 +87,8 @@ export const expectCreatedDeposit = (
 export const expectFinishedDeposit = (
   finishedBridgeTokenDeposit: BridgeTokenTransfer,
   params: {
-    amount: bigint,
+    inAmount: bigint,
+    outAmount: bigint
     tezosToken: TezosToken,
     source: string,
     receiver: string,
@@ -102,7 +103,7 @@ export const expectFinishedDeposit = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
-      amount: params.amount,
+      amount: params.inAmount,
       token: params.tezosToken,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
@@ -110,7 +111,7 @@ export const expectFinishedDeposit = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
-      amount: params.amount,
+      amount: params.outAmount,
       token: params.etherlinkToken,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
@@ -204,7 +205,8 @@ export const expectSealedWithdrawal = (
 export const expectFinishedWithdrawal = (
   finishedBridgeTokenWithdrawal: BridgeTokenTransfer,
   params: {
-    amount: bigint,
+    inAmount: bigint,
+    outAmount: bigint,
     etherlinkToken: EtherlinkToken,
     source: string,
     receiver: string,
@@ -219,7 +221,7 @@ export const expectFinishedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
-      amount: params.amount,
+      amount: params.inAmount,
       token: params.etherlinkToken,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),
@@ -227,7 +229,7 @@ export const expectFinishedWithdrawal = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
-      amount: params.amount,
+      amount: params.outAmount,
       token: params.tezosToken,
       fee: expect.any(BigInt),
       timestamp: expect.any(String),

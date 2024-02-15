@@ -11,6 +11,10 @@ export class WebSocketClient implements WebSocketClientInterface<WebSocketClient
     closed: new EventEmitter()
   };
 
+  get readyState() {
+    return this.socket.readyState;
+  }
+
   protected _socket: WebSocket | undefined;
 
   protected get socket(): WebSocket {

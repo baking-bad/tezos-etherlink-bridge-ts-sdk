@@ -24,11 +24,13 @@ const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto): TezosToken 
       : { type: 'native' };
 };
 
-const mapEtherlinkTokenDtoToEtherlinkToken = (contractAddress: string): EtherlinkToken => {
-  return {
-    type: 'erc20',
-    address: etherlinkUtils.toChecksumAddress(contractAddress)
-  };
+const mapEtherlinkTokenDtoToEtherlinkToken = (etherlinkTokenId: string): EtherlinkToken => {
+  return etherlinkTokenId === 'xtz'
+    ? { type: 'native' }
+    : {
+      type: 'erc20',
+      address: etherlinkUtils.toChecksumAddress(etherlinkTokenId)
+    };
 };
 
 export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto): BridgeTokenDeposit => {
@@ -96,7 +98,7 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
         blockId: dto.l1_transaction.level,
         hash: dto.l1_transaction.operation_hash,
         amount,
-        token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token.tezos_ticket.token),
+        token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token.ticket.token),
         // TODO: receive the fee
         fee: 0n,
         timestamp: dto.l1_transaction.timestamp

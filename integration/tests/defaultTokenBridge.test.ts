@@ -9,6 +9,7 @@ import {
   NativeTezosToken,
   type TokenBridge
 } from '../../src';
+import { bridgeUtils } from '../../src/utils';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
 import {
   createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner,
@@ -23,7 +24,7 @@ import {
 
 // The Taquito Wallet API does not close some handles after tests complete.
 const useWalletApi = false;
-const withdrawTimeout = 15 * 60 * 1000;
+const withdrawalTimeout = process.env.WITHDRAWAL_TIMEOUT ? parseInt(process.env.WITHDRAWAL_TIMEOUT, 10) : 15 * 60 * 1000;
 
 describe('Bridge', () => {
   let testConfig: TestConfig;
@@ -103,8 +104,8 @@ describe('Bridge', () => {
   });
 
   describe('Deposit', () => {
-    test.skip('Deposit native token', async () => {
-      const amount = 10_000_000n;
+    test('Deposit native token', async () => {
+      const amount = 1_000_000n;
       const [tezosToken, etherlinkToken]: [NativeTezosToken, NativeEtherlinkToken] = [{ type: 'native' }, { type: 'native' }];
 
       const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
@@ -121,7 +122,8 @@ describe('Bridge', () => {
       );
 
       expectFinishedDeposit(finishedBridgeTokenDeposit, {
-        amount,
+        inAmount: amount,
+        outAmount: amount * 1_000_000_000_000n,
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
         tezosToken,
@@ -129,7 +131,7 @@ describe('Bridge', () => {
       });
     });
 
-    test.only('Deposit FA1.2 token', async () => {
+    test('Deposit FA1.2 token', async () => {
       const amount = 7n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
 
@@ -147,7 +149,8 @@ describe('Bridge', () => {
       );
 
       expectFinishedDeposit(finishedBridgeTokenDeposit, {
-        amount,
+        inAmount: amount,
+        outAmount: amount,
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
         tezosToken,
@@ -173,7 +176,8 @@ describe('Bridge', () => {
       );
 
       expectFinishedDeposit(finishedBridgeTokenDeposit, {
-        amount,
+        inAmount: amount,
+        outAmount: amount,
         source: testTezosAccountAddress,
         receiver: testEtherlinkAccountAddress,
         tezosToken,
@@ -181,7 +185,7 @@ describe('Bridge', () => {
       });
     });
 
-    test('Deposit FA1.2 token, check the transfer status using events', done => {
+    test('Deposit FA1.2 token, check the transfer status using events (subscribeToTokenTransfer)', done => {
       const amount = 5n;
       const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
       let readyForDone = false;
@@ -207,7 +211,8 @@ describe('Bridge', () => {
         }
         else if (tokenTransfer.status === BridgeTokenTransferStatus.Finished) {
           expectFinishedDeposit(tokenTransfer, {
-            amount,
+            inAmount: amount,
+            outAmount: amount,
             source: testTezosAccountAddress,
             receiver: testEtherlinkAccountAddress,
             tezosToken,
@@ -223,6 +228,62 @@ describe('Bridge', () => {
 
       tokenBridge.deposit(amount, tezosToken, { useWalletApi })
         .then(result => tokenBridge.stream.subscribeToTokenTransfer(result.tokenTransfer));
+    });
+
+    test('Deposit FA1.2 token, check the transfer status using events (subscribeToAccountTransfers)', done => {
+      const amount = 5n;
+      const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+      let readyForDone = false;
+      let tokenTransferOperationHash: string | undefined;
+
+      tokenBridge.addEventListener('tokenTransferCreated', tokenTransfer => {
+        if (bridgeUtils.getInitialOperationHash(tokenTransfer) !== tokenTransferOperationHash)
+          return;
+
+        expectPendingDeposit(tokenTransfer, {
+          amount,
+          source: testTezosAccountAddress,
+          receiver: testEtherlinkAccountAddress,
+          tezosToken
+        });
+        readyForDone = true;
+      });
+
+      tokenBridge.addEventListener('tokenTransferUpdated', tokenTransfer => {
+        if (bridgeUtils.getInitialOperationHash(tokenTransfer) !== tokenTransferOperationHash)
+          return;
+
+        if (tokenTransfer.status === BridgeTokenTransferStatus.Created) {
+          expectCreatedDeposit(tokenTransfer, {
+            amount,
+            source: testTezosAccountAddress,
+            receiver: testEtherlinkAccountAddress,
+            tezosToken,
+          });
+        }
+        else if (tokenTransfer.status === BridgeTokenTransferStatus.Finished) {
+          expectFinishedDeposit(tokenTransfer, {
+            inAmount: amount,
+            outAmount: amount,
+            source: testTezosAccountAddress,
+            receiver: testEtherlinkAccountAddress,
+            tezosToken,
+            etherlinkToken
+          });
+          if (!readyForDone) {
+            done.fail('The tokenTransferCreated event has not been fired.');
+          }
+
+          done();
+        }
+      });
+
+      tokenBridge.stream.subscribeToAccountTokenTransfers([testTezosAccountAddress, testEtherlinkAccountAddress]);
+
+      tokenBridge.deposit(amount, tezosToken, { useWalletApi })
+        .then(depositResult => {
+          tokenTransferOperationHash = depositResult.depositOperation.hash;
+        });
     });
 
     test('Withdraw FA1.2 token', async () => {
@@ -265,13 +326,14 @@ describe('Bridge', () => {
         BridgeTokenTransferStatus.Finished
       );
       expectFinishedWithdrawal(finishedBridgeTokenWithdrawal, {
-        amount,
+        inAmount: amount,
+        outAmount: amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
         etherlinkToken,
         tezosToken
       });
-    }, withdrawTimeout);
+    }, withdrawalTimeout);
 
     test('Withdraw FA2 token', async () => {
       const amount = 20n;
@@ -313,12 +375,13 @@ describe('Bridge', () => {
         BridgeTokenTransferStatus.Finished
       );
       expectFinishedWithdrawal(finishedBridgeTokenWithdrawal, {
-        amount,
+        inAmount: amount,
+        outAmount: amount,
         source: testEtherlinkAccountAddress,
         receiver: testTezosAccountAddress,
         etherlinkToken,
         tezosToken
       });
-    }, withdrawTimeout);
+    }, withdrawalTimeout);
   });
 });

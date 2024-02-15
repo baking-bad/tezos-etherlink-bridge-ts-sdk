@@ -99,6 +99,8 @@ export class TokenBridge implements Disposable {
       unsubscribeFromAccountTokenTransfers: this.unsubscribeFromAccountTokenTransfers.bind(this),
       unsubscribeFromAllSubscriptions: this.unsubscribeFromAllSubscriptions.bind(this)
     };
+
+    this.attachEvents();
   }
 
   get isDisposed() {
@@ -238,11 +240,8 @@ export class TokenBridge implements Disposable {
 
     loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(depositOperation.tokenTransfer));
     loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(depositOperation.tokenTransfer));
-    loggerProvider.logger.log('Emitting the tokenTransferCreated event...');
 
-    (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(depositOperation.tokenTransfer);
-
-    loggerProvider.logger.log('The tokenTransferCreated event has been emitted');
+    this.emitLocalTokenTransferCreated(depositOperation.tokenTransfer);
 
     return depositOperation;
   }
@@ -292,7 +291,7 @@ export class TokenBridge implements Disposable {
       }
     };
 
-    (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(bridgeTokenWithdrawal);
+    this.emitLocalTokenTransferCreated(bridgeTokenWithdrawal);
 
     return {
       tokenTransfer: bridgeTokenWithdrawal,
@@ -342,6 +341,7 @@ export class TokenBridge implements Disposable {
       this.bridgeComponents.transfersBridgeDataProvider[Symbol.dispose]();
 
     this.rejectAndClearAllStatusWatchers('The TokenBridge has been stopped!');
+    this.detachEvents();
 
     this._isDisposed = true;
   }
@@ -449,6 +449,14 @@ export class TokenBridge implements Disposable {
   }
 
   // #endregion
+
+  protected emitLocalTokenTransferCreated(tokenTransfer: TokenTransferCreatedEventArgument[0]) {
+    setTimeout(() => {
+      loggerProvider.logger.log('Emitting the tokenTransferCreated event...');
+      (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(tokenTransfer);
+      loggerProvider.logger.log('The tokenTransferCreated event has been emitted');
+    }, 0);
+  }
 
   protected resolveStatusWatcherIfNeeded(tokenTransfer: BridgeTokenTransfer) {
     const initialOperationHash = bridgeUtils.getInitialOperationHash(tokenTransfer);
