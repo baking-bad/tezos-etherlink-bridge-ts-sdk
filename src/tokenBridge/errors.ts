@@ -1,7 +1,7 @@
 import { TokenBridgeError } from '../common';
 import type { EtherlinkToken } from '../etherlink';
-import { getTokenLogMessage } from '../logging';
 import type { TezosToken } from '../tezos';
+import { tokenUtils } from '../utils';
 
 export class TokenPairNotFoundError extends TokenBridgeError {
   constructor(token: TezosToken | EtherlinkToken) {
@@ -9,6 +9,6 @@ export class TokenPairNotFoundError extends TokenBridgeError {
   }
 
   private static getMessage(token: TezosToken | EtherlinkToken): string {
-    return `Token pair not found for the ${getTokenLogMessage(token)} token`;
+    return `Token pair not found for the ${tokenUtils.toDisplayString(token)} token`;
   }
 } 

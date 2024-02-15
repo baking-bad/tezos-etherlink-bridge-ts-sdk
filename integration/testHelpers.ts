@@ -2,17 +2,81 @@ import { InMemorySigner } from '@taquito/signer';
 import { TezosToolkit } from '@taquito/taquito';
 import Web3 from 'web3';
 
+import { TestConfig } from './testConfig';
 import {
-  BridgeTokenTransferKind, BridgeTokenTransferStatus,
+  createDefaultTokenBridge,
+  BridgeTokenTransferKind, BridgeTokenTransferStatus, LogLevel,
+  type TokenBridge, type DefaultTokenBridgeOptions,
   type TezosToken, type EtherlinkToken,
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal,
-  type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal,
+  type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../src';
 
 const tezosOperationRegex = /^o/;
 const etherlinkOperationRegex = /^0x[0-9a-f]{64}$/;
+
+interface CreateTestTokenBridgeParams {
+  testConfig: TestConfig,
+  tezosToolkit?: TezosToolkit,
+  etherlinkToolkit?: Web3,
+  overrideOptions?: Partial<DefaultTokenBridgeOptions>
+}
+
+export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overrideOptions }: CreateTestTokenBridgeParams): TokenBridge => {
+  tezosToolkit = tezosToolkit || createTezosToolkitWithSigner(testConfig.tezosRpcUrl, testConfig.tezosAccountPrivateKey);
+  etherlinkToolkit = etherlinkToolkit || createEtherlinkToolkitWithSigner(testConfig.etherlinkRpcUrl, testConfig.etherlinkAccountPrivateKey);
+
+  return createDefaultTokenBridge({
+    logging: {
+      logLevel: LogLevel.Debug
+    },
+    tezos: {
+      toolkit: tezosToolkit,
+      rollupAddress: testConfig.tezosRollupAddress
+    },
+    etherlink: {
+      toolkit: etherlinkToolkit
+    },
+    dipDup: {
+      baseUrl: testConfig.dipDupBaseUrl,
+      webSocketApiBaseUrl: testConfig.dipDupBaseUrl.replace('https', 'wss'),
+    },
+    tokenPairs: [
+      {
+        tezos: {
+          ...testConfig.tokens.tezos.tez,
+          ticketHelperContractAddress: 'KT1DWVsu4Jtu2ficZ1qtNheGPunm5YVniegT'
+        },
+        etherlink: {
+          ...testConfig.tokens.etherlink.tez,
+        }
+      },
+      {
+        tezos: {
+          ...testConfig.tokens.tezos.ctez,
+          ticketerContractAddress: 'KT1RvSp4yDKUABqWmv3pKGE9fA6iCGy7bqGh',
+          ticketHelperContractAddress: 'KT1DHLWJorW9WB6ztkx1XcoaJKWXeTu9yoR1'
+        },
+        etherlink: {
+          ...testConfig.tokens.etherlink.ctez
+        }
+      },
+      {
+        tezos: {
+          ...testConfig.tokens.tezos.usdt,
+          ticketerContractAddress: 'KT1VybveLaWhpQHKph28WcGwSy1ud22KSEan',
+          ticketHelperContractAddress: 'KT1DNtHLr9T9zksZjZvQwgtx5XJwrW9wzETB'
+        },
+        etherlink: {
+          ...testConfig.tokens.etherlink.usdt
+        }
+      },
+    ],
+    ...overrideOptions
+  });
+};
 
 export const createTezosToolkitWithSigner = (rpcUrl: string, privateKey: string): TezosToolkit => {
   const toolkit = new TezosToolkit(rpcUrl);

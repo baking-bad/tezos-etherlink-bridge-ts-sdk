@@ -1,14 +1,14 @@
 import type { DipDupBridgeDataProviderOptions } from './dipDupBridgeDataProviderOptions';
 import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
-import type { GraphQLResponse, TokenTransferDto } from './dtos';
-import { DipDupAutoUpdateIsDisabledError, DipDupGraphQLError } from './errors';
+import type { GraphQLResponse, TokenBalancesDto, TokenTransferDto } from './dtos';
+import { DipDupAutoUpdateIsDisabledError, DipDupGraphQLError, DipDupTokenBalanceNotSupported } from './errors';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
 import { loggerProvider } from '../..';
 import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridgeCore';
 import { EventEmitter, RemoteService, ToEventEmitter } from '../../common';
-import type { EtherlinkToken } from '../../etherlink';
-import { getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage, getErrorLogMessage } from '../../logging';
+import type { EtherlinkToken, NonNativeEtherlinkToken } from '../../etherlink';
+import { getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage, getErrorLogMessage, getTokenLogMessage, getTokensLogMessage } from '../../logging';
 import type { TezosToken } from '../../tezos';
 import { bridgeUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
@@ -163,19 +163,80 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.dipDupWebSocketClient.unsubscribeFromAllSubscriptions();
   }
 
-  getBalance(_accountAddress: string, _token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {
-    throw new Error('Method not implemented.');
+  async getBalance(accountAddress: string, token: NonNativeEtherlinkToken): Promise<AccountTokenBalanceInfo> {
+    if (token.type !== 'erc20') {
+      const error = new DipDupTokenBalanceNotSupported(token);
+      loggerProvider.logger.error(error);
+      throw error;
+    }
+
+    loggerProvider.lazyLogger.log?.(`Getting balance of the ${getTokenLogMessage(token)} token for the ${accountAddress} address`);
+
+    const tokenBalanceResponse = await this.fetch<GraphQLResponse<TokenBalancesDto>>('/v1/graphql', 'json', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: this.dipDupGraphQLQueryBuilder.getTokenBalanceQuery(accountAddress, token.address)
+      })
+    });
+    this.ensureNoDipDupGraphQLErrors(tokenBalanceResponse);
+
+    loggerProvider.lazyLogger.log?.(`The balance of the ${getTokenLogMessage(token)} token for the ${accountAddress} address has been received`);
+    loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalanceInfo...');
+
+    const accountTokenBalanceInfo = mappers.mapTokenBalancesDtoToAccountTokenBalanceInfo(tokenBalanceResponse.data, accountAddress);
+
+    loggerProvider.logger.debug('Mapping has been completed.');
+    loggerProvider.lazyLogger.log?.(`The balance of the ${getTokenLogMessage(token)} token for the ${accountAddress} address is ${accountTokenBalanceInfo.tokenBalances[0]?.balance}`);
+
+    return accountTokenBalanceInfo;
   }
 
-  getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
-  getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalanceInfo>;
-  getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
-  getBalances(
-    _accountAddress: string,
-    _tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
-    _limit?: number
+  async getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
+  async getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalanceInfo>;
+  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
+  async getBalances(
+    accountAddress: string,
+    tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
+    limit?: number
   ): Promise<AccountTokenBalanceInfo> {
-    throw new Error('Method not implemented.');
+    let query: string;
+    const isAllTokens = typeof tokensOrOffset === 'number' || !tokensOrOffset;
+
+    if (isAllTokens) {
+      query = this.dipDupGraphQLQueryBuilder.getAllTokenBalancesQuery(
+        accountAddress,
+        this.getPreparedOffsetParameter(tokensOrOffset),
+        this.getPreparedLimitParameter(limit),
+      );
+    }
+    else {
+      const tokenAddresses = tokensOrOffset
+        .filter((token): token is NonNativeEtherlinkToken => token.type === 'erc20')
+        .map(token => token.address);
+      query = this.dipDupGraphQLQueryBuilder.getTokenBalancesQuery(
+        accountAddress,
+        tokenAddresses
+      );
+    }
+
+    loggerProvider.lazyLogger.log?.(`Getting balances of the ${isAllTokens ? 'all' : getTokensLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address`);
+
+    const tokenBalancesResponse = await this.fetch<GraphQLResponse<TokenBalancesDto>>('/v1/graphql', 'json', {
+      method: 'POST',
+      body: JSON.stringify({
+        query
+      })
+    });
+    this.ensureNoDipDupGraphQLErrors(tokenBalancesResponse);
+
+    loggerProvider.lazyLogger.log?.(`The balances of the ${isAllTokens ? 'all' : getTokensLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address has been received`);
+    loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalanceInfo...');
+
+    const accountTokenBalanceInfo = mappers.mapTokenBalancesDtoToAccountTokenBalanceInfo(tokenBalancesResponse.data, accountAddress);
+
+    loggerProvider.logger.debug('Mapping has been completed.');
+
+    return accountTokenBalanceInfo;
   }
 
   [Symbol.dispose]() {
@@ -200,8 +261,9 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     offset: number | undefined | null,
     limit: number | undefined | null
   ): Promise<BridgeTokenTransfer[]> {
-    offset = offset && offset > 0 ? offset : 0;
-    limit = limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
+
+    offset = this.getPreparedOffsetParameter(offset);
+    limit = this.getPreparedLimitParameter(limit);
 
     loggerProvider.lazyLogger.log?.(addressOrAddresses
       ? `Getting token transfers for ${typeof addressOrAddresses === 'string'
@@ -324,4 +386,12 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
       loggerProvider.logger.error('Unknown error in the socket message handler.', getErrorLogMessage(error));
     }
   };
+
+  private getPreparedOffsetParameter(offset: number | undefined | null): number {
+    return offset && offset > 0 ? offset : 0;
+  }
+
+  private getPreparedLimitParameter(limit: number | undefined | null): number {
+    return limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
+  }
 }

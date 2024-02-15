@@ -50,7 +50,7 @@ export abstract class TezosBlockchainBridgeComponentBase<TApi extends ContractPr
     );
 
     let batch = this.createBatch();
-    batch = await (tezosUtils.isFA2Token(params.token)
+    batch = await (params.token.type === 'fa2'
       ? this.wrapContractCallsWithFA2TokenApprove(batch, depositOperation, params.token, params.ticketHelperContractAddress)
       : this.wrapContractCallsWithFA12TokenApprove(batch, depositOperation, params.token, params.amount, params.ticketHelperContractAddress));
 

@@ -1,11 +1,12 @@
-import type { BridgeDepositDto, BridgeWithdrawalDto, TezosTokenDto } from './dtos';
+import type { BridgeDepositDto, BridgeWithdrawalDto, TezosTokenDto, TokenBalancesDto } from './dtos';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
-  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit, BridgeTokenWithdrawal, CreatedBridgeTokenWithdrawal
+  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit, type BridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal
 } from '../../bridgeCore';
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
 import { etherlinkUtils } from '../../utils';
+import type { AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto): TezosToken => {
   const preparedTokenType = tezosTokenDto.type.toLowerCase();
@@ -136,4 +137,15 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
           outboxMessageIndex: dto.l2_transaction.outbox_message.index
         }
       };
+};
+
+export const mapTokenBalancesDtoToAccountTokenBalanceInfo = (dto: TokenBalancesDto, address?: string): AccountTokenBalanceInfo => {
+  const holder = dto.l2_token_holder[0]?.holder;
+  return {
+    address: (holder ? etherlinkUtils.toChecksumAddress(holder) : address) || '',
+    tokenBalances: dto.l2_token_holder.map(balanceDto => ({
+      balance: BigInt(balanceDto.balance),
+      token: mapEtherlinkTokenDtoToEtherlinkToken(balanceDto.token)
+    }))
+  };
 };

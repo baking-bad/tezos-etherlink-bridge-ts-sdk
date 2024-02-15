@@ -1,11 +1,13 @@
-import type { ERC20EtherlinkToken, FA12TezosToken, FA2TezosToken } from '../src';
+import type { NativeEtherlinkToken, NativeTezosToken, ERC20EtherlinkToken, FA12TezosToken, FA2TezosToken } from '../src';
 
 export interface TestTokens {
   readonly tezos: {
+    tez: NativeTezosToken;
     ctez: FA12TezosToken;
     usdt: FA2TezosToken;
   };
   readonly etherlink: {
+    tez: NativeEtherlinkToken
     ctez: ERC20EtherlinkToken;
     usdt: ERC20EtherlinkToken;
   };
@@ -55,6 +57,9 @@ const createInvalidEnvironmentVariablesError = (errors: string[]): Error =>
 const createTestTokens = (): TestTokens => {
   return {
     tezos: {
+      tez: {
+        type: 'native'
+      },
       ctez: {
         type: 'fa1.2',
         address: 'KT1LpdETWYvPWCQTR2FEW6jE6dVqJqxYjdeW'
@@ -66,6 +71,9 @@ const createTestTokens = (): TestTokens => {
       }
     },
     etherlink: {
+      tez: {
+        type: 'native'
+      },
       ctez: {
         type: 'erc20',
         address: '0x87dcBf128677ba36E79D47dAf4eb4e51610e0150'

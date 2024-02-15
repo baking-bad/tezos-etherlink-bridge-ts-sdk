@@ -77,6 +77,14 @@ export interface TokenTransferDto {
   bridge_withdrawal: BridgeWithdrawalDto[];
 }
 
+export interface TokenBalancesDto {
+  l2_token_holder: Array<{
+    balance: number,
+    holder: string,
+    token: string
+  }>;
+}
+
 export interface GraphQLError {
   message: string;
 }

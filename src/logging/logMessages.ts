@@ -1,7 +1,7 @@
 import { BridgeTokenTransfer, BridgeTokenTransferKind, FinishedBridgeTokenDeposit } from '..';
 import { EtherlinkToken } from '../etherlink';
 import { TezosToken } from '../tezos';
-import { bridgeUtils } from '../utils';
+import { bridgeUtils, tokenUtils } from '../utils';
 
 export const getErrorLogMessage = (error: any): string => {
   if (!error)
@@ -15,22 +15,13 @@ export const getErrorLogMessage = (error: any): string => {
   return '[unknown error type]';
 };
 
-export const getTokenLogMessage = (token: TezosToken | EtherlinkToken): string => {
-  if (!token)
-    return `[token is ${token === null ? 'null' : 'undefined'}]`;
+export const getTokenLogMessage = tokenUtils.toDisplayString;
 
-  switch (token.type) {
-    case 'native':
-      return '[native token]';
-    case 'erc20':
-      return `[${token.address} | ERC-20]`;
-    case 'fa1.2':
-      return `[${token.address} | FA1.2]`;
-    case 'fa2':
-      return `[${token.address} | FA2 | Id: ${token.tokenId}]`;
-    default:
-      return '[unknown token type]';
-  }
+export const getTokensLogMessage = (tokens: ReadonlyArray<TezosToken | EtherlinkToken>): string => {
+  return tokens.reduce(
+    (result, token, index, tokens) => result + getTokenLogMessage(token) + (index < tokens.length - 1 ? ', ' : ']'),
+    '['
+  );
 };
 
 const getNullOrUndefinedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: null | undefined): string => {

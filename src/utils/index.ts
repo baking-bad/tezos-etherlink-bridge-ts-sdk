@@ -8,5 +8,6 @@ export const emptyAsyncFunction: () => Promise<any> = async () => { };
 export * as guards from './guards';
 export * as textUtils from './textUtils';
 export * as tezosUtils from './tezosUtils';
+export * as tokenUtils from './tokenUtils';
 export * as etherlinkUtils from './etherlinkUtils';
 export * as bridgeUtils from './bridgeUtils';
