@@ -64,6 +64,7 @@ export type {
 export {
   DipDupBridgeDataProvider,
   TzKTBalancesProvider,
+  EtherlinkNodeBalancesProvider,
   LocalTokensBridgeDataProvider,
   DefaultDataProvider,
 

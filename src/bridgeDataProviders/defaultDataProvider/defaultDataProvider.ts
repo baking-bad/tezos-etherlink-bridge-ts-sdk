@@ -2,8 +2,11 @@ import type { DefaultDataProviderOptions } from './defaultDataProviderOptions';
 import type { BridgeTokenTransfer, TokenPair } from '../../bridgeCore';
 import type { EtherlinkToken, NativeEtherlinkToken, NonNativeEtherlinkToken } from '../../etherlink';
 import type { TezosToken, NativeTezosToken, NonNativeTezosToken } from '../../tezos';
-import { guards, memoize, tokenUtils } from '../../utils';
-import { TzKTBalancesProvider, type AccountTokenBalanceInfo, type BalancesBridgeDataProvider } from '../balancesBridgeDataProvider';
+import { guards, memoize } from '../../utils';
+import {
+  TzKTBalancesProvider, EtherlinkNodeBalancesProvider,
+  type AccountTokenBalanceInfo, type BalancesBridgeDataProvider
+} from '../balancesBridgeDataProvider';
 import { DipDupBridgeDataProvider } from '../dipDupBridgeDataProvider';
 import { LocalTokensBridgeDataProvider, type TokensBridgeDataProvider } from '../tokensBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
@@ -14,10 +17,13 @@ interface TokenGroups {
   nonNativeTezosTokens: NonNativeTezosToken[];
 }
 
+const nativeToken: NativeTezosToken | NativeEtherlinkToken = { type: 'native' };
+
 export class DefaultDataProvider implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, TokensBridgeDataProvider {
   protected readonly bridgeDataProvider: TokensBridgeDataProvider;
   protected readonly dipDupBridgeDataProvider: DipDupBridgeDataProvider;
   protected readonly tzKTBalancesDataProvider: TzKTBalancesProvider;
+  protected readonly etherlinkNodeBalancesDataProvider: EtherlinkNodeBalancesProvider;
 
   constructor(options: DefaultDataProviderOptions) {
     this.bridgeDataProvider = guards.isReadonlyArray(options.tokenPairs)
@@ -32,6 +38,7 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
       }
     });
     this.tzKTBalancesDataProvider = new TzKTBalancesProvider(options.tzKTApiBaseUrl);
+    this.etherlinkNodeBalancesDataProvider = new EtherlinkNodeBalancesProvider(options.etherlinkRpcUrl);
   }
 
   get events() {
@@ -113,17 +120,21 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
 
     if (isEtherlinkAccount) {
       if (tokenGroups) {
+        if (tokenGroups.nativeTokens.length)
+          promises.push(this.etherlinkNodeBalancesDataProvider.getBalance(accountAddress, nativeToken));
         if (tokenGroups.nonNativeEtherlinkTokens.length)
           promises.push(this.dipDupBridgeDataProvider.getBalances(accountAddress, tokenGroups.nonNativeEtherlinkTokens));
       }
       else {
+        if (!tokensOrOffset)
+          promises.push(this.etherlinkNodeBalancesDataProvider.getBalance(accountAddress, nativeToken));
         promises.push(this.dipDupBridgeDataProvider.getBalances(accountAddress, tokensOrOffset as number, limit));
       }
     }
     else {
       if (tokenGroups) {
         if (tokenGroups.nativeTokens.length)
-          promises.push(this.tzKTBalancesDataProvider.getBalance(accountAddress, { type: 'native' }));
+          promises.push(this.tzKTBalancesDataProvider.getBalance(accountAddress, nativeToken));
         if (tokenGroups.nonNativeTezosTokens.length)
           promises.push(this.tzKTBalancesDataProvider.getBalances(accountAddress, tokenGroups.nonNativeTezosTokens));
       }
@@ -145,7 +156,9 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
 
   getBalance(accountAddress: string, token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {
     return this.isEtherlinkAccount(accountAddress)
-      ? this.dipDupBridgeDataProvider.getBalance(accountAddress, token as any)
+      ? token.type === 'native'
+        ? this.etherlinkNodeBalancesDataProvider.getBalance(accountAddress, token)
+        : this.dipDupBridgeDataProvider.getBalance(accountAddress, token as NonNativeEtherlinkToken)
       : this.tzKTBalancesDataProvider.getBalance(accountAddress, token as TezosToken);
   }
 

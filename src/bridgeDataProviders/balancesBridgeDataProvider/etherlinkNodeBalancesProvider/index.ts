@@ -1,0 +1,1 @@
+export { EtherlinkNodeBalancesProvider } from './etherlinkNodeBalancesProvider';

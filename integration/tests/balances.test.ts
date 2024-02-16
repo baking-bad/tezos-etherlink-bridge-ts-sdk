@@ -42,7 +42,7 @@ describe('Balances', () => {
     () => [testTezosAccountAddress, tokens.tezos.tez] as const,
     () => [testTezosAccountAddress, tokens.tezos.ctez] as const,
     () => [testTezosAccountAddress, tokens.tezos.usdt] as const,
-    // () => [testEtherlinkAccountAddress, tokens.etherlink.tez] as const,
+    () => [testEtherlinkAccountAddress, tokens.etherlink.tez] as const,
     () => [testEtherlinkAccountAddress, tokens.etherlink.ctez] as const,
     () => [testEtherlinkAccountAddress, tokens.etherlink.usdt] as const,
   ])('Get the balance for a specific address and token: %#', async getTestData => {
@@ -59,7 +59,7 @@ describe('Balances', () => {
     });
   });
 
-  test.only.each([
+  test.each([
     () => [testTezosAccountAddress, [tokens.tezos.tez], [tokens.tezos.tez]] as const,
     () => [testTezosAccountAddress, [tokens.tezos.ctez], [tokens.tezos.ctez]] as const,
     () => [testTezosAccountAddress, [tokens.tezos.ctez, tokens.tezos.usdt], [tokens.tezos.ctez, tokens.tezos.usdt]] as const,
@@ -78,13 +78,13 @@ describe('Balances', () => {
       [tokens.tezos.ctez, tokens.etherlink.ctez, tokens.tezos.tez, tokens.etherlink.tez, tokens.tezos.usdt],
       [tokens.tezos.ctez, tokens.tezos.tez, tokens.tezos.usdt]
     ] as const,
-    // () => [testEtherlinkAccountAddress, [tokens.etherlink.tez], [tokens.etherlink.tez]] as const,
+    () => [testEtherlinkAccountAddress, [tokens.etherlink.tez], [tokens.etherlink.tez]] as const,
     () => [testEtherlinkAccountAddress, [tokens.etherlink.ctez], [tokens.etherlink.ctez],] as const,
     () => [testEtherlinkAccountAddress, [tokens.etherlink.ctez, tokens.etherlink.usdt], [tokens.etherlink.ctez, tokens.etherlink.usdt]] as const,
     () => [
       testEtherlinkAccountAddress,
       [tokens.etherlink.ctez, tokens.tezos.ctez, tokens.tezos.tez, tokens.etherlink.usdt],
-      [tokens.etherlink.ctez, tokens.etherlink.usdt]
+      [tokens.etherlink.ctez, tokens.etherlink.tez, tokens.etherlink.usdt]
     ] as const,
   ])('Get the balance for a specific address and tokens: %#', async getTestData => {
     const [address, tokens, expectedTokens] = getTestData();
@@ -134,6 +134,10 @@ describe('Balances', () => {
     expect(balancesInfo).toMatchObject<AccountTokenBalanceInfo>({
       address,
       tokenBalances: expect.arrayContaining([
+        {
+          token: tokens.etherlink.tez,
+          balance: expect.any(BigInt)
+        },
         {
           token: tokens.etherlink.ctez,
           balance: expect.any(BigInt)

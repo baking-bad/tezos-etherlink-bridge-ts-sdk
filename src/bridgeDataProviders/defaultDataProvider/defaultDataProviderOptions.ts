@@ -10,4 +10,5 @@ export interface DefaultDataProviderOptions {
   tokenPairs: TokensBridgeDataProvider | ReadonlyArray<Readonly<TokenPair>>;
   dipDup: DefaultDipDupBridgeDataProvider;
   tzKTApiBaseUrl: string;
+  etherlinkRpcUrl: string;
 }

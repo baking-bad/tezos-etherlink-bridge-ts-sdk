@@ -5,6 +5,7 @@ export {
 
 export {
   TzKTBalancesProvider,
+  EtherlinkNodeBalancesProvider,
 
   type TokenBalanceInfo,
   type AccountTokenBalanceInfo,

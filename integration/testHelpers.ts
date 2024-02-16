@@ -44,6 +44,7 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       webSocketApiBaseUrl: testConfig.dipDupBaseUrl.replace('https', 'wss'),
     },
     tzKTApiBaseUrl: testConfig.tzKTApiBaseUrl,
+    etherlinkRpcUrl: testConfig.etherlinkRpcUrl,
     tokenPairs: [
       {
         tezos: {
