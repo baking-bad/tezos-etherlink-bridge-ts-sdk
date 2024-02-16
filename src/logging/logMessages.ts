@@ -1,6 +1,4 @@
 import { BridgeTokenTransfer, BridgeTokenTransferKind, FinishedBridgeTokenDeposit } from '..';
-import { EtherlinkToken } from '../etherlink';
-import { TezosToken } from '../tezos';
 import { bridgeUtils, tokenUtils } from '../utils';
 
 export const getErrorLogMessage = (error: any): string => {

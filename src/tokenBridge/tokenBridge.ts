@@ -3,7 +3,7 @@ import { Schema } from '@taquito/michelson-encoder';
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
-import { TokenPairNotFoundError } from './errors';
+import { InsufficientBalanceError, TokenPairNotFoundError } from './errors';
 import type { TokenBridgeComponents } from './tokenBridgeComponents';
 import type { TokenBridgeDataApi } from './tokenBridgeDataApi';
 import type { TokenBridgeOptions } from './tokenBridgeOptions';
@@ -202,6 +202,7 @@ export class TokenBridge implements Disposable {
     options?: WalletDepositOptions | DepositOptions
   ): Promise<WalletDepositResult | DepositResult> {
     this.ensureIsNotDisposed();
+    const tezosSourceAddress = await this.getTezosConnectedAddress();
     const etherlinkReceiverAddress = typeof etherlinkReceiverAddressOrOptions === 'string'
       ? etherlinkReceiverAddressOrOptions
       : await this.getEtherlinkConnectedAddress();
@@ -209,14 +210,21 @@ export class TokenBridge implements Disposable {
     const useWalletApi = depositOptions && depositOptions.useWalletApi !== undefined ? depositOptions.useWalletApi : true;
 
     loggerProvider.lazyLogger.log?.(
-      `Depositing ${amount.toString(10)} ${getTokenLogMessage(token)} from ${await this.getTezosConnectedAddress()} to ${etherlinkReceiverAddress}`
+      `Depositing ${amount.toString(10)} ${getTokenLogMessage(token)} from ${tezosSourceAddress} to ${etherlinkReceiverAddress}`
     );
     loggerProvider.logger.debug(`Use the Taquito ${useWalletApi ? 'Wallet' : 'Contract'} API`);
 
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
     if (!tokenPair) {
-      loggerProvider.lazyLogger.error?.(`Token pair not found for the ${getTokenLogMessage(token)} token`);
-      throw new TokenPairNotFoundError(token);
+      const error = new TokenPairNotFoundError(token);
+      loggerProvider.logger.error(getErrorLogMessage(error));
+      throw error;
+    }
+    const accountTokenBalanceInfo = await this.bridgeComponents.balancesBridgeDataProvider.getBalance(tezosSourceAddress, token);
+    if (accountTokenBalanceInfo?.tokenBalances[0] && amount > accountTokenBalanceInfo?.tokenBalances[0].balance) {
+      const error = new InsufficientBalanceError(token, accountTokenBalanceInfo?.tokenBalances[0].balance, amount);
+      loggerProvider.logger.error(getErrorLogMessage(error));
+      throw error;
     }
 
     const ticketHelperContractAddress = tokenPair.tezos.ticketHelperContractAddress;
@@ -248,17 +256,25 @@ export class TokenBridge implements Disposable {
 
   async startWithdraw(amount: bigint, token: NonNativeEtherlinkToken, tezosReceiverAddress?: string): Promise<StartWithdrawResult> {
     this.ensureIsNotDisposed();
+    const etherlinkSourceAddress = await this.getEtherlinkConnectedAddress();
     if (!tezosReceiverAddress) {
       tezosReceiverAddress = await this.getTezosConnectedAddress();
     }
 
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
     if (!tokenPair) {
-      loggerProvider.lazyLogger.error?.(`Token pair not found for the ${getTokenLogMessage(token)} token`);
-      throw new TokenPairNotFoundError(token);
+      const error = new TokenPairNotFoundError(token);
+      loggerProvider.logger.error(getErrorLogMessage(error));
+      throw error;
     }
     if (tokenPair.etherlink.type === 'native' || tokenPair.tezos.type === 'native')
       throw new Error('Withdrawal of native tokens is not supported yet');
+    const accountTokenBalanceInfo = await this.bridgeComponents.balancesBridgeDataProvider.getBalance(etherlinkSourceAddress, token);
+    if (accountTokenBalanceInfo?.tokenBalances[0] && amount > accountTokenBalanceInfo?.tokenBalances[0].balance) {
+      const error = new InsufficientBalanceError(token, accountTokenBalanceInfo?.tokenBalances[0].balance, amount);
+      loggerProvider.logger.error(getErrorLogMessage(error));
+      throw error;
+    }
 
     const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
     const etherlinkTokenProxyContractAddress = tokenPair.etherlink.address;

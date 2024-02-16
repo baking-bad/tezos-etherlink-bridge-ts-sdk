@@ -41,7 +41,7 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
     this.etherlinkNodeBalancesDataProvider = new EtherlinkNodeBalancesProvider(options.etherlinkRpcUrl);
   }
 
-  get events() {
+  get events(): TransfersBridgeDataProvider['events'] {
     return this.dipDupBridgeDataProvider.events;
   }
 
