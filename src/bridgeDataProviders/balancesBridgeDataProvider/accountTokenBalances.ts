@@ -6,7 +6,13 @@ export interface TokenBalanceInfo {
   readonly balance: bigint;
 }
 
-export interface AccountTokenBalanceInfo {
+export interface AccountTokenBalance {
+  readonly address: string;
+  readonly token: TezosToken | EtherlinkToken;
+  readonly balance: bigint;
+}
+
+export interface AccountTokenBalances {
   readonly address: string;
   readonly tokenBalances: readonly TokenBalanceInfo[];
 }

@@ -8,7 +8,8 @@ export {
   EtherlinkNodeBalancesProvider,
 
   type TokenBalanceInfo,
-  type AccountTokenBalanceInfo,
+  type AccountTokenBalance,
+  type AccountTokenBalances,
   type BalancesBridgeDataProvider
 } from './balancesBridgeDataProvider';
 

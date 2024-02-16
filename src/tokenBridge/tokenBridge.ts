@@ -18,7 +18,7 @@ import {
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../bridgeCore';
-import type { AccountTokenBalanceInfo } from '../bridgeDataProviders';
+import type { AccountTokenBalance, AccountTokenBalances } from '../bridgeDataProviders';
 import { EventEmitter, ToEventEmitter, type PublicEventEmitter, DisposedError } from '../common';
 import { EtherlinkBlockchainBridgeComponent, EtherlinkToken, type NonNativeEtherlinkToken } from '../etherlink';
 import {
@@ -220,12 +220,13 @@ export class TokenBridge implements Disposable {
       loggerProvider.logger.error(getErrorLogMessage(error));
       throw error;
     }
-    const accountTokenBalanceInfo = await this.bridgeComponents.balancesBridgeDataProvider.getBalance(tezosSourceAddress, token);
-    if (accountTokenBalanceInfo?.tokenBalances[0] && amount > accountTokenBalanceInfo?.tokenBalances[0].balance) {
-      const error = new InsufficientBalanceError(token, accountTokenBalanceInfo?.tokenBalances[0].balance, amount);
+    const accountTokenBalance = await this.bridgeComponents.balancesBridgeDataProvider.getBalance(tezosSourceAddress, token);
+    if (amount > accountTokenBalance.balance) {
+      const error = new InsufficientBalanceError(token, tezosSourceAddress, accountTokenBalance.balance, amount);
       loggerProvider.logger.error(getErrorLogMessage(error));
       throw error;
     }
+    loggerProvider.logger.log(`The ${tezosSourceAddress} has enough tokens to deposit ${amount}`);
 
     const ticketHelperContractAddress = tokenPair.tezos.ticketHelperContractAddress;
 
@@ -269,12 +270,13 @@ export class TokenBridge implements Disposable {
     }
     if (tokenPair.etherlink.type === 'native' || tokenPair.tezos.type === 'native')
       throw new Error('Withdrawal of native tokens is not supported yet');
-    const accountTokenBalanceInfo = await this.bridgeComponents.balancesBridgeDataProvider.getBalance(etherlinkSourceAddress, token);
-    if (accountTokenBalanceInfo?.tokenBalances[0] && amount > accountTokenBalanceInfo?.tokenBalances[0].balance) {
-      const error = new InsufficientBalanceError(token, accountTokenBalanceInfo?.tokenBalances[0].balance, amount);
+    const accountTokenBalance = await this.bridgeComponents.balancesBridgeDataProvider.getBalance(etherlinkSourceAddress, token);
+    if (amount > accountTokenBalance.balance) {
+      const error = new InsufficientBalanceError(token, etherlinkSourceAddress, accountTokenBalance.balance, amount);
       loggerProvider.logger.error(getErrorLogMessage(error));
       throw error;
     }
+    loggerProvider.logger.log(`The ${etherlinkSourceAddress} has enough tokens to withdraw ${amount}`);
 
     const tezosTicketerAddress = tokenPair.tezos.ticketerContractAddress;
     const etherlinkTokenProxyContractAddress = tokenPair.etherlink.address;
@@ -364,23 +366,23 @@ export class TokenBridge implements Disposable {
 
   // #region Data API
 
-  protected getBalance(accountAddress: string, token: TezosToken | EtherlinkToken): Promise<AccountTokenBalanceInfo> {
+  protected getBalance(accountAddress: string, token: TezosToken | EtherlinkToken): Promise<AccountTokenBalance> {
     return this.bridgeComponents.balancesBridgeDataProvider.getBalance(accountAddress, token);
   }
 
-  protected getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
-  protected getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalanceInfo>;
-  protected getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
+  protected getBalances(accountAddress: string): Promise<AccountTokenBalances>;
+  protected getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalances>;
+  protected getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
   protected getBalances(
     accountAddress: string,
     tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
     limit?: number
-  ): Promise<AccountTokenBalanceInfo>;
+  ): Promise<AccountTokenBalances>;
   protected getBalances(
     accountAddress: string,
     tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
     limit?: number
-  ): Promise<AccountTokenBalanceInfo> {
+  ): Promise<AccountTokenBalances> {
     return this.bridgeComponents.balancesBridgeDataProvider.getBalances(accountAddress, tokensOrOffset, limit);
   }
 

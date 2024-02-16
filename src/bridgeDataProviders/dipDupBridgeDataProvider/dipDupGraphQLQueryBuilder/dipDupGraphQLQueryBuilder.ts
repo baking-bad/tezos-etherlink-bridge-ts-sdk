@@ -1,5 +1,5 @@
 import { bridgeDepositFields, bridgeWithdrawalFields, getBridgeOperationsFields, l2TokenHolderFields } from './queryParts';
-import { etherlinkUtils, guards, memoize } from '../../../utils';
+import { etherlinkUtils, guards } from '../../../utils';
 
 type GraphQLQuery = string;
 

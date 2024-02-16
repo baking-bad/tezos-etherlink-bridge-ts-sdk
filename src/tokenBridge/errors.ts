@@ -14,11 +14,11 @@ export class TokenPairNotFoundError extends TokenBridgeError {
 }
 
 export class InsufficientBalanceError extends TokenBridgeError {
-  constructor(token: TezosToken | EtherlinkToken, balance: bigint, requested: bigint) {
-    super(InsufficientBalanceError.getMessage(token, balance, requested));
+  constructor(token: TezosToken | EtherlinkToken, address: string, balance: bigint, requested: bigint) {
+    super(InsufficientBalanceError.getMessage(token, address, balance, requested));
   }
 
-  private static getMessage(token: TezosToken | EtherlinkToken, balance: bigint, requested: bigint): string {
-    return `insufficient balance ${tokenUtils.toDisplayString(token)}. Balance = ${balance}. Requested = ${requested}`;
+  private static getMessage(token: TezosToken | EtherlinkToken, address: string, balance: bigint, requested: bigint): string {
+    return `${address} has an insufficient balance ${tokenUtils.toDisplayString(token)}. Balance = ${balance}. Requested = ${requested}`;
   }
 }

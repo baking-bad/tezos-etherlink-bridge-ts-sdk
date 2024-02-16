@@ -15,7 +15,7 @@ import {
   getTokenLogMessage
 } from '../../logging';
 import { bridgeUtils } from '../../utils';
-import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
+import type { BalancesBridgeDataProvider, AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
 
 export class DipDupBridgeDataProvider extends RemoteService implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, Disposable {
@@ -170,7 +170,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.dipDupWebSocketClient.unsubscribeFromAllSubscriptions();
   }
 
-  async getBalance(accountAddress: string, token: NonNativeEtherlinkToken): Promise<AccountTokenBalanceInfo> {
+  async getBalance(accountAddress: string, token: NonNativeEtherlinkToken): Promise<AccountTokenBalance> {
     if (token.type !== 'erc20') {
       const error = new DipDupTokenBalanceNotSupported(token);
       loggerProvider.logger.error(error);
@@ -188,25 +188,29 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.ensureNoDipDupGraphQLErrors(tokenBalanceResponse);
 
     loggerProvider.lazyLogger.log?.(`The balance of the ${getTokenLogMessage(token)} token for the ${accountAddress} address has been received`);
-    loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalanceInfo...');
+    loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalances...');
 
-    const accountTokenBalanceInfo = mappers.mapTokenBalancesDtoToAccountTokenBalanceInfo(tokenBalanceResponse.data, accountAddress);
+    const accountTokenBalance = mappers.mapTokenBalancesDtoToAccountTokenBalance(tokenBalanceResponse.data);
 
     loggerProvider.logger.debug('Mapping has been completed.');
-    loggerProvider.lazyLogger.log?.(`The balance of the ${getTokenLogMessage(token)} token for the ${accountAddress} address is ${accountTokenBalanceInfo.tokenBalances[0]?.balance}`);
+    loggerProvider.lazyLogger.log?.(`The balance of the ${getTokenLogMessage(token)} token for the ${accountAddress} address is ${accountTokenBalance?.balance}`);
 
-    return accountTokenBalanceInfo;
+    return accountTokenBalance || {
+      address: accountAddress,
+      token,
+      balance: 0n
+    };
   }
 
-  async getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, tokens: readonly NonNativeEtherlinkToken[]): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalanceInfo>;
+  async getBalances(accountAddress: string): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokens: readonly NonNativeEtherlinkToken[]): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalances>;
   async getBalances(
     accountAddress: string,
     tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number,
     limit?: number
-  ): Promise<AccountTokenBalanceInfo> {
+  ): Promise<AccountTokenBalances> {
     let query: string;
     const isAllTokens = typeof tokensOrOffset === 'number' || !tokensOrOffset;
 
@@ -236,13 +240,13 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     this.ensureNoDipDupGraphQLErrors(tokenBalancesResponse);
 
     loggerProvider.lazyLogger.log?.(`The balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address has been received`);
-    loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalanceInfo...');
+    loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalances...');
 
-    const accountTokenBalanceInfo = mappers.mapTokenBalancesDtoToAccountTokenBalanceInfo(tokenBalancesResponse.data, accountAddress);
+    const accountTokenBalances = mappers.mapTokenBalancesDtoToAccountTokenBalances(tokenBalancesResponse.data, accountAddress);
 
     loggerProvider.logger.debug('Mapping has been completed.');
 
-    return accountTokenBalanceInfo;
+    return accountTokenBalances;
   }
 
   [Symbol.dispose]() {

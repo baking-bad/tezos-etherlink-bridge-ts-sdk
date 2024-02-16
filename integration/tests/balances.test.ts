@@ -1,7 +1,7 @@
 import { TezosToolkit } from '@taquito/taquito';
 import Web3 from 'web3';
 
-import { type TokenBridge, type AccountTokenBalanceInfo } from '../../src';
+import { type TokenBridge, type AccountTokenBalance, type AccountTokenBalances } from '../../src';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
 import {
   createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner, createTestTokenBridge
@@ -50,12 +50,10 @@ describe('Balances', () => {
 
     const balancesInfo = await tokenBridge.data.getBalance(address, token);
 
-    expect(balancesInfo).toMatchObject<AccountTokenBalanceInfo>({
+    expect(balancesInfo).toMatchObject<AccountTokenBalance>({
       address,
-      tokenBalances: [{
-        token,
-        balance: expect.any(BigInt)
-      }]
+      token,
+      balance: expect.any(BigInt)
     });
   });
 
@@ -96,7 +94,7 @@ describe('Balances', () => {
       balance: expect.any(BigInt)
     }));
     expect(balancesInfo.tokenBalances.length).toEqual(expectedTokenBalances.length);
-    expect(balancesInfo).toMatchObject<AccountTokenBalanceInfo>({
+    expect(balancesInfo).toMatchObject<AccountTokenBalances>({
       address,
       tokenBalances: expect.arrayContaining(expectedTokenBalances)
     });
@@ -107,7 +105,7 @@ describe('Balances', () => {
 
     const balancesInfo = await tokenBridge.data.getBalances(address);
 
-    expect(balancesInfo).toMatchObject<AccountTokenBalanceInfo>({
+    expect(balancesInfo).toMatchObject<AccountTokenBalances>({
       address,
       tokenBalances: expect.arrayContaining([
         {
@@ -131,7 +129,7 @@ describe('Balances', () => {
 
     const balancesInfo = await tokenBridge.data.getBalances(address);
 
-    expect(balancesInfo).toMatchObject<AccountTokenBalanceInfo>({
+    expect(balancesInfo).toMatchObject<AccountTokenBalances>({
       address,
       tokenBalances: expect.arrayContaining([
         {

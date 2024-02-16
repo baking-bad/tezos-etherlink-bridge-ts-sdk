@@ -6,7 +6,7 @@ import {
 import type { EtherlinkToken } from '../../etherlink';
 import type { TezosToken } from '../../tezos';
 import { etherlinkUtils } from '../../utils';
-import type { AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
+import type { AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto): TezosToken => {
   const preparedTokenType = tezosTokenDto.type.toLowerCase();
@@ -139,7 +139,19 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
       };
 };
 
-export const mapTokenBalancesDtoToAccountTokenBalanceInfo = (dto: TokenBalancesDto, address?: string): AccountTokenBalanceInfo => {
+export const mapTokenBalancesDtoToAccountTokenBalance = (dto: TokenBalancesDto): AccountTokenBalance | null => {
+  const balanceDto = dto.l2_token_holder[0];
+
+  return balanceDto
+    ? {
+      address: etherlinkUtils.toChecksumAddress(balanceDto.holder),
+      balance: BigInt(balanceDto.balance),
+      token: mapEtherlinkTokenDtoToEtherlinkToken(balanceDto.token),
+    }
+    : null;
+};
+
+export const mapTokenBalancesDtoToAccountTokenBalances = (dto: TokenBalancesDto, address?: string): AccountTokenBalances => {
   const holder = dto.l2_token_holder[0]?.holder;
   return {
     address: (holder ? etherlinkUtils.toChecksumAddress(holder) : address) || '',

@@ -3,29 +3,29 @@ import { EtherlinkNodeRPCError, EtherlinkNodeTokenBalanceNotSupported } from './
 import { RemoteService } from '../../../common';
 import type { NativeEtherlinkToken } from '../../../etherlink';
 import { getErrorLogMessage, loggerProvider } from '../../../logging';
-import type { AccountTokenBalanceInfo } from '../accountTokenBalanceInfo';
+import type { AccountTokenBalance, AccountTokenBalances } from '../accountTokenBalances';
 import type { BalancesBridgeDataProvider } from '../balancesBridgeDataProvider';
 
 export class EtherlinkNodeBalancesProvider extends RemoteService implements BalancesBridgeDataProvider {
-  async getBalance(accountAddress: string, token: NativeEtherlinkToken): Promise<AccountTokenBalanceInfo> {
+  async getBalance(accountAddress: string, token: NativeEtherlinkToken): Promise<AccountTokenBalance> {
     if (token.type !== 'native') {
       const error = new EtherlinkNodeTokenBalanceNotSupported(token);
       loggerProvider.logger.error(error);
       throw error;
     }
 
-    return this.getNativeEtherlinkTokenBalance(accountAddress);
+    return this.getNativeEtherlinkTokenBalance(accountAddress, false);
   }
 
-  async getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, tokens: readonly NativeEtherlinkToken[]): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, tokensOrOffset?: readonly NativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalanceInfo>;
+  async getBalances(accountAddress: string): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokens: readonly NativeEtherlinkToken[]): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrOffset?: readonly NativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalances>;
   async getBalances(
     accountAddress: string,
     tokensOrOffset?: readonly NativeEtherlinkToken[] | number,
     _limit?: number
-  ): Promise<AccountTokenBalanceInfo> {
+  ): Promise<AccountTokenBalances> {
     const isAllTokens = typeof tokensOrOffset === 'number' || !tokensOrOffset;
 
     if (!isAllTokens && tokensOrOffset.length && tokensOrOffset[0]!.type !== 'native') {
@@ -34,10 +34,12 @@ export class EtherlinkNodeBalancesProvider extends RemoteService implements Bala
       throw error;
     }
 
-    return this.getNativeEtherlinkTokenBalance(accountAddress);
+    return this.getNativeEtherlinkTokenBalance(accountAddress, true);
   }
 
-  protected async getNativeEtherlinkTokenBalance(accountAddress: string): Promise<AccountTokenBalanceInfo> {
+  protected async getNativeEtherlinkTokenBalance(accountAddress: string, isBalances: false): Promise<AccountTokenBalance>;
+  protected async getNativeEtherlinkTokenBalance(accountAddress: string, isBalances: true): Promise<AccountTokenBalances>;
+  protected async getNativeEtherlinkTokenBalance(accountAddress: string, isBalances: boolean): Promise<AccountTokenBalance | AccountTokenBalances> {
     loggerProvider.logger.log(`Getting the Etherlink native token balance for the ${accountAddress} address`);
 
     const getBalanceResponse = await this.fetch<RPCNodeResponse<BalanceData>>('', 'json', {
@@ -56,17 +58,25 @@ export class EtherlinkNodeBalancesProvider extends RemoteService implements Bala
 
     loggerProvider.logger.log(`The Etherlink native token balance for the  ${accountAddress} address has been received`);
 
-    const accountTokenBalanceInfo: AccountTokenBalanceInfo = {
-      address: accountAddress,
-      tokenBalances: [{
-        token: { type: 'native' },
-        balance: BigInt(getBalanceResponse.result)
-      }]
-    };
+    const token: NativeEtherlinkToken = { type: 'native' };
+    const balance = BigInt(getBalanceResponse.result);
+    const accountTokenBalanceOrBalances = isBalances
+      ? {
+        address: accountAddress,
+        tokenBalances: [{
+          token,
+          balance
+        }]
+      } satisfies AccountTokenBalances
+      : {
+        address: accountAddress,
+        token,
+        balance
+      } satisfies AccountTokenBalance;
 
-    loggerProvider.logger.log(`The Etherlink native token balance for the ${accountAddress} address is ${accountTokenBalanceInfo.tokenBalances[0]?.balance}`);
+    loggerProvider.logger.log(`The Etherlink native token balance for the ${accountAddress} address is ${balance}`);
 
-    return accountTokenBalanceInfo;
+    return accountTokenBalanceOrBalances;
   }
 
   protected ensureNoRPCErrors<TData>(response: RPCNodeResponse<TData>) {

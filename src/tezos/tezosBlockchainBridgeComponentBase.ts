@@ -5,7 +5,6 @@ import type { FA12Contract, FA2Contract, NativeTokenTicketHelper, NonNativeToken
 import { fa12helper, fa2helper } from './helpers';
 import type { TezosBlockchainBridgeComponentOptions } from './tezosBlockchainBridgeComponentOptions';
 import type { FA12TezosToken, FA2TezosToken, NonNativeTezosToken } from './tokens';
-import { tezosUtils } from '../utils';
 
 export interface DepositNativeTokenParams {
   amount: bigint;

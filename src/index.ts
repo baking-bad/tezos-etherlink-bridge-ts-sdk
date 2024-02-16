@@ -70,7 +70,8 @@ export {
 
   type TokensBridgeDataProvider,
   type TokenBalanceInfo,
-  type AccountTokenBalanceInfo,
+  type AccountTokenBalance,
+  type AccountTokenBalances,
   type BalancesBridgeDataProvider,
   type TransfersBridgeDataProvider,
   type DipDupBridgeDataProviderOptions,
