@@ -109,7 +109,7 @@ export class DipDupGraphQLQueryBuilder {
   getTokenBalancesQuery(accountAddress: string, tokenAddresses: readonly string[]): GraphQLQuery {
     const whereArgument = `where: {
       holder: { _eq: "${this.prepareEtherlinkHexValue(accountAddress, true)}" },
-      token: { _in: ${this.arrayToInOperatorValue(tokenAddresses)} }
+      token: { _in: ${this.arrayToInOperatorValue(tokenAddresses.map(address => this.prepareEtherlinkHexValue(address, true)))} }
     }`;
 
     return `query TokenBalance {

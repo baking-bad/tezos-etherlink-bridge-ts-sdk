@@ -3,10 +3,12 @@ export {
   LocalTokensBridgeDataProvider
 } from './tokensBridgeDataProvider';
 
-export type {
-  TokenBalanceInfo,
-  AccountTokenBalanceInfo,
-  BalancesBridgeDataProvider
+export {
+  TzKTBalancesProvider,
+
+  type TokenBalanceInfo,
+  type AccountTokenBalanceInfo,
+  type BalancesBridgeDataProvider
 } from './balancesBridgeDataProvider';
 
 export type {
@@ -17,3 +19,8 @@ export {
   DipDupBridgeDataProvider,
   type DipDupBridgeDataProviderOptions
 } from './dipDupBridgeDataProvider';
+
+export {
+  DefaultDataProvider,
+  type DefaultDataProviderOptions
+} from './defaultDataProvider';

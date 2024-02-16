@@ -63,14 +63,17 @@ export type {
 
 export {
   DipDupBridgeDataProvider,
+  TzKTBalancesProvider,
   LocalTokensBridgeDataProvider,
+  DefaultDataProvider,
 
   type TokensBridgeDataProvider,
   type TokenBalanceInfo,
   type AccountTokenBalanceInfo,
   type BalancesBridgeDataProvider,
   type TransfersBridgeDataProvider,
-  type DipDupBridgeDataProviderOptions
+  type DipDupBridgeDataProviderOptions,
+  type DefaultDataProviderOptions
 } from './bridgeDataProviders';
 
 export {

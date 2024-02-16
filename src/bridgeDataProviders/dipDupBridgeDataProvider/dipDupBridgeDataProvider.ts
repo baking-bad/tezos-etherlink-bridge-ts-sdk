@@ -7,9 +7,13 @@ import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSoc
 import { loggerProvider } from '../..';
 import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridgeCore';
 import { EventEmitter, RemoteService, ToEventEmitter } from '../../common';
-import type { EtherlinkToken, NonNativeEtherlinkToken } from '../../etherlink';
-import { getBridgeTokenTransferLogMessage, getDetailedBridgeTokenTransferLogMessage, getErrorLogMessage, getTokenLogMessage, getTokensLogMessage } from '../../logging';
-import type { TezosToken } from '../../tezos';
+import type { NonNativeEtherlinkToken } from '../../etherlink';
+import {
+  getErrorLogMessage,
+  getBridgeTokenTransferLogMessage,
+  getDetailedBridgeTokenTransferLogMessage,
+  getTokenLogMessage
+} from '../../logging';
 import { bridgeUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalanceInfo } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
@@ -51,12 +55,13 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
   async getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
   async getTokenTransfer(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(_operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null> {
-    const operationHash = typeof _operationHashOrTokenTransfer === 'string'
-      ? _operationHashOrTokenTransfer
-      : (_operationHashOrTokenTransfer.kind === BridgeTokenTransferKind.Deposit)
-        ? _operationHashOrTokenTransfer.tezosOperation.hash
-        : _operationHashOrTokenTransfer.etherlinkOperation.hash;
+  async getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
+  async getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null> {
+    const operationHash = typeof operationHashOrTokenTransfer === 'string'
+      ? operationHashOrTokenTransfer
+      : (operationHashOrTokenTransfer.kind === BridgeTokenTransferKind.Deposit)
+        ? operationHashOrTokenTransfer.tezosOperation.hash
+        : operationHashOrTokenTransfer.etherlinkOperation.hash;
 
     loggerProvider.logger.log('Getting token transfer by the operation hash:', operationHash);
 
@@ -87,6 +92,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
   async getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
   async getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
   async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
     return this.getTokenTransfersInternal(undefined, offset, limit);
   }
@@ -95,6 +101,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   async getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(
     accountAddressOfAddresses: string | readonly string[],
     offset?: number,
@@ -192,11 +199,12 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }
 
   async getBalances(accountAddress: string): Promise<AccountTokenBalanceInfo>;
-  async getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalanceInfo>;
+  async getBalances(accountAddress: string, tokens: readonly NonNativeEtherlinkToken[]): Promise<AccountTokenBalanceInfo>;
   async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalanceInfo>;
+  async getBalances(accountAddress: string, tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalanceInfo>;
   async getBalances(
     accountAddress: string,
-    tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
+    tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number,
     limit?: number
   ): Promise<AccountTokenBalanceInfo> {
     let query: string;
@@ -210,16 +218,14 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
       );
     }
     else {
-      const tokenAddresses = tokensOrOffset
-        .filter((token): token is NonNativeEtherlinkToken => token.type === 'erc20')
-        .map(token => token.address);
+      const tokenAddresses = tokensOrOffset.map(token => token.address);
       query = this.dipDupGraphQLQueryBuilder.getTokenBalancesQuery(
         accountAddress,
         tokenAddresses
       );
     }
 
-    loggerProvider.lazyLogger.log?.(`Getting balances of the ${isAllTokens ? 'all' : getTokensLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address`);
+    loggerProvider.lazyLogger.log?.(`Getting balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address`);
 
     const tokenBalancesResponse = await this.fetch<GraphQLResponse<TokenBalancesDto>>('/v1/graphql', 'json', {
       method: 'POST',
@@ -229,7 +235,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     });
     this.ensureNoDipDupGraphQLErrors(tokenBalancesResponse);
 
-    loggerProvider.lazyLogger.log?.(`The balances of the ${isAllTokens ? 'all' : getTokensLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address has been received`);
+    loggerProvider.lazyLogger.log?.(`The balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address has been received`);
     loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalanceInfo...');
 
     const accountTokenBalanceInfo = mappers.mapTokenBalancesDtoToAccountTokenBalanceInfo(tokenBalancesResponse.data, accountAddress);

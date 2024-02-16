@@ -1,3 +1,4 @@
+import { RemoteServiceResponseError } from './errors';
 import { textUtils } from '../utils';
 
 export type RemoteServiceResponseFormat = 'none' | 'json' | 'text';
@@ -35,11 +36,26 @@ export abstract class RemoteService {
 
     const url = typeof uriOrUrl === 'string' ? this.getUrl(uriOrUrl) : uriOrUrl;
     const response = await fetch(url.href, requestInit);
-    if (!response.ok)
-      throw new Error(await response.text());
+
+    await this.ensureResponseOk(response);
 
     return responseFormat === 'none'
       ? undefined :
       (await (responseFormat === 'json' ? (response.json() as any) : response.text()));
+  }
+
+  protected async ensureResponseOk(response: Response) {
+    if (response.ok)
+      return;
+
+    let content: string | undefined;
+    try {
+      content = await response.text();
+    }
+    catch {
+      content = '[unavailable]';
+    }
+
+    throw new RemoteServiceResponseError(response.status, content);
   }
 }

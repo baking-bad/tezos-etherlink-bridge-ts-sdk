@@ -17,6 +17,7 @@ export interface TestConfig {
   readonly tezosRpcUrl: string;
   readonly etherlinkRpcUrl: string;
   readonly dipDupBaseUrl: string;
+  readonly tzKTApiBaseUrl: string;
   readonly tezosRollupBaseUrl: string;
   readonly tezosRollupAddress: string;
   readonly etherlinkKernelAddress: string;
@@ -30,6 +31,7 @@ const envInfos = [
   ['TEZOS_RPC_URL', 'the RPC URL for Tezos'],
   ['ETHERLINK_RPC_URL', 'the RPC URL for Etherlink'],
   ['DIPDUP_BASE_URL', 'the base URL of the DipDup Bridge Data Provider'],
+  ['TZKT_API_BASE_URL', 'the base URL of the TzKT API'],
   ['TEZOS_ROLLUP_BASE_URL', 'the base URL of the Tezos Rollup Node'],
   ['TEZOS_ACCOUNT_PRIVATE_KEY', 'the private key of the test Tezos account'],
   ['ETHERLINK_ACCOUNT_PRIVATE_KEY', 'the private key of the test Etherlink account'],
@@ -97,6 +99,7 @@ export const getTestConfig = (): TestConfig => {
     tezosRpcUrl: env.TEZOS_RPC_URL,
     etherlinkRpcUrl: env.ETHERLINK_RPC_URL,
     dipDupBaseUrl: env.DIPDUP_BASE_URL,
+    tzKTApiBaseUrl: env.TZKT_API_BASE_URL,
     tezosRollupBaseUrl: env.TEZOS_ROLLUP_BASE_URL,
     tezosAccountPrivateKey: env.TEZOS_ACCOUNT_PRIVATE_KEY,
     etherlinkAccountPrivateKey: env.ETHERLINK_ACCOUNT_PRIVATE_KEY,

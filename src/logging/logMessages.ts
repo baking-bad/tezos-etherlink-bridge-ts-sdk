@@ -17,13 +17,6 @@ export const getErrorLogMessage = (error: any): string => {
 
 export const getTokenLogMessage = tokenUtils.toDisplayString;
 
-export const getTokensLogMessage = (tokens: ReadonlyArray<TezosToken | EtherlinkToken>): string => {
-  return tokens.reduce(
-    (result, token, index, tokens) => result + getTokenLogMessage(token) + (index < tokens.length - 1 ? ', ' : ']'),
-    '['
-  );
-};
-
 const getNullOrUndefinedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: null | undefined): string => {
   return `Bridge Token transfer is ${bridgeTokenTransfer === null ? 'null' : 'undefined'}`;
 };

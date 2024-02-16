@@ -10,3 +10,13 @@ export abstract class TokenBridgeError extends Error {
 
 export class DisposedError extends Error {
 }
+
+export class RemoteServiceResponseError extends TokenBridgeError {
+  constructor(status: Response['status'], content: string) {
+    super(RemoteServiceResponseError.getMessage(status, content));
+  }
+
+  protected static getMessage(status: Response['status'], content: string): string {
+    return `Response Error [Code: ${status}]. Content = ${content}`;
+  }
+}

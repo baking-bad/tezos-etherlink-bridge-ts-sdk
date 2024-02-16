@@ -1,0 +1,1 @@
+export { TzKTBalancesProvider } from './tzKTBalancesProvider';
