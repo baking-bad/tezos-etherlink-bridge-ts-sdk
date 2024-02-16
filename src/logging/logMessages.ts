@@ -1,4 +1,7 @@
-import { BridgeTokenTransfer, BridgeTokenTransferKind, FinishedBridgeTokenDeposit } from '..';
+import {
+  BridgeTokenTransferKind, BridgeTokenTransferStatus,
+  type BridgeTokenTransfer, type FinishedBridgeTokenDeposit
+} from '../bridgeCore';
 import { bridgeUtils, tokenUtils } from '../utils';
 
 export const getErrorLogMessage = (error: any): string => {
@@ -23,7 +26,7 @@ export const getBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeToke
   return bridgeTokenTransfer
     ? `Bridge Token Transfer:
   Kind: ${BridgeTokenTransferKind[bridgeTokenTransfer.kind]}
-  Status: ${BridgeTokenTransferKind[bridgeTokenTransfer.status]}
+  Status: ${BridgeTokenTransferStatus[bridgeTokenTransfer.status]}
   Source: ${bridgeTokenTransfer.source}
   Receiver: ${bridgeTokenTransfer.receiver}
   Tezos operation hash: ${(bridgeTokenTransfer as FinishedBridgeTokenDeposit)?.tezosOperation?.hash}

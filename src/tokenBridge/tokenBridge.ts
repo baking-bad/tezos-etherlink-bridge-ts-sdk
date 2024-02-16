@@ -346,7 +346,7 @@ export class TokenBridge implements Disposable {
   }
 
   [Symbol.dispose](): void {
-    if (!this._isDisposed)
+    if (this._isDisposed)
       return;
 
     if (guards.isDisposable(this.bridgeComponents.tokensBridgeDataProvider))

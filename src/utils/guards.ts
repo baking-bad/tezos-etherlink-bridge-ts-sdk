@@ -9,5 +9,5 @@ export const isReadonlyArray = (arg: unknown): arg is readonly unknown[] => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const isDisposable = (arg: any): arg is Disposable => {
-  return typeof arg?.dispose === 'symbol';
+  return typeof arg?.[Symbol.dispose] === 'function';
 };

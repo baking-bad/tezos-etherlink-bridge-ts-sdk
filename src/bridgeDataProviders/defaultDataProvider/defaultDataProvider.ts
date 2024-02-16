@@ -20,7 +20,7 @@ interface TokenGroups {
 const nativeToken: NativeTezosToken | NativeEtherlinkToken = { type: 'native' };
 const nativeTokenArray = [nativeToken] as const;
 
-export class DefaultDataProvider implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, TokensBridgeDataProvider {
+export class DefaultDataProvider implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, TokensBridgeDataProvider, Disposable {
   protected readonly bridgeDataProvider: TokensBridgeDataProvider;
   protected readonly dipDupBridgeDataProvider: DipDupBridgeDataProvider;
   protected readonly tzKTBalancesDataProvider: TzKTBalancesProvider;
@@ -192,6 +192,10 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
 
     return tokenGroups;
   });
+
+  [Symbol.dispose](): void {
+    this.dipDupBridgeDataProvider[Symbol.dispose]();
+  }
 
   protected mergeAccountTokenBalances(accountTokenBalances: readonly AccountTokenBalances[]): AccountTokenBalances {
     if (!accountTokenBalances.length)
