@@ -303,10 +303,14 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     loggerProvider.logger.debug('Mapping bridge_deposit and bridge_withdrawal DTOs to BridgeTokenTransfers...');
     const tokenTransfers: BridgeTokenTransfer[] = [];
 
-    for (const bridgeDepositDto of tokenTransfersResponse.data.bridge_deposit)
-      tokenTransfers.push(mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto));
-    for (const bridgeWithdrawalDto of tokenTransfersResponse.data.bridge_withdrawal)
-      tokenTransfers.push(mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(bridgeWithdrawalDto));
+    for (const bridgeDepositDto of tokenTransfersResponse.data.bridge_deposit) {
+      const tokenTransfer = mappers.mapBridgeDepositDtoToDepositBridgeTokenTransfer(bridgeDepositDto);
+      tokenTransfer && tokenTransfers.push(tokenTransfer);
+    }
+    for (const bridgeWithdrawalDto of tokenTransfersResponse.data.bridge_withdrawal) {
+      const tokenTransfer = mappers.mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(bridgeWithdrawalDto);
+      tokenTransfer && tokenTransfers.push(tokenTransfer);
+    }
 
     tokenTransfers.sort((tokenTransferA, tokenTransferB) => {
       const initialOperationA = bridgeUtils.getInitialOperation(tokenTransferA);
@@ -388,7 +392,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
         loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(tokenTransfer));
         loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(tokenTransfer));
 
-        (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
+        tokenTransfer && (this.events.tokenTransferUpdated as ToEventEmitter<DipDupBridgeDataProvider['events']['tokenTransferUpdated']>).emit(
           tokenTransfer
         );
       }
