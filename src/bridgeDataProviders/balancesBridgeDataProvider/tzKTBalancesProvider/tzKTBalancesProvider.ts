@@ -1,5 +1,5 @@
 import { TokenBalanceDto } from './dtos';
-import { TzKTNotPossibleReceiveBalances, TzKTTokenBalanceNotSupported } from './errors';
+import { TzKTTokenBalanceNotSupported } from './errors';
 import * as mappers from './mappers';
 import { RemoteService } from '../../../common';
 import { getTokenLogMessage, loggerProvider } from '../../../logging';
@@ -118,15 +118,13 @@ export class TzKTBalancesProvider extends RemoteService implements BalancesBridg
     loggerProvider.logger.debug('Mapping the tokenBalanceDTOs to AccountTokenBalances...');
 
     const accountTokenBalance = mappers.mapTokenBalanceDtosToAccountTokenBalance(tokenBalanceDtos);
-    if (!accountTokenBalance) {
-      const error = new TzKTNotPossibleReceiveBalances(address, token);
-      loggerProvider.logger.error(error);
-      throw error;
-    }
-
     loggerProvider.logger.debug('Mapping has been completed.');
 
-    return accountTokenBalance;
+    return accountTokenBalance || {
+      address,
+      token,
+      balance: 0n
+    } satisfies AccountTokenBalance;
   }
 
   protected async getNonNativeTezosTokenBalances(
@@ -151,15 +149,12 @@ export class TzKTBalancesProvider extends RemoteService implements BalancesBridg
     loggerProvider.logger.debug('Mapping the tokenBalanceDTOs to AccountTokenBalances...');
 
     const accountTokenBalances = mappers.mapTokenBalanceDtosToAccountTokenBalances(tokenBalanceDtos);
-    if (!accountTokenBalances) {
-      const error = new TzKTNotPossibleReceiveBalances(address, tokenOrTokens);
-      loggerProvider.logger.error(error);
-      throw error;
-    }
-
     loggerProvider.logger.debug('Mapping has been completed.');
 
-    return accountTokenBalances;
+    return accountTokenBalances || {
+      address,
+      tokenBalances: []
+    } satisfies AccountTokenBalances;
   }
 
   protected async getNativeTezosTokenAccountBalance(address: string, isBalances: false): Promise<AccountTokenBalance>;

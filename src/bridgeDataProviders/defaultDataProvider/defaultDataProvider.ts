@@ -151,7 +151,14 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
       };
     }
 
-    const accountTokenBalances = await Promise.all(promises);
+    const accountTokenBalanceResults = await Promise.allSettled(promises);
+    const accountTokenBalances = [];
+
+    for (const accountTokenBalanceResult of accountTokenBalanceResults) {
+      if (accountTokenBalanceResult.status === 'fulfilled')
+        accountTokenBalances.push(accountTokenBalanceResult.value);
+    }
+
     return this.mergeAccountTokenBalances(accountTokenBalances);
   }
 

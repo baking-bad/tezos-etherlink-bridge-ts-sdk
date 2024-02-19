@@ -199,7 +199,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
       address: accountAddress,
       token,
       balance: 0n
-    };
+    } satisfies AccountTokenBalance;
   }
 
   async getBalances(accountAddress: string): Promise<AccountTokenBalances>;

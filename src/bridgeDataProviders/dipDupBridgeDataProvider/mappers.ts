@@ -190,6 +190,6 @@ export const mapTokenBalancesDtoToAccountTokenBalances = (dto: TokenBalancesDto,
     return {
       address: address || '',
       tokenBalances: []
-    };
+    } satisfies AccountTokenBalances;
   }
 };
