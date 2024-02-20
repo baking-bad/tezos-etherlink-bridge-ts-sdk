@@ -27,11 +27,8 @@ export class DipDupGraphQLQueryBuilder {
     return this.getTokenTransferQueryOrSubscription(operationHash, true);
   }
 
-  getTokenTransferSubscriptions(operationHash: string): readonly [deposit: GraphQLQuery, withdrawal: GraphQLQuery] {
-    return [
-      this.getTokenTransferQueryOrSubscription(operationHash, false, true),
-      this.getTokenTransferQueryOrSubscription(operationHash, false, false),
-    ];
+  getTokenTransferSubscription(operationHash: string): GraphQLQuery {
+    return this.getTokenTransferQueryOrSubscription(operationHash, false);
   }
 
   getTokenTransfersQuery(
@@ -133,43 +130,33 @@ export class DipDupGraphQLQueryBuilder {
     }`;
   }
 
-  protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: true): GraphQLQuery;
-  protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: false, isDeposit: boolean): GraphQLQuery;
-  protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: boolean, isDeposit?: boolean): GraphQLQuery {
+  protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: boolean): GraphQLQuery {
+    const queryType = isQuery ? 'query' : 'subscription';
     let whereArgument: string;
 
     if (this.isEtherlinkTransaction(operationHash)) {
       operationHash = this.prepareEtherlinkHexValue(operationHash, false);
       whereArgument = `where: {
-        l2_transaction: { transaction_hash: { _eq: "${operationHash}" } }
+        _or : [
+          { withdrawal: { l2_transaction: { transaction_hash: { _eq: "${operationHash}" } } } }
+          { deposit: { l2_transaction: { transaction_hash: { _eq: "${operationHash}" } } } }
+        ]
       }`;
     }
     else {
       whereArgument = `where: {
-        l1_transaction: { operation_hash: { _eq: "${operationHash}" } }
+        _or : [
+          { deposit: { l1_transaction: { operation_hash: { _eq: "${operationHash}" } } } }
+          { withdrawal: { l1_transaction: { operation_hash: { _eq: "${operationHash}" } } } }
+        ]
       }`;
     }
 
-    return isQuery
-      ? `query TokenTransfer {
-          bridge_deposit(${whereArgument}) {
-            ${this.queryParts.bridgeDepositFields}
-          }
-          bridge_withdrawal(${whereArgument}) {
-            ${this.queryParts.bridgeWithdrawalFields}
-          }
-        }`
-      : isDeposit
-        ? `subscription TokenTransfer {
-            bridge_deposit(${whereArgument}) {
-              ${this.queryParts.bridgeDepositFields}
-            }
-          }`
-        : `subscription TokenTransfer {
-          bridge_withdrawal(${whereArgument}) {
-            ${this.queryParts.bridgeWithdrawalFields}
-          }
-        }`;
+    return `${queryType} TokenTransfer {
+      bridge_operation(${whereArgument}) {
+        ${this.queryParts.getBridgeOperationsFields(this.queryParts.bridgeDepositFields, this.queryParts.bridgeWithdrawalFields)}
+      }
+    }`;
   }
 
   protected getAccountTokenTransfersSubscription(address: string | undefined | null, isDeposit: boolean): GraphQLQuery {

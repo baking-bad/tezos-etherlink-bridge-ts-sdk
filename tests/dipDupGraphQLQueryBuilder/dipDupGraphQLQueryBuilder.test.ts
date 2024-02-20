@@ -47,14 +47,12 @@ describe('DipDup GraphQL Query Builder', () => {
   );
 
   test.each(getTokenTransferSubscriptionTestCases)(
-    'Build the getTokenTransferSubscriptions query %s',
+    'Build the getTokenTransferSubscription query %s',
     (_, testData) => {
-      const [depositQuery, withdrawalQuery] = queryBuilder.getTokenTransferSubscriptions(testData.operationHash);
-      const preparedDepositQuery = prepareQueryFormatting(depositQuery);
-      const preparedWithdrawalQuery = prepareQueryFormatting(withdrawalQuery);
+      const subscription = queryBuilder.getTokenTransferSubscription(testData.operationHash);
+      const preparedSubscription = prepareQueryFormatting(subscription);
 
-      expect(preparedDepositQuery).toBe(testData.expectedQueries[0]);
-      expect(preparedWithdrawalQuery).toBe(testData.expectedQueries[1]);
+      expect(preparedSubscription).toBe(testData.expectedQuery);
     }
   );
 

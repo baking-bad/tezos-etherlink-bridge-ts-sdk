@@ -121,9 +121,8 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
     loggerProvider.logger.log('Subscribe to the token transfer by the initial operation:', operationHash);
 
-    const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
-    this.dipDupWebSocketClient.subscribe(subscriptions[0]);
-    this.dipDupWebSocketClient.subscribe(subscriptions[1]);
+    const subscription = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscription(operationHash);
+    this.dipDupWebSocketClient.subscribe(subscription);
   }
 
   unsubscribeFromTokenTransfer(operationHash: string): void;
@@ -136,9 +135,8 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
     loggerProvider.logger.log('Unsubscribe from the token transfer by the initial operation:', operationHash);
 
-    const subscriptions = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscriptions(operationHash);
-    this.dipDupWebSocketClient.unsubscribe(subscriptions[1]);
-    this.dipDupWebSocketClient.unsubscribe(subscriptions[0]);
+    const subscription = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscription(operationHash);
+    this.dipDupWebSocketClient.unsubscribe(subscription);
   }
 
   subscribeToTokenTransfers(): void {

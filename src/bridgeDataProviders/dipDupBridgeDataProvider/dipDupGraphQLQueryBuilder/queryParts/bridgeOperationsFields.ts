@@ -3,5 +3,5 @@ type
 is_completed
 is_successful
 ${bridgeDepositFields ? `deposit { ${bridgeDepositFields} }` : ''}
-${bridgeWithdrawalFields ? `deposit { ${bridgeWithdrawalFields} }` : ''}
+${bridgeWithdrawalFields ? `withdrawal { ${bridgeWithdrawalFields} }` : ''}
 `;
