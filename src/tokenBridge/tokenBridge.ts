@@ -38,6 +38,9 @@ interface TokenBridgeComponentsEvents {
 }
 
 export class TokenBridge implements Disposable {
+  private static readonly defaultLastCreatedTokenTransfersTimerPeriod = 60_000;
+  private static readonly defaultLastCreatedTokenTransferLifetime = 30_000;
+
   readonly data: TokenBridgeDataApi;
   readonly stream: TokenBridgeStreamApi;
   readonly bridgeComponents: TokenBridgeComponents;
@@ -59,6 +62,8 @@ export class TokenBridge implements Disposable {
     }>
   >();
 
+  private readonly lastCreatedTokenTransfers: Map<string, readonly [tokenTransfer: BridgeTokenTransfer, addedTime: number]> = new Map();
+  private lastCreatedTokenTransfersTimerId: ReturnType<typeof setInterval> | undefined;
   private _isDisposed = false;
 
   constructor(options: TokenBridgeOptions) {
@@ -250,7 +255,7 @@ export class TokenBridge implements Disposable {
     loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(depositOperation.tokenTransfer));
     loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(depositOperation.tokenTransfer));
 
-    this.emitLocalTokenTransferCreated(depositOperation.tokenTransfer);
+    this.emitLocalTokenTransferCreatedEvent(depositOperation.tokenTransfer);
 
     return depositOperation;
   }
@@ -309,7 +314,7 @@ export class TokenBridge implements Disposable {
       }
     };
 
-    this.emitLocalTokenTransferCreated(bridgeTokenWithdrawal);
+    this.emitLocalTokenTransferCreatedEvent(bridgeTokenWithdrawal);
 
     return {
       tokenTransfer: bridgeTokenWithdrawal,
@@ -360,6 +365,8 @@ export class TokenBridge implements Disposable {
 
     this.rejectAndClearAllStatusWatchers('The TokenBridge has been stopped!');
     this.detachEvents();
+    clearInterval(this.lastCreatedTokenTransfersTimerId);
+    this.lastCreatedTokenTransfers.clear();
 
     this._isDisposed = true;
   }
@@ -468,12 +475,28 @@ export class TokenBridge implements Disposable {
 
   // #endregion
 
-  protected emitLocalTokenTransferCreated(tokenTransfer: TokenTransferCreatedEventArgument[0]) {
+  protected emitLocalTokenTransferCreatedEvent(tokenTransfer: TokenTransferCreatedEventArgument[0]) {
     setTimeout(() => {
-      loggerProvider.logger.log('Emitting the tokenTransferCreated event...');
-      (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(tokenTransfer);
-      loggerProvider.logger.log('The tokenTransferCreated event has been emitted');
+      this.emitTokenTransferCreatedOrUpdatedEvent(tokenTransfer);
     }, 0);
+  }
+
+  protected emitTokenTransferCreatedOrUpdatedEvent(tokenTransfer: TokenTransferCreatedEventArgument[0]) {
+    this.ensureLastCreatedTokenTransfersTimerIsStarted();
+
+    const initialOperationHash = bridgeUtils.getInitialOperationHash(tokenTransfer);
+    let eventName: 'tokenTransferCreated' | 'tokenTransferUpdated';
+    if (this.lastCreatedTokenTransfers.has(initialOperationHash)) {
+      eventName = 'tokenTransferUpdated';
+    }
+    else {
+      eventName = 'tokenTransferCreated';
+      this.lastCreatedTokenTransfers.set(initialOperationHash, [tokenTransfer, Date.now()]);
+    }
+
+    loggerProvider.logger.log(`Emitting the ${eventName} event...`);
+    (this.events[eventName] as ToEventEmitter<typeof this.events[typeof eventName]>).emit(tokenTransfer);
+    loggerProvider.logger.log(`The ${eventName} event has been emitted`);
   }
 
   protected resolveStatusWatcherIfNeeded(tokenTransfer: BridgeTokenTransfer) {
@@ -516,12 +539,12 @@ export class TokenBridge implements Disposable {
   }
 
   protected handleTransfersBridgeDataProviderTokenTransferCreated = (createdTokenTransfer: TokenTransferCreatedEventArgument[0]) => {
-    (this.events.tokenTransferCreated as ToEventEmitter<typeof this.events.tokenTransferCreated>).emit(createdTokenTransfer);
+    this.resolveStatusWatcherIfNeeded(createdTokenTransfer);
+    this.emitTokenTransferCreatedOrUpdatedEvent(createdTokenTransfer);
   };
 
   protected handleTransfersBridgeDataProviderTokenTransferUpdated = (updatedTokenTransfer: BridgeTokenTransfer) => {
     this.resolveStatusWatcherIfNeeded(updatedTokenTransfer);
-
     (this.events.tokenTransferUpdated as ToEventEmitter<typeof this.events.tokenTransferUpdated>).emit(updatedTokenTransfer);
   };
 
@@ -617,6 +640,23 @@ export class TokenBridge implements Disposable {
       },
       depositOperation
     };
+  }
+
+  private ensureLastCreatedTokenTransfersTimerIsStarted() {
+    if (this.lastCreatedTokenTransfersTimerId)
+      return;
+
+    this.lastCreatedTokenTransfersTimerId = setInterval(
+      () => {
+        const currentTime = Date.now();
+        for (const entry of this.lastCreatedTokenTransfers) {
+          if (currentTime - entry[1][1] > TokenBridge.defaultLastCreatedTokenTransferLifetime) {
+            this.lastCreatedTokenTransfers.delete(entry[0]);
+          }
+        }
+      },
+      TokenBridge.defaultLastCreatedTokenTransfersTimerPeriod
+    );
   }
 
   private async getTezosTicketerContent(tezosTicketerAddress: string): Promise<string> {
