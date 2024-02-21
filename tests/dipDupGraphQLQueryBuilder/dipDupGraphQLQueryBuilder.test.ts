@@ -29,7 +29,7 @@ describe('DipDup GraphQL Query Builder', () => {
   test.each(getTokenTransfersQueryTestCases)(
     'Build the getTokenTransfers query %s',
     (_, testData) => {
-      const query = queryBuilder.getTokenTransfersQuery(null, 0, 100);
+      const query = queryBuilder.getTokenTransfersQuery(null, testData.offset, testData.limit);
       const preparedQuery = prepareQueryFormatting(query);
 
       expect(preparedQuery).toBe(testData.expectedQuery);
@@ -39,7 +39,7 @@ describe('DipDup GraphQL Query Builder', () => {
   test.each(getTokenTransfersQueryByAccountAddressesTestCases)(
     'Build the getTokenTransfers query %s',
     (_, testData) => {
-      const query = queryBuilder.getTokenTransfersQuery(testData.address, 0, 100);
+      const query = queryBuilder.getTokenTransfersQuery(testData.address, testData.offset, testData.limit);
       const preparedQuery = prepareQueryFormatting(query);
 
       expect(preparedQuery).toBe(testData.expectedQuery);
@@ -59,28 +59,20 @@ describe('DipDup GraphQL Query Builder', () => {
   test.each(getTokenTransfersSubscriptionsByAccountAddressesTestCases)(
     'Build the getTokenTransferSubscriptions query %s',
     (_, testData) => {
-      const queries = queryBuilder.getTokenTransfersSubscriptions(testData.address);
+      const subscription = queryBuilder.getTokenTransfersStreamSubscription(testData.address, testData.startUpdatedAt);
+      const preparedSubscription = prepareQueryFormatting(subscription);
 
-      expect(queries).toHaveLength(testData.expectedQueries.length);
-      for (let i = 0; i < queries.length; i++) {
-        const query = queries[i]!;
-        const preparedQuery = prepareQueryFormatting(query);
-        expect(preparedQuery).toBe(testData.expectedQueries[i]);
-      }
+      expect(preparedSubscription).toBe(testData.expectedQuery);
     }
   );
 
   test.each(getTokenTransfersSubscriptionsTestCases)(
     'Build the getTokenTransferSubscriptions query %s',
     (_, testData) => {
-      const queries = queryBuilder.getTokenTransfersSubscriptions(null);
+      const subscription = queryBuilder.getTokenTransfersStreamSubscription(null, testData.startUpdatedAt);
+      const preparedSubscription = prepareQueryFormatting(subscription);
 
-      expect(queries).toHaveLength(testData.expectedQueries.length);
-      for (let i = 0; i < queries.length; i++) {
-        const query = queries[i]!;
-        const preparedQuery = prepareQueryFormatting(query);
-        expect(preparedQuery).toBe(testData.expectedQueries[i]);
-      }
+      expect(preparedSubscription).toBe(testData.expectedQuery);
     }
   );
 });

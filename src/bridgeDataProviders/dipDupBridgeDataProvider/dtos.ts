@@ -38,7 +38,6 @@ interface DepositL2TransactionDto {
 export interface BridgeDepositDto {
   l1_transaction: DepositL1TransactionDto;
   l2_transaction: DepositL2TransactionDto | null;
-  updated_at: string;
 }
 
 interface WithdrawalL1TransactionDto {
@@ -69,12 +68,26 @@ interface WithdrawalL2TransactionDto {
 export interface BridgeWithdrawalDto {
   l1_transaction: WithdrawalL1TransactionDto | null;
   l2_transaction: WithdrawalL2TransactionDto;
-  updated_at: string;
 }
 
-export interface TokenTransferDto {
-  bridge_deposit: BridgeDepositDto[];
-  bridge_withdrawal: BridgeWithdrawalDto[];
+export interface BridgeOperationDto {
+  type: 'deposit' | 'withdrawal';
+  is_completed: boolean;
+  is_successful: boolean;
+  created_at: string;
+  updated_at: string;
+  deposit: BridgeDepositDto | null;
+  withdrawal: BridgeWithdrawalDto | null;
+}
+
+export interface BridgeOperationsDto {
+  bridge_operation: BridgeOperationDto[];
+  bridge_operation_stream: never;
+}
+
+export interface BridgeOperationsStreamDto {
+  bridge_operation: never;
+  bridge_operation_stream: BridgeOperationDto[];
 }
 
 export interface TokenBalancesDto {

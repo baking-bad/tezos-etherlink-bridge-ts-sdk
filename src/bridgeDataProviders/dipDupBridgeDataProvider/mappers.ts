@@ -1,7 +1,13 @@
-import type { BridgeDepositDto, BridgeWithdrawalDto, TezosTokenDto, TokenBalancesDto } from './dtos';
+import type {
+  BridgeDepositDto, BridgeWithdrawalDto,
+  BridgeOperationDto, BridgeOperationsDto, BridgeOperationsStreamDto,
+  TezosTokenDto, TokenBalancesDto
+} from './dtos';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
-  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit, type BridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal
+  type BridgeTokenTransfer,
+  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit,
+  type BridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal
 } from '../../bridgeCore';
 import type { EtherlinkToken } from '../../etherlink';
 import { getErrorLogMessage, loggerProvider } from '../../logging';
@@ -153,6 +159,26 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
     loggerProvider.logger.error('Withdrawal DTO mapping error.', getErrorLogMessage(error));
     return null;
   }
+};
+
+export const mapBridgeOperationDtoToBridgeTokenTransfer = (dto: BridgeOperationDto): BridgeTokenTransfer | null => {
+  return dto.type === 'deposit'
+    ? mapBridgeDepositDtoToDepositBridgeTokenTransfer(dto.deposit!)
+    : mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(dto.withdrawal!);
+};
+
+export const mapBridgeOperationsDtoToBridgeTokenTransfer = (dto: BridgeOperationsDto | BridgeOperationsStreamDto): BridgeTokenTransfer[] => {
+  const tokenTransfers: BridgeTokenTransfer[] = [];
+
+  loggerProvider.logger.debug('Mapping the bridge_operation DTOs to BridgeTokenTransfer...');
+  for (const bridgeOperationDto of (dto.bridge_operation || dto.bridge_operation_stream)) {
+    const tokenTransfer = mapBridgeOperationDtoToBridgeTokenTransfer(bridgeOperationDto);
+
+    tokenTransfer && tokenTransfers.push(tokenTransfer);
+  }
+  loggerProvider.logger.debug('Mapping has been completed.');
+
+  return tokenTransfers;
 };
 
 export const mapTokenBalancesDtoToAccountTokenBalance = (dto: TokenBalancesDto): AccountTokenBalance | null => {

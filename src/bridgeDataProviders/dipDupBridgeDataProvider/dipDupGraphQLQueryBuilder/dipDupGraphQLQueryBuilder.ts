@@ -1,5 +1,5 @@
 import { bridgeDepositFields, bridgeWithdrawalFields, getBridgeOperationsFields, l2TokenHolderFields } from './queryParts';
-import { etherlinkUtils, guards } from '../../../utils';
+import { etherlinkUtils } from '../../../utils';
 
 type GraphQLQuery = string;
 
@@ -19,7 +19,8 @@ export class DipDupGraphQLQueryBuilder {
   };
 
   constructor(
-    protected readonly queryParts: DipDupGraphQLQueryBuilderQueryParts = DipDupGraphQLQueryBuilder.defaultQueryParts
+    protected readonly queryParts: DipDupGraphQLQueryBuilderQueryParts = DipDupGraphQLQueryBuilder.defaultQueryParts,
+    protected readonly defaultStreamSubscriptionBatchSize = 10
   ) {
   }
 
@@ -33,62 +34,28 @@ export class DipDupGraphQLQueryBuilder {
 
   getTokenTransfersQuery(
     addressOrAddresses: string | readonly string[] | undefined | null,
-    _offset: number,
-    _limit: number
+    offset: number,
+    limit: number
   ): string {
-    // TODO: Support the limit and offset when DipDup returns an array of union of bridge_deposit and bridge_withdrawal records.
-
-    let depositWhereArgument = '';
-    let withdrawalWhereArgument = '';
-
-    if (addressOrAddresses) {
-      if (typeof addressOrAddresses === 'string' || (addressOrAddresses.length === 1)) {
-        const address = typeof addressOrAddresses === 'string' ? addressOrAddresses : addressOrAddresses[0]!;
-        depositWhereArgument = this.getWhereArgumentForOneAddress(address, true);
-        withdrawalWhereArgument = this.getWhereArgumentForOneAddress(address, false);
-      }
-      else if (addressOrAddresses.length > 1) {
-        depositWhereArgument = this.getWhereArgumentForMultipleAddresses(addressOrAddresses, true);
-        withdrawalWhereArgument = this.getWhereArgumentForMultipleAddresses(addressOrAddresses, false);
-      }
-    }
-
-    if (depositWhereArgument)
-      depositWhereArgument = ', ' + depositWhereArgument;
-    if (withdrawalWhereArgument)
-      withdrawalWhereArgument = ', ' + withdrawalWhereArgument;
-
-    return `query TokenTransfers {
-      bridge_deposit(
-        order_by: { l1_transaction: { timestamp: desc } }
-        ${depositWhereArgument}
-      ) {
-        ${this.queryParts.bridgeDepositFields}
-      }
-      bridge_withdrawal(
-        order_by: { l2_transaction: { timestamp: desc } }
-        ${withdrawalWhereArgument}
-      ) {
-        ${this.queryParts.bridgeWithdrawalFields}
-      }
-    }`;
+    return this.getTokenTransfersQueryOrSteamSubscription(
+      addressOrAddresses,
+      'query',
+      'bridge_operation',
+      `order_by: { created_at: desc }, offset: ${offset}, limit: ${limit}`
+    );
   }
 
-  getTokenTransfersSubscriptions(addressOrAddresses: string | readonly string[] | undefined | null): GraphQLQuery[] {
-    const queries: GraphQLQuery[] = [];
-
-    if (guards.isReadonlyArray(addressOrAddresses)) {
-      for (const address of addressOrAddresses) {
-        queries.push(this.getAccountTokenTransfersSubscription(address, true));
-        queries.push(this.getAccountTokenTransfersSubscription(address, false));
-      }
-    }
-    else {
-      queries.push(this.getAccountTokenTransfersSubscription(addressOrAddresses, true));
-      queries.push(this.getAccountTokenTransfersSubscription(addressOrAddresses, false));
-    }
-
-    return queries;
+  getTokenTransfersStreamSubscription(
+    addressOrAddresses: string | readonly string[] | undefined | null,
+    startUpdatedAt: Date,
+    batchSize = this.defaultStreamSubscriptionBatchSize
+  ): GraphQLQuery {
+    return this.getTokenTransfersQueryOrSteamSubscription(
+      addressOrAddresses,
+      'subscription',
+      'bridge_operation_stream',
+      `batch_size: ${batchSize}, cursor: {initial_value: {updated_at: "${startUpdatedAt.toISOString()}"}, ordering: ASC}`
+    );
   }
 
   getAllTokenBalancesQuery(accountAddress: string, offset: number, limit: number): GraphQLQuery {
@@ -115,7 +82,6 @@ export class DipDupGraphQLQueryBuilder {
       }
     }`;
   }
-
 
   getTokenBalanceQuery(accountAddress: string, tokenAddress: string): GraphQLQuery {
     const whereArgument = `where: {
@@ -159,82 +125,94 @@ export class DipDupGraphQLQueryBuilder {
     }`;
   }
 
-  protected getAccountTokenTransfersSubscription(address: string | undefined | null, isDeposit: boolean): GraphQLQuery {
-    const whereArgument = address ? `, ${this.getWhereArgumentForOneAddress(address, isDeposit)}` : '';
-    let rootFieldName: string;
-    let fields: string;
+  protected getTokenTransfersQueryOrSteamSubscription(
+    addressOrAddresses: string | readonly string[] | undefined | null,
+    queryType: string,
+    rootFieldName: string,
+    queryExtraArguments: string
+  ): GraphQLQuery {
+    let whereArgument = '';
 
-    if (isDeposit) {
-      rootFieldName = 'bridge_deposit';
-      fields = this.queryParts.bridgeDepositFields;
-    }
-    else {
-      rootFieldName = 'bridge_withdrawal';
-      fields = this.queryParts.bridgeWithdrawalFields;
+    if (addressOrAddresses) {
+      if (typeof addressOrAddresses === 'string' || (addressOrAddresses.length === 1)) {
+        const address = typeof addressOrAddresses === 'string' ? addressOrAddresses : addressOrAddresses[0]!;
+        whereArgument = this.getTokenTransfersWhereArgumentForOneAddress(address);
+      }
+      else if (addressOrAddresses.length > 1) {
+        whereArgument = this.getTokenTransfersWhereArgumentForMultipleAddresses(addressOrAddresses);
+      }
     }
 
-    return `subscription TokenTransfers {
+    if (whereArgument)
+      whereArgument += ',';
+
+    return `${queryType} TokenTransfers {
       ${rootFieldName}(
-        order_by: { updated_at: desc },
-        limit: 1
         ${whereArgument}
+        ${queryExtraArguments}
       ) {
-        ${fields}
+        ${this.queryParts.getBridgeOperationsFields(this.queryParts.bridgeDepositFields, this.queryParts.bridgeWithdrawalFields)}
       }
     }`;
   }
 
-  private getWhereArgumentForOneAddress(address: string, isDeposit: boolean): string {
-    return this.isEtherlinkAddress(address)
-      ?
-      `where: {
-        ${isDeposit ? 'l1_transaction' : 'l2_transaction'}: { l2_account: { _eq: "${this.prepareEtherlinkHexValue(address, false)}" } }
-      }`
-      :
-      `where: {
-        ${isDeposit ? 'l1_transaction' : 'l2_transaction'}: { l1_account: { _eq: "${address}" } }
-      }`;
+  private getTokenTransfersWhereArgumentForOneAddress(address: string): string {
+    let accountFieldName: string;
+    let preparedAddress = address;
+
+    if (this.isEtherlinkAddress(address)) {
+      preparedAddress = this.prepareEtherlinkHexValue(address, false);
+      accountFieldName = 'l2_account';
+    }
+    else {
+      accountFieldName = 'l1_account';
+    }
+
+    return `where: {
+      _or: [
+    	  { deposit: { l1_transaction: { ${accountFieldName}: { _eq: "${preparedAddress}" } } } }
+        { withdrawal: { l2_transaction: { ${accountFieldName}: { _eq: "${preparedAddress}" } } } } 
+      ]
+    }`;
   }
 
-  private getWhereArgumentForMultipleAddresses(addresses: readonly string[], isDeposit: boolean): string {
+  private getTokenTransfersWhereArgumentForMultipleAddresses(addresses: readonly string[]): string {
     const { tezosAddresses, etherlinkAddresses } = this.splitAddressesToTezosAndEtherlinkAddresses(addresses);
-    const isNeedOrOperator = tezosAddresses.length > 0 && etherlinkAddresses.length > 0;
+    const isNeedRootOrOperator = tezosAddresses.length > 0 && etherlinkAddresses.length > 0;
 
-    let result = 'where: ';
-    if (isNeedOrOperator)
-      result += ' { _or: [';
+    let transactionCondition = '';
+    if (isNeedRootOrOperator)
+      transactionCondition += '{ _or: [ ';
 
     if (tezosAddresses.length === 1) {
-      result += `{
-        ${isDeposit ? 'l1_transaction' : 'l2_transaction'}: { l1_account: { _eq: "${tezosAddresses[0]}" } }
-      }`;
-    } else if (tezosAddresses.length > 1) {
-      result += `{
-        ${isDeposit ? 'l1_transaction' : 'l2_transaction'}: { l1_account: { _in: ${this.arrayToInOperatorValue(tezosAddresses)} } }
-      }`;
+      transactionCondition += `{ l1_account: { _eq: "${tezosAddresses[0]}" } }`;
     }
-
-    if (isNeedOrOperator)
-      result += ',';
+    else if (tezosAddresses.length > 1) {
+      transactionCondition += `{ l1_account: { _in: ${this.arrayToInOperatorValue(tezosAddresses)} } }`;
+    }
 
     if (etherlinkAddresses.length === 1) {
-      result += `{
-        ${isDeposit ? 'l1_transaction' : 'l2_transaction'}: { l2_account: { 
-          _eq: "${this.prepareEtherlinkHexValue(etherlinkAddresses[0]!, false)}"
-        } }
-      }`;
-    } else if (etherlinkAddresses.length > 1) {
-      result += `{
-        ${isDeposit ? 'l1_transaction' : 'l2_transaction'}: { l2_account: {
-          _in: ${this.arrayToInOperatorValue(etherlinkAddresses.map(address => this.prepareEtherlinkHexValue(address, false)))}
-        } }
-      }`;
+      transactionCondition += `{ l2_account: { _eq: "${this.prepareEtherlinkHexValue(etherlinkAddresses[0]!, false)}" } }`;
+    }
+    else if (etherlinkAddresses.length > 1) {
+      transactionCondition += `{ l2_account: { _in: ${this.arrayToInOperatorValue(etherlinkAddresses.map(address => this.prepareEtherlinkHexValue(address, false)))} } }`;
     }
 
-    if (isNeedOrOperator)
-      result += ' ] }';
+    if (isNeedRootOrOperator)
+      transactionCondition += ' ] }';
 
-    return result;
+    return `where: { _or: [
+      {
+        deposit: { 
+          l1_transaction: ${transactionCondition}
+        }  
+      }
+      {
+        withdrawal: {
+          l2_transaction: ${transactionCondition}
+        }
+      }
+    ] }`;
   }
 
   private splitAddressesToTezosAndEtherlinkAddresses(
