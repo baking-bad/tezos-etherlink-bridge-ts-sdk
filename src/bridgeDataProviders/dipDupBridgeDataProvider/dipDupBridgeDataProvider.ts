@@ -162,6 +162,8 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
   unsubscribeFromAllSubscriptions(): void {
     this.dipDupWebSocketClient.unsubscribeFromAllSubscriptions();
+    this.subscribedAddresses.clear();
+    this.currentTokenTransfersSubscription = undefined;
   }
 
   async getBalance(accountAddress: string, token: NonNativeEtherlinkToken): Promise<AccountTokenBalance> {
