@@ -3,7 +3,7 @@ import { Schema } from '@taquito/michelson-encoder';
 import type { TezosToolkit } from '@taquito/taquito';
 import type Web3 from 'web3';
 
-import { InsufficientBalanceError, TokenPairNotFoundError } from './errors';
+import { FailedTokenTransferError, InsufficientBalanceError, TokenBridgeDisposed, TokenPairNotFoundError } from './errors';
 import type { TokenBridgeComponents } from './tokenBridgeComponents';
 import type { TokenBridgeDataApi } from './tokenBridgeDataApi';
 import type { TokenBridgeOptions } from './tokenBridgeOptions';
@@ -19,7 +19,7 @@ import {
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../bridgeCore';
 import type { AccountTokenBalance, AccountTokenBalances } from '../bridgeDataProviders';
-import { EventEmitter, ToEventEmitter, type PublicEventEmitter, DisposedError } from '../common';
+import { EventEmitter, ToEventEmitter, type PublicEventEmitter } from '../common';
 import { EtherlinkBlockchainBridgeComponent, EtherlinkToken, type NonNativeEtherlinkToken } from '../etherlink';
 import {
   loggerProvider,
@@ -363,7 +363,7 @@ export class TokenBridge implements Disposable {
     if (guards.isDisposable(this.bridgeComponents.transfersBridgeDataProvider))
       this.bridgeComponents.transfersBridgeDataProvider[Symbol.dispose]();
 
-    this.rejectAndClearAllStatusWatchers('The TokenBridge has been disposed!');
+    this.rejectAndClearAllStatusWatchers(new TokenBridgeDisposed());
     this.detachEvents();
     clearInterval(this.lastCreatedTokenTransfersTimerId);
     this.lastCreatedTokenTransfers.clear();
@@ -471,7 +471,6 @@ export class TokenBridge implements Disposable {
 
   protected unsubscribeFromAllSubscriptions(): void {
     this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromAllSubscriptions();
-    this.rejectAndClearAllStatusWatchers('Unsubscribe from all subscriptions');
   }
 
   // #endregion
@@ -508,7 +507,10 @@ export class TokenBridge implements Disposable {
 
     for (const [status, watcher] of statusWatchers) {
       if (tokenTransfer.status >= status) {
-        watcher.resolve(tokenTransfer);
+        if (tokenTransfer.status === BridgeTokenTransferStatus.Failed)
+          watcher.reject(new FailedTokenTransferError(tokenTransfer));
+        else
+          watcher.resolve(tokenTransfer);
         statusWatchers.delete(status);
       }
     }
@@ -554,7 +556,7 @@ export class TokenBridge implements Disposable {
       return;
 
     loggerProvider.logger.error('Attempting to call the disposed TokenBridge instance');
-    throw new DisposedError('TokenBridge is disposed');
+    throw new TokenBridgeDisposed();
   }
 
   private async depositUsingWalletApi(

@@ -10,12 +10,14 @@ export {
   type PendingBridgeTokenDeposit,
   type CreatedBridgeTokenDeposit,
   type FinishedBridgeTokenDeposit,
+  type FailedBridgeTokenDeposit,
 
   type BridgeTokenWithdrawal,
   type PendingBridgeTokenWithdrawal,
   type CreatedBridgeTokenWithdrawal,
   type SealedBridgeTokenWithdrawal,
-  type FinishedBridgeTokenWithdrawal
+  type FinishedBridgeTokenWithdrawal,
+  type FailedBridgeTokenWithdrawal
 } from './bridgeOperations';
 
 export type {

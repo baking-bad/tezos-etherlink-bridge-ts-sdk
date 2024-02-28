@@ -21,6 +21,7 @@ const bigIntFieldNames: ReadonlyArray<keyof FinishedBridgeTokenDeposit['etherlin
 const jsonStringifyReplacer = (_key: string, value: unknown) => typeof value === 'bigint'
   ? value.toString(10)
   : value;
+
 export const stringifyBridgeTokenTransfer = (tokenTransfer: BridgeTokenTransfer, space?: string | number | undefined): string => {
   try {
     return JSON.stringify(tokenTransfer, jsonStringifyReplacer, space);
@@ -30,7 +31,7 @@ export const stringifyBridgeTokenTransfer = (tokenTransfer: BridgeTokenTransfer,
   }
 };
 
-export const parseBridgeTokenTransfer = (tokenTransfer: string): string | null => {
+export const parseBridgeTokenTransfer = (tokenTransfer: string): BridgeTokenTransfer | null => {
   try {
     const transfer = JSON.parse(tokenTransfer);
 
