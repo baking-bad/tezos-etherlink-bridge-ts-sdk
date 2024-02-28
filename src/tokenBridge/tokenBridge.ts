@@ -363,7 +363,7 @@ export class TokenBridge implements Disposable {
     if (guards.isDisposable(this.bridgeComponents.transfersBridgeDataProvider))
       this.bridgeComponents.transfersBridgeDataProvider[Symbol.dispose]();
 
-    this.rejectAndClearAllStatusWatchers('The TokenBridge has been stopped!');
+    this.rejectAndClearAllStatusWatchers('The TokenBridge has been disposed!');
     this.detachEvents();
     clearInterval(this.lastCreatedTokenTransfersTimerId);
     this.lastCreatedTokenTransfers.clear();
@@ -471,6 +471,7 @@ export class TokenBridge implements Disposable {
 
   protected unsubscribeFromAllSubscriptions(): void {
     this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromAllSubscriptions();
+    this.rejectAndClearAllStatusWatchers('Unsubscribe from all subscriptions');
   }
 
   // #endregion

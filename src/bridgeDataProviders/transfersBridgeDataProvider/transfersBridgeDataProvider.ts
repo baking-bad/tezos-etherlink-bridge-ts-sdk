@@ -40,11 +40,11 @@ export interface TransfersBridgeDataProvider {
 
   subscribeToAccountTokenTransfers(accountAddress: string): void;
   subscribeToAccountTokenTransfers(accountAddresses: readonly string[]): void;
-  subscribeToAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
+  subscribeToAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
 
   unsubscribeFromAccountTokenTransfers(accountAddress: string): void;
   unsubscribeFromAccountTokenTransfers(accountAddresses: readonly string[]): void;
-  unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses?: string | readonly string[]): void;
+  unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
 
   unsubscribeFromAllSubscriptions(): void;
 }
