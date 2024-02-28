@@ -11,7 +11,8 @@ export {
 export {
   createDefaultTokenBridge,
   defaultEtherlinkKernelAddress,
-  defaultEtherlinkWithdrawPrecompileAddress,
+  defaultWithdrawNativeTokenPrecompileAddress,
+  defaultWithdrawNonNativeTokenPrecompileAddress,
   type DefaultTokenBridgeOptions
 } from './defaultTokenBridge';
 
@@ -53,15 +54,27 @@ export type {
   FA2TezosToken,
   NonNativeTezosToken,
   NativeTezosToken,
-  TezosToken
-} from './tezos';
+  TezosToken,
 
-export type {
   ERC20EtherlinkToken,
   NonNativeEtherlinkToken,
   NativeEtherlinkToken,
   EtherlinkToken
-} from './etherlink';
+} from './tokens';
+
+export {
+  TaquitoContractTezosBridgeBlockchainService,
+  TaquitoWalletTezosBridgeBlockchainService,
+  Web3EtherlinkBridgeBlockchainService,
+
+  type BridgeBlockchainService,
+  type TezosBridgeBlockchainService,
+  type EtherlinkBridgeBlockchainService,
+
+  type TaquitoContractTezosBridgeBlockchainServiceOptions,
+  type TaquitoWalletTezosBridgeBlockchainServiceOptions,
+  type Web3EtherlinkBridgeBlockchainServiceOptions
+} from './bridgeBlockchainService';
 
 export {
   DipDupBridgeDataProvider,

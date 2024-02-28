@@ -3,7 +3,7 @@ import Web3 from 'web3';
 
 import {
   BridgeTokenTransferStatus,
-  type NativeEtherlinkToken, type NativeTezosToken, type TokenBridge
+  type NativeEtherlinkToken, type NativeTezosToken
 } from '../../src';
 import { bridgeUtils } from '../../src/utils';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
@@ -16,15 +16,12 @@ import {
   createTestTokenBridge
 } from '../testHelpers';
 
-// The Taquito Wallet API does not close some handles after tests complete.
-const useWalletApi = false;
-
 describe('Deposit', () => {
   let testConfig: TestConfig;
   let tokens: TestTokens;
   let tezosToolkit: TezosToolkit;
   let etherlinkToolkit: Web3;
-  let tokenBridge: TokenBridge;
+  let tokenBridge: ReturnType<typeof createTestTokenBridge>;
   let testTezosAccountAddress: string;
   let testEtherlinkAccountAddress: string;
 
@@ -39,8 +36,8 @@ describe('Deposit', () => {
     tokenBridge = createTestTokenBridge({ testConfig, tezosToolkit, etherlinkToolkit });
 
     const connectedAddresses = await Promise.all([
-      await tokenBridge.getTezosConnectedAddress(),
-      await tokenBridge.getEtherlinkConnectedAddress()
+      await tokenBridge.getTezosSignerAddress(),
+      await tokenBridge.getEtherlinkSignerAddress()
     ]);
     testTezosAccountAddress = connectedAddresses[0];
     testEtherlinkAccountAddress = connectedAddresses[1];
@@ -54,7 +51,7 @@ describe('Deposit', () => {
     const amount = 1_000_000n;
     const [tezosToken, etherlinkToken]: [NativeTezosToken, NativeEtherlinkToken] = [tokens.tezos.tez, tokens.etherlink.tez];
 
-    const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
+    const depositResult = await tokenBridge.deposit(amount, tezosToken);
     expectPendingDeposit(depositResult.tokenTransfer, {
       amount,
       source: testTezosAccountAddress,
@@ -81,7 +78,7 @@ describe('Deposit', () => {
     const amount = 7n;
     const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
 
-    const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
+    const depositResult = await tokenBridge.deposit(amount, tezosToken);
     expectPendingDeposit(depositResult.tokenTransfer, {
       amount,
       source: testTezosAccountAddress,
@@ -108,7 +105,7 @@ describe('Deposit', () => {
     const amount = 20n;
     const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
 
-    const depositResult = await tokenBridge.deposit(amount, tezosToken, { useWalletApi });
+    const depositResult = await tokenBridge.deposit(amount, tezosToken);
     expectPendingDeposit(depositResult.tokenTransfer, {
       amount,
       source: testTezosAccountAddress,
@@ -172,7 +169,7 @@ describe('Deposit', () => {
       }
     });
 
-    tokenBridge.deposit(amount, tezosToken, { useWalletApi })
+    tokenBridge.deposit(amount, tezosToken)
       .then(result => tokenBridge.stream.subscribeToTokenTransfer(result.tokenTransfer));
   });
 
@@ -217,7 +214,7 @@ describe('Deposit', () => {
           etherlinkToken
         });
         if (!readyForDone) {
-          done.fail('The tokenTransferCreated event has not been fired.');
+          done('The tokenTransferCreated event has not been fired.');
         }
 
         done();
@@ -226,9 +223,9 @@ describe('Deposit', () => {
 
     tokenBridge.stream.subscribeToAccountTokenTransfers([testTezosAccountAddress, testEtherlinkAccountAddress]);
 
-    tokenBridge.deposit(amount, tezosToken, { useWalletApi })
+    tokenBridge.deposit(amount, tezosToken)
       .then(depositResult => {
-        tokenTransferOperationHash = depositResult.depositOperation.hash;
+        tokenTransferOperationHash = depositResult.operationResult.hash;
       });
   });
 });

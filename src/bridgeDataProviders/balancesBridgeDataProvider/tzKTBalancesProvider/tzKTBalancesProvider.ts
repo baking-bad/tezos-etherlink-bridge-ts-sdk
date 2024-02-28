@@ -3,7 +3,7 @@ import { TzKTTokenBalanceNotSupported } from './errors';
 import * as mappers from './mappers';
 import { RemoteService } from '../../../common';
 import { getTokenLogMessage, loggerProvider } from '../../../logging';
-import type { TezosToken, NativeTezosToken, NonNativeTezosToken, FA2TezosToken } from '../../../tezos';
+import type { TezosToken, NativeTezosToken, NonNativeTezosToken, FA2TezosToken } from '../../../tokens';
 import { guards, tokenUtils } from '../../../utils';
 import type { AccountTokenBalance, AccountTokenBalances, TokenBalanceInfo } from '../accountTokenBalances';
 import type { BalancesBridgeDataProvider } from '../balancesBridgeDataProvider';

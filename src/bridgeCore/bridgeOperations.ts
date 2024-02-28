@@ -1,5 +1,4 @@
-import type { EtherlinkToken } from '../etherlink';
-import type { TezosToken } from '../tezos';
+import type { TezosToken, EtherlinkToken } from '../tokens';
 
 export interface TezosTransferTokensOperation {
   readonly blockId: number;

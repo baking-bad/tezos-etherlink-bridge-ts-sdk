@@ -1,5 +1,7 @@
-import type { NativeEtherlinkToken, ERC20EtherlinkToken } from '../etherlink';
-import type { NativeTezosToken, FA12TezosToken, FA2TezosToken } from '../tezos';
+import type {
+  NativeTezosToken, FA12TezosToken, FA2TezosToken,
+  NativeEtherlinkToken, ERC20EtherlinkToken
+} from '../tokens';
 
 interface NativeTezosTokenTicketerInfo {
   readonly ticketHelperContractAddress: string;

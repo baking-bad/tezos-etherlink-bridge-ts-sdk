@@ -1,8 +1,8 @@
 import type { BalanceData, RPCNodeResponse } from './dto';
 import { EtherlinkNodeRPCError, EtherlinkNodeTokenBalanceNotSupported } from './error';
 import { RemoteService } from '../../../common';
-import type { NativeEtherlinkToken } from '../../../etherlink';
 import { getErrorLogMessage, loggerProvider } from '../../../logging';
+import type { NativeEtherlinkToken } from '../../../tokens';
 import type { AccountTokenBalance, AccountTokenBalances } from '../accountTokenBalances';
 import type { BalancesBridgeDataProvider } from '../balancesBridgeDataProvider';
 

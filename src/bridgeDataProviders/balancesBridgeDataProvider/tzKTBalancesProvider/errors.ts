@@ -1,5 +1,5 @@
 import { TokenBridgeError } from '../../../common';
-import type { TezosToken } from '../../../tezos';
+import type { TezosToken } from '../../../tokens';
 import { tokenUtils } from '../../../utils';
 
 export class TzKTTokenBalanceNotSupported extends TokenBridgeError {

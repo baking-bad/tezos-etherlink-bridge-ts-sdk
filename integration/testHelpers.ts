@@ -6,7 +6,7 @@ import { TestConfig } from './testConfig';
 import {
   createDefaultTokenBridge,
   BridgeTokenTransferKind, BridgeTokenTransferStatus, LogLevel,
-  type TokenBridge, type DefaultTokenBridgeOptions,
+  type DefaultTokenBridgeOptions,
   type TezosToken, type EtherlinkToken,
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
@@ -21,10 +21,10 @@ interface CreateTestTokenBridgeParams {
   testConfig: TestConfig,
   tezosToolkit?: TezosToolkit,
   etherlinkToolkit?: Web3,
-  overrideOptions?: Partial<DefaultTokenBridgeOptions>
+  overrideOptions?: Partial<Omit<DefaultTokenBridgeOptions, 'tezos' | 'etherlink'>>
 }
 
-export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overrideOptions }: CreateTestTokenBridgeParams): TokenBridge => {
+export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overrideOptions }: CreateTestTokenBridgeParams) => {
   tezosToolkit = tezosToolkit || createTezosToolkitWithSigner(testConfig.tezosRpcUrl, testConfig.tezosAccountPrivateKey);
   etherlinkToolkit = etherlinkToolkit || createEtherlinkToolkitWithSigner(testConfig.etherlinkRpcUrl, testConfig.etherlinkAccountPrivateKey);
 
@@ -33,11 +33,14 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       logLevel: LogLevel.Debug
     },
     tezos: {
-      toolkit: tezosToolkit,
-      rollupAddress: testConfig.tezosRollupAddress
+      name: 'taquito',
+      apiType: 'contract',
+      tezosToolkit,
+      smartRollupAddress: testConfig.tezosRollupAddress
     },
     etherlink: {
-      toolkit: etherlinkToolkit
+      name: 'web3',
+      web3: etherlinkToolkit
     },
     dipDup: {
       baseUrl: testConfig.dipDupBaseUrl,
@@ -77,7 +80,7 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       },
     ],
     ...overrideOptions
-  });
+  } as const);
 };
 
 export const createTezosToolkitWithSigner = (rpcUrl: string, privateKey: string): TezosToolkit => {

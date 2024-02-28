@@ -1,7 +1,9 @@
 import type { DefaultDataProviderOptions } from './defaultDataProviderOptions';
 import type { BridgeTokenTransfer, TokenPair } from '../../bridgeCore';
-import type { EtherlinkToken, NativeEtherlinkToken, NonNativeEtherlinkToken } from '../../etherlink';
-import type { TezosToken, NativeTezosToken, NonNativeTezosToken } from '../../tezos';
+import type {
+  TezosToken, NativeTezosToken, NonNativeTezosToken,
+  EtherlinkToken, NativeEtherlinkToken, NonNativeEtherlinkToken
+} from '../../tokens';
 import { guards, memoize } from '../../utils';
 import {
   TzKTBalancesProvider, EtherlinkNodeBalancesProvider,

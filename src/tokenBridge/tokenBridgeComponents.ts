@@ -1,10 +1,12 @@
+import { EtherlinkBridgeBlockchainService, TezosBridgeBlockchainService } from '../bridgeBlockchainService';
 import type { BalancesBridgeDataProvider, TokensBridgeDataProvider, TransfersBridgeDataProvider } from '../bridgeDataProviders';
-import type { EtherlinkBlockchainBridgeComponent } from '../etherlink';
-import type { TezosBlockchainBridgeComponent } from '../tezos';
 
-export interface TokenBridgeComponents {
-  readonly tezos: TezosBlockchainBridgeComponent;
-  readonly etherlink: EtherlinkBlockchainBridgeComponent;
+export interface TokenBridgeComponents<
+  TTezosBridgeBlockchainService extends TezosBridgeBlockchainService,
+  TEtherlinkBridgeBlockchainService extends EtherlinkBridgeBlockchainService
+> {
+  readonly tezosBridgeBlockchainService: TTezosBridgeBlockchainService;
+  readonly etherlinkBridgeBlockchainService: TEtherlinkBridgeBlockchainService;
   readonly balancesBridgeDataProvider: BalancesBridgeDataProvider;
   readonly tokensBridgeDataProvider: TokensBridgeDataProvider;
   readonly transfersBridgeDataProvider: TransfersBridgeDataProvider;

@@ -1,6 +1,5 @@
 import type { AccountTokenBalance, AccountTokenBalances } from './accountTokenBalances';
-import type { EtherlinkToken } from '../../etherlink';
-import type { TezosToken } from '../../tezos';
+import type { TezosToken, EtherlinkToken } from '../../tokens';
 
 export interface BalancesBridgeDataProvider {
   getBalance(accountAddress: string, token: TezosToken | EtherlinkToken): Promise<AccountTokenBalance>;

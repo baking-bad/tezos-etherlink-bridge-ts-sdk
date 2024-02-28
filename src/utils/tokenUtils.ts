@@ -1,7 +1,5 @@
 import { isReadonlyArray } from './guards';
-import type { Token } from '../common';
-import type { EtherlinkToken } from '../etherlink';
-import type { TezosToken } from '../tezos';
+import type { Token, TezosToken, EtherlinkToken } from '../tokens';
 
 export const isTezosToken = (token: Token): token is TezosToken => {
   return token.type === 'native' || token.type === 'fa1.2' || token.type === 'fa2';

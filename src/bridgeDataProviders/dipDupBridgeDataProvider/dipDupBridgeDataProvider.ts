@@ -7,13 +7,13 @@ import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSoc
 import { loggerProvider } from '../..';
 import { BridgeTokenTransferKind, type BridgeTokenTransfer } from '../../bridgeCore';
 import { EventEmitter, RemoteService, ToEventEmitter } from '../../common';
-import type { NonNativeEtherlinkToken } from '../../etherlink';
 import {
   getErrorLogMessage,
   getBridgeTokenTransferLogMessage,
   getDetailedBridgeTokenTransferLogMessage,
   getTokenLogMessage
 } from '../../logging';
+import type { NonNativeEtherlinkToken } from '../../tokens';
 import { bridgeUtils } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';

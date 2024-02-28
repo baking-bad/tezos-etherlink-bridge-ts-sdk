@@ -1,7 +1,6 @@
 import type { BridgeTokenTransfer } from '../bridgeCore';
 import { DisposedError, TokenBridgeError } from '../common';
-import type { EtherlinkToken } from '../etherlink';
-import type { TezosToken } from '../tezos';
+import type { TezosToken, EtherlinkToken } from '../tokens';
 import { bridgeUtils, tokenUtils } from '../utils';
 
 export class TokenBridgeDisposed extends DisposedError {

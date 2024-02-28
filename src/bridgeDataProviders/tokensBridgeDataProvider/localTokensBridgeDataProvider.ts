@@ -1,7 +1,6 @@
 import type { TokensBridgeDataProvider } from './tokensBridgeDataProvider';
 import type { TokenPair } from '../../bridgeCore';
-import type { EtherlinkToken } from '../../etherlink';
-import type { TezosToken } from '../../tezos';
+import type { TezosToken, EtherlinkToken } from '../../tokens';
 
 type TokenPairsByTokenMap = {
   native?: TokenPair,

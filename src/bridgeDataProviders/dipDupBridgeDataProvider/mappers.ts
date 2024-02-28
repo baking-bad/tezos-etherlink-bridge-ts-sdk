@@ -9,9 +9,8 @@ import {
   type BridgeTokenDeposit, type CreatedBridgeTokenDeposit,
   type BridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal
 } from '../../bridgeCore';
-import type { EtherlinkToken } from '../../etherlink';
 import { getErrorLogMessage, loggerProvider } from '../../logging';
-import type { TezosToken } from '../../tezos';
+import type { TezosToken, EtherlinkToken } from '../../tokens';
 import { etherlinkUtils } from '../../utils';
 import type { AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 

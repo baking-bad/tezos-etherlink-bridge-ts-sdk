@@ -1,7 +1,6 @@
 import type { GraphQLError } from './dtos';
 import { TokenBridgeError } from '../../common';
-import { EtherlinkToken } from '../../etherlink';
-import { TezosToken } from '../../tezos';
+import { TezosToken, EtherlinkToken } from '../../tokens';
 import { tokenUtils } from '../../utils';
 
 export class DipDupAutoUpdateIsDisabledError extends TokenBridgeError {
