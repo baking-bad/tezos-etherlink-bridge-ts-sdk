@@ -35,6 +35,12 @@
     "ws": "^8.16.0"
   },
   "peerDependenciesMeta": {
+    "@taquito/taquito": {
+      "optional": true
+    },
+    "web3": {
+      "optional": true
+    },
     "ws": {
       "optional": true
     }
