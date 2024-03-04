@@ -35,8 +35,8 @@ describe('Withdrawal', () => {
     tokenBridge = createTestTokenBridge({ testConfig, tezosToolkit, etherlinkToolkit });
 
     const connectedAddresses = await Promise.all([
-      await tokenBridge.getTezosConnectedAddress(),
-      await tokenBridge.getEtherlinkConnectedAddress()
+      await tokenBridge.getTezosSignerAddress(),
+      await tokenBridge.getEtherlinkSignerAddress()
     ]);
     testTezosAccountAddress = connectedAddresses[0];
     testEtherlinkAccountAddress = connectedAddresses[1];
