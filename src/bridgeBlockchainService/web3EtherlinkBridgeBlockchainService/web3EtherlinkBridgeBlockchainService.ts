@@ -2,6 +2,7 @@ import type { Web3, TransactionReceipt } from 'web3';
 import type { NonPayableMethodObject } from 'web3-eth-contract';
 
 import type { WithdrawNonNativeTokenPrecompile } from './precompiles';
+import { getErrorLogMessage, loggerProvider } from '../../logging';
 import { tezosUtils } from '../../utils';
 import {
   kernelContractAbi,
@@ -43,13 +44,15 @@ export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBloc
     );
   }
 
-  async getSignerAddress(): Promise<string> {
-    const accounts = await this.web3.eth.getAccounts();
-    const address = accounts[0] || this.web3.eth.defaultAccount;
-    if (!address)
-      throw new Error('Address is unavailable');
-
-    return address;
+  async getSignerAddress(): Promise<string | undefined> {
+    try {
+      const accounts = await this.web3.eth.getAccounts();
+      return accounts[0] || this.web3.eth.defaultAccount;
+    }
+    catch (error) {
+      loggerProvider.logger.error(getErrorLogMessage(error));
+      return undefined;
+    }
   }
 
   withdrawNativeToken(_params: WithdrawNativeTokenParams): Promise<WithdrawNativeTokenResult & { receipt: TransactionReceipt }> {

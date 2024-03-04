@@ -38,3 +38,15 @@ export class FailedTokenTransferError extends TokenBridgeError {
     return `The ${bridgeUtils.getInitialOperationHash(tokenTransfer)} token transfer is failed`;
   }
 }
+
+export class TezosSignerAccountUnavailableError extends TokenBridgeError {
+  constructor() {
+    super('The Tezos signer account is unavailable');
+  }
+}
+
+export class EtherlinkSignerAccountUnavailableError extends TokenBridgeError {
+  constructor() {
+    super('The Etherlink signer account is unavailable');
+  }
+}

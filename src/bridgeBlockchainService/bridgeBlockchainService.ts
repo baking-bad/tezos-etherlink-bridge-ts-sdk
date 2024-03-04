@@ -1,3 +1,3 @@
 export interface BridgeBlockchainService {
-  getSignerAddress(): Promise<string>;
+  getSignerAddress(): Promise<string | undefined>;
 }

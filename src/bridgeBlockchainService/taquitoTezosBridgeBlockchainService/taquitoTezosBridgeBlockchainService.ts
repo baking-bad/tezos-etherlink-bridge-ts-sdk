@@ -3,8 +3,10 @@ import { Schema } from '@taquito/michelson-encoder';
 import type { TezosToolkit, Wallet, ContractProvider, ContractMethod } from '@taquito/taquito';
 
 import type { FA12Contract, FA2Contract, NativeTokenTicketHelper, NonNativeTokenTicketHelper } from './contracts';
+import { TezosSignerAccountUnavailableError } from './errors';
 import { fa12helper, fa2helper } from './helpers';
 import { tezosTicketerContentMichelsonType } from './tezosTicketerContentMichelsonType';
+import { getErrorLogMessage, loggerProvider } from '../../logging';
 import type { FA12TezosToken, FA2TezosToken } from '../../tokens';
 import { etherlinkUtils } from '../../utils';
 import type {
@@ -38,8 +40,15 @@ export abstract class TaquitoTezosBridgeBlockchainService<
     this.tezosToolkit = options.tezosToolkit;
   }
 
-  getSignerAddress(): Promise<string> {
-    return this.tezosToolkit.signer.publicKeyHash();
+  async getSignerAddress(): Promise<string | undefined> {
+    try {
+      return await this.tezosToolkit.signer.publicKeyHash();
+    }
+    catch (error) {
+      loggerProvider.logger.error(getErrorLogMessage(error));
+
+      return undefined;
+    }
   }
 
   abstract depositNativeToken(
@@ -166,6 +175,9 @@ export abstract class TaquitoTezosBridgeBlockchainService<
       this.getFA2TokenContract(token.address),
       this.getSignerAddress()
     ]);
+
+    if (!tokenOwnerAddress)
+      throw new TezosSignerAccountUnavailableError();
 
     const resultOperation = fa2helper.wrapContractCallsWithApprove({
       batch,

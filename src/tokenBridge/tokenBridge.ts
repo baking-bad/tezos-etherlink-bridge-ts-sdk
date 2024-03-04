@@ -1,4 +1,4 @@
-import { FailedTokenTransferError, InsufficientBalanceError, TokenBridgeDisposed, TokenPairNotFoundError } from './errors';
+import { EtherlinkSignerAccountUnavailableError, FailedTokenTransferError, InsufficientBalanceError, TezosSignerAccountUnavailableError, TokenBridgeDisposed, TokenPairNotFoundError } from './errors';
 import type { TokenBridgeComponents } from './tokenBridgeComponents';
 import type { TokenBridgeDataApi } from './tokenBridgeDataApi';
 import type { TokenBridgeOptions } from './tokenBridgeOptions';
@@ -201,10 +201,10 @@ export class TokenBridge<
   ): Promise<DepositResult<TTezosBridgeBlockchainService['depositNativeToken']> | DepositResult<TTezosBridgeBlockchainService['depositNonNativeToken']>> {
     this.ensureIsNotDisposed();
 
-    const tezosSourceAddress = await this.getTezosSignerAddress();
+    const tezosSourceAddress = await this.getRequiredTezosSignerAddress();
     const etherlinkReceiverAddress = typeof etherlinkReceiverAddressOrOptions === 'string'
       ? etherlinkReceiverAddressOrOptions
-      : await this.getEtherlinkSignerAddress();
+      : await this.getRequiredEtherlinkSignerAddress();
     const depositOptions = typeof etherlinkReceiverAddressOrOptions !== 'string' && etherlinkReceiverAddressOrOptions ? etherlinkReceiverAddressOrOptions : options;
 
     loggerProvider.lazyLogger.log?.(
@@ -288,9 +288,9 @@ export class TokenBridge<
   ): Promise<StartWithdrawResult<TEtherlinkBridgeBlockchainService['withdrawNativeToken']> | StartWithdrawResult<TEtherlinkBridgeBlockchainService['withdrawNonNativeToken']>> {
     this.ensureIsNotDisposed();
 
-    const etherlinkSourceAddress = await this.getEtherlinkSignerAddress();
+    const etherlinkSourceAddress = await this.getRequiredEtherlinkSignerAddress();
     if (!tezosReceiverAddress) {
-      tezosReceiverAddress = await this.getTezosSignerAddress();
+      tezosReceiverAddress = await this.getRequiredEtherlinkSignerAddress();
     }
 
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
@@ -364,13 +364,13 @@ export class TokenBridge<
     } as FinishWithdrawResult<TTezosBridgeBlockchainService['finishWithdraw']>;
   }
 
-  async getTezosSignerAddress(): Promise<string> {
+  async getTezosSignerAddress(): Promise<string | undefined> {
     this.ensureIsNotDisposed();
 
     return this.bridgeComponents.tezosBridgeBlockchainService.getSignerAddress();
   }
 
-  async getEtherlinkSignerAddress(): Promise<string> {
+  async getEtherlinkSignerAddress(): Promise<string | undefined> {
     this.ensureIsNotDisposed();
 
     return this.bridgeComponents.etherlinkBridgeBlockchainService.getSignerAddress();
@@ -600,5 +600,21 @@ export class TokenBridge<
       },
       TokenBridge.defaultLastCreatedTokenTransfersTimerPeriod
     );
+  }
+
+  private async getRequiredTezosSignerAddress(): Promise<string> {
+    const tezosSignerAddress = await this.getTezosSignerAddress();
+    if (tezosSignerAddress)
+      return tezosSignerAddress;
+
+    throw new TezosSignerAccountUnavailableError();
+  }
+
+  private async getRequiredEtherlinkSignerAddress(): Promise<string> {
+    const tezosSignerAddress = await this.getEtherlinkSignerAddress();
+    if (tezosSignerAddress)
+      return tezosSignerAddress;
+
+    throw new EtherlinkSignerAccountUnavailableError();
   }
 }
