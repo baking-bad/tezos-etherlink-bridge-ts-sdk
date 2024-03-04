@@ -1,4 +1,5 @@
 import type { TokensBridgeDataProvider } from './tokensBridgeDataProvider';
+import type { TokensFetchOptions } from './tokensFetchOptions';
 import type { TokenPair } from '../../bridgeCore';
 import type { TezosToken, EtherlinkToken } from '../../tokens';
 
@@ -53,10 +54,16 @@ export class LocalTokensBridgeDataProvider implements TokensBridgeDataProvider {
   }
 
   getRegisteredTokenPairs(): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]> {
-    return Promise.resolve(this.tokenPairs.slice(offset, limit && (limit + (offset || 0))));
+  getRegisteredTokenPairs(fetchOptions: TokensFetchOptions): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]> {
+    if (!fetchOptions)
+      return Promise.resolve(this.tokenPairs as TokenPair[]);
+
+    const offset = fetchOptions.offset || 0;
+    const limit = fetchOptions.limit && (fetchOptions.limit + offset);
+
+    return Promise.resolve(this.tokenPairs.slice(offset, limit));
   }
 
   private createTokenPairsByTokenMap(tokenPairs: readonly TokenPair[]): TokenPairsByTokenMap {

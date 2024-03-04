@@ -10,7 +10,7 @@ import {
   type AccountTokenBalance, type AccountTokenBalances, type BalancesBridgeDataProvider, type BalancesFetchOptions
 } from '../balancesBridgeDataProvider';
 import { DipDupBridgeDataProvider } from '../dipDupBridgeDataProvider';
-import { LocalTokensBridgeDataProvider, type TokensBridgeDataProvider } from '../tokensBridgeDataProvider';
+import { LocalTokensBridgeDataProvider, type TokensBridgeDataProvider, type TokensFetchOptions } from '../tokensBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
 
 interface TokenGroups {
@@ -176,10 +176,10 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
   }
 
   getRegisteredTokenPairs(): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]> {
-    return this.bridgeDataProvider.getRegisteredTokenPairs(offset, limit);
+  getRegisteredTokenPairs(fetchOptions: TokensFetchOptions): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]> {
+    return this.bridgeDataProvider.getRegisteredTokenPairs(fetchOptions);
   }
 
   protected groupTokens = memoize((tokens: ReadonlyArray<TezosToken | EtherlinkToken>): TokenGroups => {

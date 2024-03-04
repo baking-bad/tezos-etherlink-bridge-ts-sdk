@@ -13,7 +13,10 @@ import {
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../bridgeCore';
-import type { AccountTokenBalance, AccountTokenBalances, BalancesFetchOptions } from '../bridgeDataProviders';
+import type {
+  AccountTokenBalance, AccountTokenBalances,
+  BalancesFetchOptions, TokensFetchOptions
+} from '../bridgeDataProviders';
 import { EventEmitter, ToEventEmitter, type PublicEventEmitter } from '../common';
 import {
   loggerProvider,
@@ -424,10 +427,10 @@ export class TokenBridge<
   }
 
   protected getRegisteredTokenPairs(): Promise<TokenPair[]>;
-  protected getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
-  protected getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]>;
-  protected getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]> {
-    return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPairs(offset, limit);
+  protected getRegisteredTokenPairs(fetchOptions: TokensFetchOptions): Promise<TokenPair[]>;
+  protected getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]>;
+  protected getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]> {
+    return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPairs(fetchOptions);
   }
 
   protected getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;

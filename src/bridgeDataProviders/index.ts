@@ -1,6 +1,8 @@
 export {
+  LocalTokensBridgeDataProvider,
+
   type TokensBridgeDataProvider,
-  LocalTokensBridgeDataProvider
+  type TokensFetchOptions
 } from './tokensBridgeDataProvider';
 
 export {
