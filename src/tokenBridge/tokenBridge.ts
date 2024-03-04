@@ -13,7 +13,7 @@ import {
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal, type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../bridgeCore';
-import type { AccountTokenBalance, AccountTokenBalances } from '../bridgeDataProviders';
+import type { AccountTokenBalance, AccountTokenBalances, BalancesFetchOptions } from '../bridgeDataProviders';
 import { EventEmitter, ToEventEmitter, type PublicEventEmitter } from '../common';
 import {
   loggerProvider,
@@ -407,18 +407,16 @@ export class TokenBridge<
 
   protected getBalances(accountAddress: string): Promise<AccountTokenBalances>;
   protected getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalances>;
-  protected getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
+  protected getBalances(accountAddress: string, fetchOptions: BalancesFetchOptions): Promise<AccountTokenBalances>;
   protected getBalances(
     accountAddress: string,
-    tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
-    limit?: number
+    tokensOfFetchOptions?: ReadonlyArray<TezosToken | EtherlinkToken> | BalancesFetchOptions
   ): Promise<AccountTokenBalances>;
   protected getBalances(
     accountAddress: string,
-    tokensOrOffset?: ReadonlyArray<TezosToken | EtherlinkToken> | number,
-    limit?: number
+    tokensOfFetchOptions?: ReadonlyArray<TezosToken | EtherlinkToken> | BalancesFetchOptions
   ): Promise<AccountTokenBalances> {
-    return this.bridgeComponents.balancesBridgeDataProvider.getBalances(accountAddress, tokensOrOffset, limit);
+    return this.bridgeComponents.balancesBridgeDataProvider.getBalances(accountAddress, tokensOfFetchOptions);
   }
 
   protected getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null> {

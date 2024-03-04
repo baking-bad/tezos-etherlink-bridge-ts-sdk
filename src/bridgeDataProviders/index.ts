@@ -10,7 +10,8 @@ export {
   type TokenBalanceInfo,
   type AccountTokenBalance,
   type AccountTokenBalances,
-  type BalancesBridgeDataProvider
+  type BalancesBridgeDataProvider,
+  type BalancesFetchOptions
 } from './balancesBridgeDataProvider';
 
 export type {

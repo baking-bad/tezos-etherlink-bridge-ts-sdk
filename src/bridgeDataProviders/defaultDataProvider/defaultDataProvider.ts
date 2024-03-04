@@ -7,7 +7,7 @@ import type {
 import { guards, memoize } from '../../utils';
 import {
   TzKTBalancesProvider, EtherlinkNodeBalancesProvider,
-  type AccountTokenBalance, type AccountTokenBalances, type BalancesBridgeDataProvider
+  type AccountTokenBalance, type AccountTokenBalances, type BalancesBridgeDataProvider, type BalancesFetchOptions
 } from '../balancesBridgeDataProvider';
 import { DipDupBridgeDataProvider } from '../dipDupBridgeDataProvider';
 import { LocalTokensBridgeDataProvider, type TokensBridgeDataProvider } from '../tokensBridgeDataProvider';
@@ -113,11 +113,11 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
 
   async getBalances(accountAddress: string): Promise<AccountTokenBalances>;
   async getBalances(accountAddress: string, tokens: ReadonlyArray<TezosToken | EtherlinkToken>): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, tokensOrOffset?: number | ReadonlyArray<TezosToken | EtherlinkToken> | undefined, limit?: number | undefined): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, tokensOrOffset?: number | ReadonlyArray<TezosToken | EtherlinkToken> | undefined, limit?: number | undefined): Promise<AccountTokenBalances> {
+  async getBalances(accountAddress: string, fetchOptions: BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: ReadonlyArray<TezosToken | EtherlinkToken> | BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: ReadonlyArray<TezosToken | EtherlinkToken> | BalancesFetchOptions): Promise<AccountTokenBalances> {
     const isEtherlinkAccount = this.isEtherlinkAccount(accountAddress);
-    const tokenGroups = typeof tokensOrOffset === 'number' || !tokensOrOffset ? null : this.groupTokens(tokensOrOffset);
+    const tokenGroups = guards.isReadonlyArray(tokensOrFetchOptions) ? this.groupTokens(tokensOrFetchOptions) : null;
     const promises: Array<Promise<AccountTokenBalances>> = [];
 
     if (isEtherlinkAccount) {
@@ -128,9 +128,9 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
           promises.push(this.dipDupBridgeDataProvider.getBalances(accountAddress, tokenGroups.nonNativeEtherlinkTokens));
       }
       else {
-        if (!tokensOrOffset)
+        if (!(tokensOrFetchOptions as BalancesFetchOptions | undefined)?.offset)
           promises.push(this.etherlinkNodeBalancesDataProvider.getBalances(accountAddress, nativeTokenArray));
-        promises.push(this.dipDupBridgeDataProvider.getBalances(accountAddress, tokensOrOffset as number, limit));
+        promises.push(this.dipDupBridgeDataProvider.getBalances(accountAddress, tokensOrFetchOptions as BalancesFetchOptions | undefined));
       }
     }
     else {
@@ -141,7 +141,7 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
           promises.push(this.tzKTBalancesDataProvider.getBalances(accountAddress, tokenGroups.nonNativeTezosTokens));
       }
       else {
-        promises.push(this.tzKTBalancesDataProvider.getBalances(accountAddress, tokensOrOffset as number, limit));
+        promises.push(this.tzKTBalancesDataProvider.getBalances(accountAddress, tokensOrFetchOptions as BalancesFetchOptions | undefined));
       }
     }
 

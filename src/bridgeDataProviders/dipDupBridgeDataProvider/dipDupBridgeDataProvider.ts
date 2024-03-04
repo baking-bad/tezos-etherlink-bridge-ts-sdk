@@ -14,8 +14,8 @@ import {
   getTokenLogMessage
 } from '../../logging';
 import type { NonNativeEtherlinkToken } from '../../tokens';
-import { bridgeUtils } from '../../utils';
-import type { BalancesBridgeDataProvider, AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
+import { bridgeUtils, guards } from '../../utils';
+import type { BalancesBridgeDataProvider, AccountTokenBalance, AccountTokenBalances, BalancesFetchOptions } from '../balancesBridgeDataProvider';
 import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
 
 export class DipDupBridgeDataProvider extends RemoteService implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, Disposable {
@@ -199,32 +199,28 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
   async getBalances(accountAddress: string): Promise<AccountTokenBalances>;
   async getBalances(accountAddress: string, tokens: readonly NonNativeEtherlinkToken[]): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalances>;
-  async getBalances(
-    accountAddress: string,
-    tokensOrOffset?: readonly NonNativeEtherlinkToken[] | number,
-    limit?: number
-  ): Promise<AccountTokenBalances> {
+  async getBalances(accountAddress: string, fetchOptions: BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: readonly NonNativeEtherlinkToken[] | BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: readonly NonNativeEtherlinkToken[] | BalancesFetchOptions): Promise<AccountTokenBalances> {
     let query: string;
-    const isAllTokens = typeof tokensOrOffset === 'number' || !tokensOrOffset;
+    const isAllTokens = !guards.isReadonlyArray(tokensOrFetchOptions);
 
     if (isAllTokens) {
       query = this.dipDupGraphQLQueryBuilder.getAllTokenBalancesQuery(
         accountAddress,
-        this.getPreparedOffsetParameter(tokensOrOffset),
-        this.getPreparedLimitParameter(limit),
+        this.getPreparedOffsetParameter(tokensOrFetchOptions),
+        this.getPreparedLimitParameter(tokensOrFetchOptions),
       );
     }
     else {
-      const tokenAddresses = tokensOrOffset.map(token => token.address);
+      const tokenAddresses = tokensOrFetchOptions.map(token => token.address);
       query = this.dipDupGraphQLQueryBuilder.getTokenBalancesQuery(
         accountAddress,
         tokenAddresses
       );
     }
 
-    loggerProvider.lazyLogger.log?.(`Getting balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address`);
+    loggerProvider.lazyLogger.log?.(`Getting balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrFetchOptions)} tokens for the ${accountAddress} address`);
 
     const tokenBalancesResponse = await this.fetch<GraphQLResponse<TokenBalancesDto>>('/v1/graphql', 'json', {
       method: 'POST',
@@ -234,7 +230,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     });
     this.ensureNoDipDupGraphQLErrors(tokenBalancesResponse);
 
-    loggerProvider.lazyLogger.log?.(`The balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrOffset)} tokens for the ${accountAddress} address has been received`);
+    loggerProvider.lazyLogger.log?.(`The balances of the ${isAllTokens ? 'all' : getTokenLogMessage(tokensOrFetchOptions)} tokens for the ${accountAddress} address has been received`);
     loggerProvider.logger.debug('Mapping the tokenBalancesDTO to AccountTokenBalances...');
 
     const accountTokenBalances = mappers.mapTokenBalancesDtoToAccountTokenBalances(tokenBalancesResponse.data, accountAddress);
@@ -443,11 +439,15 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     return [previousSubscribedAddressesSize, updatedSubscribedAddressesSize];
   }
 
-  private getPreparedOffsetParameter(offset: number | undefined | null): number {
+  private getPreparedOffsetParameter(offsetOrFetchOptions: number | undefined | null | BalancesFetchOptions): number {
+    const offset = typeof offsetOrFetchOptions === 'number' ? offsetOrFetchOptions : offsetOrFetchOptions?.offset;
+
     return offset && offset > 0 ? offset : 0;
   }
 
-  private getPreparedLimitParameter(limit: number | undefined | null): number {
+  private getPreparedLimitParameter(limitOrFetchOptions: number | undefined | null | BalancesFetchOptions): number {
+    const limit = typeof limitOrFetchOptions === 'number' ? limitOrFetchOptions : limitOrFetchOptions?.offset;
+
     return limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
   }
 

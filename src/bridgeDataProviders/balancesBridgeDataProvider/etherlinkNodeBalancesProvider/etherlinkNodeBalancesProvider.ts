@@ -3,8 +3,10 @@ import { EtherlinkNodeRPCError, EtherlinkNodeTokenBalanceNotSupported } from './
 import { RemoteService } from '../../../common';
 import { getErrorLogMessage, loggerProvider } from '../../../logging';
 import type { NativeEtherlinkToken } from '../../../tokens';
+import { guards } from '../../../utils';
 import type { AccountTokenBalance, AccountTokenBalances } from '../accountTokenBalances';
 import type { BalancesBridgeDataProvider } from '../balancesBridgeDataProvider';
+import type { BalancesFetchOptions } from '../balancesFetchOptions';
 
 export class EtherlinkNodeBalancesProvider extends RemoteService implements BalancesBridgeDataProvider {
   async getBalance(accountAddress: string, token: NativeEtherlinkToken): Promise<AccountTokenBalance> {
@@ -19,17 +21,13 @@ export class EtherlinkNodeBalancesProvider extends RemoteService implements Bala
 
   async getBalances(accountAddress: string): Promise<AccountTokenBalances>;
   async getBalances(accountAddress: string, tokens: readonly NativeEtherlinkToken[]): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, tokensOrOffset?: readonly NativeEtherlinkToken[] | number, limit?: number): Promise<AccountTokenBalances>;
-  async getBalances(
-    accountAddress: string,
-    tokensOrOffset?: readonly NativeEtherlinkToken[] | number,
-    _limit?: number
-  ): Promise<AccountTokenBalances> {
-    const isAllTokens = typeof tokensOrOffset === 'number' || !tokensOrOffset;
+  async getBalances(accountAddress: string, fetchOptions: BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: readonly NativeEtherlinkToken[] | BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: readonly NativeEtherlinkToken[] | BalancesFetchOptions): Promise<AccountTokenBalances> {
+    const isAllTokens = !guards.isReadonlyArray(tokensOrFetchOptions);
 
-    if (!isAllTokens && tokensOrOffset.length && tokensOrOffset[0]!.type !== 'native') {
-      const error = new EtherlinkNodeTokenBalanceNotSupported(tokensOrOffset[0]!);
+    if (!isAllTokens && tokensOrFetchOptions.length && tokensOrFetchOptions[0]!.type !== 'native') {
+      const error = new EtherlinkNodeTokenBalanceNotSupported(tokensOrFetchOptions[0]!);
       loggerProvider.logger.error(error);
       throw error;
     }
