@@ -1,6 +1,6 @@
 import { EtherlinkSignerAccountUnavailableError, FailedTokenTransferError, InsufficientBalanceError, TezosSignerAccountUnavailableError, TokenBridgeDisposed, TokenPairNotFoundError } from './errors';
 import type { TokenBridgeComponents } from './tokenBridgeComponents';
-import type { TokenBridgeDataApi } from './tokenBridgeDataApi';
+import type { SignerTokenBalances, TokenBridgeDataApi } from './tokenBridgeDataApi';
 import type { TokenBridgeOptions } from './tokenBridgeOptions';
 import type { TokenBridgeStreamApi } from './tokenBridgeStreamApi';
 import type { EtherlinkBridgeBlockchainService, TezosBridgeBlockchainService } from '../bridgeBlockchainService';
@@ -79,6 +79,8 @@ export class TokenBridge<
       getTokenTransfer: this.getTokenTransfer.bind(this),
       getTokenTransfers: this.getTokenTransfers.bind(this),
       getAccountTokenTransfers: this.getAccountTokenTransfers.bind(this),
+      getSignerBalances: this.getSignerBalances.bind(this),
+      getSignerTokenTransfers: this.getSignerTokenTransfers.bind(this),
     };
     this.stream = {
       subscribeToTokenTransfer: this.subscribeToTokenTransfer.bind(this),
@@ -452,6 +454,38 @@ export class TokenBridge<
   protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
     return this.bridgeComponents.transfersBridgeDataProvider
       .getAccountTokenTransfers(accountAddressOfAddresses, offset, limit);
+  }
+
+  protected async getSignerBalances(): Promise<SignerTokenBalances> {
+    const [tezosSignerBalances, etherlinkSignerBalances] = await Promise.all([
+      this.getTezosSignerAddress()
+        .then(signerAddress => signerAddress ? this.getBalances(signerAddress) : undefined),
+      this.getEtherlinkSignerAddress()
+        .then(signerAddress => signerAddress ? this.getBalances(signerAddress) : undefined),
+    ]);
+
+    return {
+      tezosSignerBalances,
+      etherlinkSignerBalances
+    };
+  }
+
+  protected async getSignerTokenTransfers(): Promise<BridgeTokenTransfer[]>;
+  protected async getSignerTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
+  protected async getSignerTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
+  protected async getSignerTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
+    const [tezosSignerAddress, etherlinkSignerAddress] = await Promise.all([
+      this.getTezosSignerAddress(),
+      this.getEtherlinkSignerAddress()
+    ]);
+
+    const addresses = tezosSignerAddress && etherlinkSignerAddress
+      ? [tezosSignerAddress, etherlinkSignerAddress]
+      : tezosSignerAddress || etherlinkSignerAddress;
+
+    return addresses
+      ? this.getAccountTokenTransfers(addresses, offset, limit)
+      : [];
   }
 
   // #endregion

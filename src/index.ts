@@ -19,6 +19,7 @@ export {
 export {
   TokenBridge,
   type TokenBridgeOptions,
+  type SignerTokenBalances
 } from './tokenBridge';
 
 export {
