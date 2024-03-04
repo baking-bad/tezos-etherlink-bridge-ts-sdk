@@ -30,8 +30,8 @@ describe('Balances', () => {
       await tokenBridge.getTezosSignerAddress(),
       await tokenBridge.getEtherlinkSignerAddress()
     ]);
-    testTezosAccountAddress = connectedAddresses[0];
-    testEtherlinkAccountAddress = connectedAddresses[1];
+    testTezosAccountAddress = connectedAddresses[0]!;
+    testEtherlinkAccountAddress = connectedAddresses[1]!;
   });
 
   afterEach(() => {
