@@ -1,3 +1,4 @@
+import type { TransfersFetchOptions } from './transfersFetchOptions';
 import type { BridgeTokenTransfer, CreatedBridgeTokenDeposit, CreatedBridgeTokenWithdrawal } from '../../bridgeCore';
 import type { PublicEventEmitter } from '../../common';
 
@@ -14,18 +15,14 @@ export interface TransfersBridgeDataProvider {
   getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
 
   getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
+  getTokenTransfers(fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
 
   getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
   getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getAccountTokenTransfers(
-    accountAddressOfAddresses: string | readonly string[],
-    offset?: number,
-    limit?: number
-  ): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(accountAddress: string, fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(accountAddresses: readonly string[], fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
 
   subscribeToTokenTransfer(operationHash: string): void;
   subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;

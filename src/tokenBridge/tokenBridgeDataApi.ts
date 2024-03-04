@@ -1,7 +1,7 @@
 import type { BridgeTokenTransfer } from '../bridgeCore';
 import type {
   TokensBridgeDataProvider, BalancesBridgeDataProvider, TransfersBridgeDataProvider,
-  AccountTokenBalances
+  AccountTokenBalances, TransfersFetchOptions
 } from '../bridgeDataProviders';
 
 export interface SignerTokenBalances {
@@ -15,6 +15,6 @@ export interface TokenBridgeDataApi extends Pick<TokensBridgeDataProvider, 'getR
   getSignerBalances(): Promise<SignerTokenBalances>;
 
   getSignerTokenTransfers(): Promise<BridgeTokenTransfer[]>;
-  getSignerTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  getSignerTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
+  getSignerTokenTransfers(fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  getSignerTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
 }

@@ -11,7 +11,7 @@ import {
 } from '../balancesBridgeDataProvider';
 import { DipDupBridgeDataProvider } from '../dipDupBridgeDataProvider';
 import { LocalTokensBridgeDataProvider, type TokensBridgeDataProvider, type TokensFetchOptions } from '../tokensBridgeDataProvider';
-import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
+import type { TransfersBridgeDataProvider, TransfersFetchOptions } from '../transfersBridgeDataProvider';
 
 interface TokenGroups {
   nativeTokens: Array<NativeTezosToken | NativeEtherlinkToken>;
@@ -56,19 +56,19 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
   }
 
   async getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
-    return this.dipDupBridgeDataProvider.getTokenTransfers(offset, limit);
+  async getTokenTransfers(fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.dipDupBridgeDataProvider.getTokenTransfers(fetchOptions);
   }
 
   async getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
-    return this.dipDupBridgeDataProvider.getAccountTokenTransfers(accountAddressOfAddresses, offset, limit);
+  async getAccountTokenTransfers(accountAddress: string, fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddresses: readonly string[], fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.dipDupBridgeDataProvider.getAccountTokenTransfers(accountAddressOfAddresses, fetchOptions);
   }
 
   subscribeToTokenTransfer(operationHash: string): void;

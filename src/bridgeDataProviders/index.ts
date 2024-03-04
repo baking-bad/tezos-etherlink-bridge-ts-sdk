@@ -17,7 +17,8 @@ export {
 } from './balancesBridgeDataProvider';
 
 export type {
-  TransfersBridgeDataProvider
+  TransfersBridgeDataProvider,
+  TransfersFetchOptions
 } from './transfersBridgeDataProvider';
 
 export {

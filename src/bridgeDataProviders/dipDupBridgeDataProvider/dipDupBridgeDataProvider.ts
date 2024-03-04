@@ -16,7 +16,7 @@ import {
 import type { NonNativeEtherlinkToken } from '../../tokens';
 import { bridgeUtils, guards } from '../../utils';
 import type { BalancesBridgeDataProvider, AccountTokenBalance, AccountTokenBalances, BalancesFetchOptions } from '../balancesBridgeDataProvider';
-import type { TransfersBridgeDataProvider } from '../transfersBridgeDataProvider';
+import type { TransfersBridgeDataProvider, TransfersFetchOptions } from '../transfersBridgeDataProvider';
 
 export class DipDupBridgeDataProvider extends RemoteService implements TransfersBridgeDataProvider, BalancesBridgeDataProvider, Disposable {
   protected static readonly defaultLoadDataLimit = 100;
@@ -87,23 +87,19 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }
 
   async getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  async getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
-    return this.getTokenTransfersInternal(undefined, offset, limit);
+  async getTokenTransfers(fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.getTokenTransfersInternal(undefined, fetchOptions);
   }
 
   async getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(
-    accountAddressOfAddresses: string | readonly string[],
-    offset?: number,
-    limit?: number
-  ): Promise<BridgeTokenTransfer[]> {
-    return this.getTokenTransfersInternal(accountAddressOfAddresses, offset, limit);
+  async getAccountTokenTransfers(accountAddress: string, fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddresses: readonly string[], fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.getTokenTransfersInternal(accountAddressOfAddresses, fetchOptions);
   }
 
   subscribeToTokenTransfer(operationHash: string): void;
@@ -259,12 +255,10 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
   protected async getTokenTransfersInternal(
     addressOrAddresses: string | readonly string[] | undefined | null,
-    offset: number | undefined | null,
-    limit: number | undefined | null
+    fetchOptions?: TransfersFetchOptions | undefined | null
   ): Promise<BridgeTokenTransfer[]> {
-
-    offset = this.getPreparedOffsetParameter(offset);
-    limit = this.getPreparedLimitParameter(limit);
+    const offset = this.getPreparedOffsetParameter(fetchOptions);
+    const limit = this.getPreparedLimitParameter(fetchOptions);
 
     loggerProvider.lazyLogger.log?.(addressOrAddresses
       ? `Getting token transfers for ${typeof addressOrAddresses === 'string'

@@ -15,7 +15,7 @@ import {
 } from '../bridgeCore';
 import type {
   AccountTokenBalance, AccountTokenBalances,
-  BalancesFetchOptions, TokensFetchOptions
+  BalancesFetchOptions, TokensFetchOptions, TransfersFetchOptions
 } from '../bridgeDataProviders';
 import { EventEmitter, ToEventEmitter, type PublicEventEmitter } from '../common';
 import {
@@ -441,20 +441,20 @@ export class TokenBridge<
   }
 
   protected getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  protected getTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
-    return this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfers(offset, limit);
+  protected getTokenTransfers(fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected getTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfers(fetchOptions);
   }
 
   protected getAccountTokenTransfers(accountAddress: string): Promise<BridgeTokenTransfer[]>;
   protected getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
-  protected getAccountTokenTransfers(accountAddress: string, offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected getAccountTokenTransfers(accountAddresses: readonly string[], offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
+  protected getAccountTokenTransfers(accountAddress: string, fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddresses: readonly string[], fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
     return this.bridgeComponents.transfersBridgeDataProvider
-      .getAccountTokenTransfers(accountAddressOfAddresses, offset, limit);
+      .getAccountTokenTransfers(accountAddressOfAddresses, fetchOptions);
   }
 
   protected async getSignerBalances(): Promise<SignerTokenBalances> {
@@ -472,9 +472,9 @@ export class TokenBridge<
   }
 
   protected async getSignerTokenTransfers(): Promise<BridgeTokenTransfer[]>;
-  protected async getSignerTokenTransfers(offset: number, limit: number): Promise<BridgeTokenTransfer[]>;
-  protected async getSignerTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]>;
-  protected async getSignerTokenTransfers(offset?: number, limit?: number): Promise<BridgeTokenTransfer[]> {
+  protected async getSignerTokenTransfers(fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected async getSignerTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  protected async getSignerTokenTransfers(fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
     const [tezosSignerAddress, etherlinkSignerAddress] = await Promise.all([
       this.getTezosSignerAddress(),
       this.getEtherlinkSignerAddress()
@@ -485,7 +485,7 @@ export class TokenBridge<
       : tezosSignerAddress || etherlinkSignerAddress;
 
     return addresses
-      ? this.getAccountTokenTransfers(addresses, offset, limit)
+      ? this.getAccountTokenTransfers(addresses, fetchOptions)
       : [];
   }
 
