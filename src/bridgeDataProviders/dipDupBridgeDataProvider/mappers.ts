@@ -150,7 +150,8 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
           etherlinkOperation,
           rollupData: {
             outboxMessageLevel: dto.l2_transaction.outbox_message.level,
-            outboxMessageIndex: dto.l2_transaction.outbox_message.index
+            outboxMessageIndex: dto.l2_transaction.outbox_message.index,
+            estimatedOutboxMessageExecutionTimestamp: dto.l2_transaction.outbox_message.cemented_at || undefined
           }
         };
   }

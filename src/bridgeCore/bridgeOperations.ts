@@ -21,9 +21,12 @@ export interface EtherlinkTransferTokensOperation {
 export interface InitialRollupData {
   readonly outboxMessageLevel: number;
   readonly outboxMessageIndex: number;
+  readonly estimatedOutboxMessageExecutionTimestamp?: string;
 }
 
-export interface CementedRollupData extends InitialRollupData {
+export interface CementedRollupData {
+  readonly outboxMessageLevel: number;
+  readonly outboxMessageIndex: number;
   readonly commitment: string;
   readonly proof: string;
 }

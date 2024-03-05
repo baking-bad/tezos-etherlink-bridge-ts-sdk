@@ -61,7 +61,8 @@ interface WithdrawalL2TransactionDto {
     level: number;
     index: number;
     commitment: { hash: string; } | null;
-    proof: string | null
+    proof: string | null;
+    cemented_at: string | null;
   }
 }
 

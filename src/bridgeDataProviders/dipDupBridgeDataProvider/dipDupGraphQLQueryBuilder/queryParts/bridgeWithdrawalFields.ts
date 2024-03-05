@@ -28,5 +28,6 @@ l2_transaction {
       hash
     }
     proof
+    cemented_at
   }
 }`;
