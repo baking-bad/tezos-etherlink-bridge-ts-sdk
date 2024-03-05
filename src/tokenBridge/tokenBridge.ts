@@ -295,7 +295,7 @@ export class TokenBridge<
 
     const etherlinkSourceAddress = await this.getRequiredEtherlinkSignerAddress();
     if (!tezosReceiverAddress) {
-      tezosReceiverAddress = await this.getRequiredEtherlinkSignerAddress();
+      tezosReceiverAddress = await this.getRequiredTezosSignerAddress();
     }
 
     const tokenPair = await this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPair(token);
