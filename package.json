@@ -30,7 +30,7 @@
     "default": "./dist/node/index.js"
   },
   "dependencies": {
-    "@taquito/utils": "^19.1.0-beta-RC.0",
+    "@taquito/utils": "^19.1.0",
     "web3-utils": "^4.2.0",
     "web3-validator": "^2.0.4"
   },
@@ -51,8 +51,8 @@
     }
   },
   "devDependencies": {
-    "@taquito/signer": "^19.1.0-beta-RC.0",
-    "@taquito/taquito": "^19.1.0-beta-RC.0",
+    "@taquito/signer": "^19.1.0",
+    "@taquito/taquito": "^19.1.0",
     "@types/jest": "^29.5.11",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
