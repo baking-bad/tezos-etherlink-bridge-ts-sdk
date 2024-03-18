@@ -4,41 +4,39 @@ import Web3 from 'web3';
 
 import { TestConfig } from './testConfig';
 import {
-  createDefaultTokenBridge,
+  loggerProvider,
+  TokenBridge,
+  TaquitoContractTezosBridgeBlockchainService,
+  Web3EtherlinkBridgeBlockchainService,
+  DefaultDataProvider,
   BridgeTokenTransferKind, BridgeTokenTransferStatus, LogLevel,
-  type TokenBridge, type DefaultTokenBridgeOptions,
   type TezosToken, type EtherlinkToken,
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal,
-  type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
+  type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal,
+  type DefaultDataProviderOptions,
 } from '../src';
 
-const tezosOperationRegex = /^o/;
+const depositIdRegex = /^o[0-9a-zA-Z]{50}_\d+_\d+$/;
+const withdrawalIdRegex = /^0x[0-9a-f]{64}_\d+$/;
+const tezosOperationRegex = /^o[0-9a-zA-Z]{50}$/;
 const etherlinkOperationRegex = /^0x[0-9a-f]{64}$/;
 
 interface CreateTestTokenBridgeParams {
   testConfig: TestConfig,
   tezosToolkit?: TezosToolkit,
   etherlinkToolkit?: Web3,
-  overrideOptions?: Partial<DefaultTokenBridgeOptions>
+  overriddenDefaultDataProviderOptions?: Partial<DefaultDataProviderOptions>
 }
 
-export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overrideOptions }: CreateTestTokenBridgeParams): TokenBridge => {
+export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overriddenDefaultDataProviderOptions }: CreateTestTokenBridgeParams) => {
   tezosToolkit = tezosToolkit || createTezosToolkitWithSigner(testConfig.tezosRpcUrl, testConfig.tezosAccountPrivateKey);
   etherlinkToolkit = etherlinkToolkit || createEtherlinkToolkitWithSigner(testConfig.etherlinkRpcUrl, testConfig.etherlinkAccountPrivateKey);
 
-  return createDefaultTokenBridge({
-    logging: {
-      logLevel: LogLevel.Debug
-    },
-    tezos: {
-      toolkit: tezosToolkit,
-      rollupAddress: testConfig.tezosRollupAddress
-    },
-    etherlink: {
-      toolkit: etherlinkToolkit
-    },
+  loggerProvider.setLogLevel(LogLevel.Debug);
+
+  const defaultDataProvider = new DefaultDataProvider({
     dipDup: {
       baseUrl: testConfig.dipDupBaseUrl,
       webSocketApiBaseUrl: testConfig.dipDupBaseUrl.replace('https', 'wss'),
@@ -76,7 +74,22 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
         }
       },
     ],
-    ...overrideOptions
+    ...overriddenDefaultDataProviderOptions
+  });
+
+  return new TokenBridge({
+    tezosBridgeBlockchainService: new TaquitoContractTezosBridgeBlockchainService({
+      tezosToolkit,
+      smartRollupAddress: testConfig.tezosRollupAddress
+    }),
+    etherlinkBridgeBlockchainService: new Web3EtherlinkBridgeBlockchainService({
+      web3: etherlinkToolkit
+    }),
+    bridgeDataProviders: {
+      transfers: defaultDataProvider,
+      balances: defaultDataProvider,
+      tokens: defaultDataProvider,
+    }
   });
 };
 
@@ -135,6 +148,7 @@ export const expectCreatedDeposit = (
   }
 ) => {
   expect(createdBridgeTokenDeposit).toMatchObject<CreatedBridgeTokenDeposit>({
+    id: expect.stringMatching(depositIdRegex),
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Created,
     source: params.source,
@@ -142,9 +156,10 @@ export const expectCreatedDeposit = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
+      counter: expect.any(Number),
+      nonce: expect.any(Number),
       amount: params.amount,
       token: params.tezosToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     }
   });
@@ -162,6 +177,7 @@ export const expectFinishedDeposit = (
   }
 ) => {
   expect(finishedBridgeTokenDeposit).toMatchObject<FinishedBridgeTokenDeposit>({
+    id: expect.stringMatching(depositIdRegex),
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Finished,
     source: params.source,
@@ -169,17 +185,18 @@ export const expectFinishedDeposit = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
+      counter: expect.any(Number),
+      nonce: expect.any(Number),
       amount: params.inAmount,
       token: params.tezosToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.outAmount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     }
   });
@@ -218,6 +235,7 @@ export const expectCreatedWithdrawal = (
   }
 ) => {
   expect(createdBridgeTokenWithdrawal).toMatchObject<CreatedBridgeTokenWithdrawal>({
+    id: expect.stringMatching(withdrawalIdRegex),
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Created,
     source: params.source,
@@ -225,9 +243,9 @@ export const expectCreatedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.amount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     rollupData: {
@@ -247,6 +265,7 @@ export const expectSealedWithdrawal = (
   }
 ) => {
   expect(sealedBridgeTokenWithdrawal).toMatchObject<SealedBridgeTokenWithdrawal>({
+    id: expect.stringMatching(withdrawalIdRegex),
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Sealed,
     source: params.source,
@@ -254,16 +273,16 @@ export const expectSealedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.amount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     rollupData: {
       outboxMessageIndex: expect.any(Number),
       outboxMessageLevel: expect.any(Number),
       commitment: expect.any(String),
-      proof: expect.any(String)
+      proof: expect.any(String),
     }
   });
 };
@@ -280,6 +299,7 @@ export const expectFinishedWithdrawal = (
   }
 ) => {
   expect(finishedBridgeTokenWithdrawal).toMatchObject<FinishedBridgeTokenWithdrawal>({
+    id: expect.stringMatching(withdrawalIdRegex),
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Finished,
     source: params.source,
@@ -287,17 +307,18 @@ export const expectFinishedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.inAmount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
+      counter: expect.any(Number),
+      nonce: null,
       amount: params.outAmount,
       token: params.tezosToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     rollupData: {

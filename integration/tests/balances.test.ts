@@ -1,7 +1,7 @@
 import { TezosToolkit } from '@taquito/taquito';
 import Web3 from 'web3';
 
-import { type TokenBridge, type AccountTokenBalance, type AccountTokenBalances } from '../../src';
+import type { AccountTokenBalance, AccountTokenBalances } from '../../src';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
 import {
   createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner, createTestTokenBridge
@@ -12,7 +12,7 @@ describe('Balances', () => {
   let tokens: TestTokens;
   let tezosToolkit: TezosToolkit;
   let etherlinkToolkit: Web3;
-  let tokenBridge: TokenBridge;
+  let tokenBridge: ReturnType<typeof createTestTokenBridge>;
   let testTezosAccountAddress: string;
   let testEtherlinkAccountAddress: string;
 
@@ -27,11 +27,11 @@ describe('Balances', () => {
     tokenBridge = createTestTokenBridge({ testConfig, tezosToolkit, etherlinkToolkit });
 
     const connectedAddresses = await Promise.all([
-      await tokenBridge.getTezosConnectedAddress(),
-      await tokenBridge.getEtherlinkConnectedAddress()
+      await tokenBridge.getTezosSignerAddress(),
+      await tokenBridge.getEtherlinkSignerAddress()
     ]);
-    testTezosAccountAddress = connectedAddresses[0];
-    testEtherlinkAccountAddress = connectedAddresses[1];
+    testTezosAccountAddress = connectedAddresses[0]!;
+    testEtherlinkAccountAddress = connectedAddresses[1]!;
   });
 
   afterEach(() => {

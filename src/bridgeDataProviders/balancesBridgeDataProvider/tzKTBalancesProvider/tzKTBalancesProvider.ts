@@ -3,10 +3,11 @@ import { TzKTTokenBalanceNotSupported } from './errors';
 import * as mappers from './mappers';
 import { RemoteService } from '../../../common';
 import { getTokenLogMessage, loggerProvider } from '../../../logging';
-import type { TezosToken, NativeTezosToken, NonNativeTezosToken, FA2TezosToken } from '../../../tezos';
+import type { TezosToken, NativeTezosToken, NonNativeTezosToken, FA2TezosToken } from '../../../tokens';
 import { guards, tokenUtils } from '../../../utils';
 import type { AccountTokenBalance, AccountTokenBalances, TokenBalanceInfo } from '../accountTokenBalances';
 import type { BalancesBridgeDataProvider } from '../balancesBridgeDataProvider';
+import type { BalancesFetchOptions } from '../balancesFetchOptions';
 
 export class TzKTBalancesProvider extends RemoteService implements BalancesBridgeDataProvider {
   protected static readonly defaultLoadDataLimit = 10000;
@@ -31,16 +32,12 @@ export class TzKTBalancesProvider extends RemoteService implements BalancesBridg
 
   async getBalances(accountAddress: string): Promise<AccountTokenBalances>;
   async getBalances(accountAddress: string, tokens: readonly TezosToken[]): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, offset: number, limit: number): Promise<AccountTokenBalances>;
-  async getBalances(accountAddress: string, tokensOrOffset?: readonly TezosToken[] | number, limit?: number): Promise<AccountTokenBalances>;
-  async getBalances(
-    accountAddress: string,
-    tokensOrOffset?: readonly TezosToken[] | number,
-    limit?: number
-  ): Promise<AccountTokenBalances> {
-    return typeof tokensOrOffset === 'number' || !tokensOrOffset
-      ? this.getAllTokenBalances(accountAddress, tokensOrOffset, limit)
-      : this.getTezosTokenBalances(accountAddress, tokensOrOffset);
+  async getBalances(accountAddress: string, fetchOptions: BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: readonly TezosToken[] | BalancesFetchOptions): Promise<AccountTokenBalances>;
+  async getBalances(accountAddress: string, tokensOrFetchOptions?: readonly TezosToken[] | BalancesFetchOptions): Promise<AccountTokenBalances> {
+    return guards.isReadonlyArray(tokensOrFetchOptions)
+      ? this.getTezosTokenBalances(accountAddress, tokensOrFetchOptions)
+      : this.getAllTokenBalances(accountAddress, tokensOrFetchOptions?.offset, tokensOrFetchOptions?.limit);
   }
 
   protected async getAllTokenBalances(accountAddress: string, offset?: number, limit?: number) {

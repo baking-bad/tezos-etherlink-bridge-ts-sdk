@@ -1,8 +1,10 @@
 import {
-  getTokenTransferQueryByTestCases,
+  getTokenTransferQueryTestCases,
+  getOperationTokenTransfersQueryTestCases,
   getTokenTransfersQueryTestCases,
   getTokenTransfersQueryByAccountAddressesTestCases,
   getTokenTransferSubscriptionTestCases,
+  getOperationTokenTransfersSubscriptionTestCases,
   getTokenTransfersSubscriptionsByAccountAddressesTestCases,
   getTokenTransfersSubscriptionsTestCases
 } from './testCases';
@@ -16,8 +18,18 @@ describe('DipDup GraphQL Query Builder', () => {
     queryBuilder = new DipDupGraphQLQueryBuilder();
   });
 
-  test.each(getTokenTransferQueryByTestCases)(
+  test.each(getTokenTransferQueryTestCases)(
     'Build the getTokenTransfer query %s',
+    (_, testData) => {
+      const query = queryBuilder.getTokenTransferQuery(testData.operationHash, testData.counter || testData.logIndex, testData.nonce);
+      const preparedQuery = prepareQueryFormatting(query);
+
+      expect(preparedQuery).toBe(testData.expectedQuery);
+    }
+  );
+
+  test.each(getOperationTokenTransfersQueryTestCases)(
+    'Build the getOperationTokenTransfers query %s',
     (_, testData) => {
       const query = queryBuilder.getTokenTransferQuery(testData.operationHash);
       const preparedQuery = prepareQueryFormatting(query);
@@ -47,7 +59,17 @@ describe('DipDup GraphQL Query Builder', () => {
   );
 
   test.each(getTokenTransferSubscriptionTestCases)(
-    'Build the getTokenTransferSubscription query %s',
+    'Build the getOperationTokenTransferSubscription query %s',
+    (_, testData) => {
+      const subscription = queryBuilder.getTokenTransferSubscription(testData.operationHash, testData.counter || testData.logIndex, testData.nonce);
+      const preparedSubscription = prepareQueryFormatting(subscription);
+
+      expect(preparedSubscription).toBe(testData.expectedQuery);
+    }
+  );
+
+  test.each(getOperationTokenTransfersSubscriptionTestCases)(
+    'Build the getOperationTokenTransfersSubscription query %s',
     (_, testData) => {
       const subscription = queryBuilder.getTokenTransferSubscription(testData.operationHash);
       const preparedSubscription = prepareQueryFormatting(subscription);
@@ -57,7 +79,7 @@ describe('DipDup GraphQL Query Builder', () => {
   );
 
   test.each(getTokenTransfersSubscriptionsByAccountAddressesTestCases)(
-    'Build the getTokenTransferSubscriptions query %s',
+    'Build the getTokenTransfersSubscription query %s',
     (_, testData) => {
       const subscription = queryBuilder.getTokenTransfersStreamSubscription(testData.address, testData.startUpdatedAt);
       const preparedSubscription = prepareQueryFormatting(subscription);
@@ -67,7 +89,7 @@ describe('DipDup GraphQL Query Builder', () => {
   );
 
   test.each(getTokenTransfersSubscriptionsTestCases)(
-    'Build the getTokenTransferSubscriptions query %s',
+    'Build the getTokenTransfersSubscription query %s',
     (_, testData) => {
       const subscription = queryBuilder.getTokenTransfersStreamSubscription(null, testData.startUpdatedAt);
       const preparedSubscription = prepareQueryFormatting(subscription);

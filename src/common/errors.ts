@@ -8,7 +8,7 @@ export abstract class TokenBridgeError extends Error {
   }
 }
 
-export class DisposedError extends Error {
+export class DisposedError extends TokenBridgeError {
 }
 
 export class RemoteServiceResponseError extends TokenBridgeError {

@@ -58,7 +58,7 @@ export class DipDupWebSocketClient {
   }
 
   stop() {
-    if (!this.isStarted)
+    if (!(this.isStarted || this._isStarting))
       return;
 
     this.socket.events.messageReceived.removeListener(this.onSocketMessageReceived);
@@ -67,6 +67,7 @@ export class DipDupWebSocketClient {
     this.reconnectScheduler[Symbol.dispose]();
 
     this._isStarted = false;
+    this._isStarting = false;
   }
 
   subscribe(query: string): boolean {

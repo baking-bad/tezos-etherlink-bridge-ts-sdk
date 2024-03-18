@@ -17,6 +17,8 @@ interface TezosTicketDto {
 interface DepositL1TransactionDto {
   level: number;
   operation_hash: string;
+  counter: number;
+  nonce: number | null;
   amount: string;
   ticket: TezosTicketDto;
   l1_account: string;
@@ -28,6 +30,7 @@ interface DepositL1TransactionDto {
 interface DepositL2TransactionDto {
   level: number;
   transaction_hash: string;
+  log_index: number;
   amount: string;
   l2_token: {
     id: string;
@@ -42,13 +45,16 @@ export interface BridgeDepositDto {
 
 interface WithdrawalL1TransactionDto {
   level: number;
-  operation_hash: string
+  operation_hash: string;
+  counter: number;
+  nonce: number | null;
   timestamp: string;
 }
 
 interface WithdrawalL2TransactionDto {
   level: number;
   transaction_hash: string;
+  log_index: number;
   amount: string;
   l2_token: {
     id: string;
@@ -61,7 +67,8 @@ interface WithdrawalL2TransactionDto {
     level: number;
     index: number;
     commitment: { hash: string; } | null;
-    proof: string | null
+    proof: string | null;
+    cemented_at: string | null;
   }
 }
 

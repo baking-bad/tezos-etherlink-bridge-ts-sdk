@@ -1,4 +1,4 @@
-import type { Token } from '../common';
+import type { Token } from './token';
 
 export interface NativeEtherlinkToken extends Token {
   readonly type: 'native';

@@ -35,11 +35,11 @@ describe('Withdrawal', () => {
     tokenBridge = createTestTokenBridge({ testConfig, tezosToolkit, etherlinkToolkit });
 
     const connectedAddresses = await Promise.all([
-      await tokenBridge.getTezosConnectedAddress(),
-      await tokenBridge.getEtherlinkConnectedAddress()
+      await tokenBridge.getTezosSignerAddress(),
+      await tokenBridge.getEtherlinkSignerAddress()
     ]);
-    testTezosAccountAddress = connectedAddresses[0];
-    testEtherlinkAccountAddress = connectedAddresses[1];
+    testTezosAccountAddress = connectedAddresses[0]!;
+    testEtherlinkAccountAddress = connectedAddresses[1]!;
   });
 
   afterEach(() => {
@@ -70,7 +70,7 @@ describe('Withdrawal', () => {
     });
 
     const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
-      startWithdrawResult.tokenTransfer,
+      createdBridgeTokenWithdrawal,
       BridgeTokenTransferStatus.Sealed
     );
     expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {
@@ -119,7 +119,7 @@ describe('Withdrawal', () => {
     });
 
     const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
-      startWithdrawResult.tokenTransfer,
+      createdBridgeTokenWithdrawal,
       BridgeTokenTransferStatus.Sealed
     );
     expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {

@@ -1,11 +1,11 @@
+import type { TokensFetchOptions } from './tokensFetchOptions';
 import type { TokenPair } from '../../bridgeCore';
-import type { EtherlinkToken } from '../../etherlink';
-import type { TezosToken } from '../../tezos';
+import type { TezosToken, EtherlinkToken } from '../../tokens';
 
 export interface TokensBridgeDataProvider {
   getRegisteredTokenPair(token: TezosToken | EtherlinkToken): Promise<TokenPair | null>;
 
   getRegisteredTokenPairs(): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset: number, limit: number): Promise<TokenPair[]>;
-  getRegisteredTokenPairs(offset?: number, limit?: number): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(fetchOptions: TokensFetchOptions): Promise<TokenPair[]>;
+  getRegisteredTokenPairs(fetchOptions?: TokensFetchOptions): Promise<TokenPair[]>;
 }

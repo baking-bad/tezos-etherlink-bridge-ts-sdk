@@ -1,6 +1,6 @@
 import type { RPCNodeError } from './dto';
 import { TokenBridgeError } from '../../../common';
-import type { NativeEtherlinkToken } from '../../../etherlink';
+import type { NativeEtherlinkToken } from '../../../tokens';
 import { tokenUtils } from '../../../utils';
 
 export class EtherlinkNodeTokenBalanceNotSupported extends TokenBridgeError {

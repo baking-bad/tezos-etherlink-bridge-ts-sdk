@@ -1,4 +1,4 @@
-import type { Token } from '../common';
+import type { Token } from './token';
 
 export interface NativeTezosToken extends Token {
   readonly type: 'native';

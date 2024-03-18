@@ -5,14 +5,12 @@ import type {
 } from './dtos';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
-  type BridgeTokenTransfer,
-  type BridgeTokenDeposit, type CreatedBridgeTokenDeposit,
-  type BridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal
+  type TezosTransferTokensOperation, type EtherlinkTransferTokensOperation,
+  type BridgeTokenTransfer, type BridgeTokenDeposit, type BridgeTokenWithdrawal
 } from '../../bridgeCore';
-import type { EtherlinkToken } from '../../etherlink';
 import { getErrorLogMessage, loggerProvider } from '../../logging';
-import type { TezosToken } from '../../tezos';
-import { etherlinkUtils } from '../../utils';
+import type { TezosToken, EtherlinkToken } from '../../tokens';
+import { bridgeUtils, etherlinkUtils } from '../../utils';
 import type { AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto | undefined | null): TezosToken => {
@@ -44,45 +42,60 @@ const mapEtherlinkTokenDtoToEtherlinkToken = (etherlinkTokenId: string | undefin
     };
 };
 
-export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto): BridgeTokenDeposit | null => {
+export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto, isFailed: boolean): BridgeTokenDeposit | null => {
   try {
     const source = dto.l1_transaction.l1_account;
     const receiver = etherlinkUtils.toChecksumAddress(dto.l1_transaction.l2_account);
 
-    const tezosOperation: CreatedBridgeTokenDeposit['tezosOperation'] = {
+    const tezosOperation: TezosTransferTokensOperation = {
       blockId: dto.l1_transaction.level,
       hash: dto.l1_transaction.operation_hash,
+      counter: dto.l1_transaction.counter,
+      nonce: dto.l1_transaction.nonce,
       amount: BigInt(dto.l1_transaction.amount),
       token: mapTezosTokenDtoToTezosToken(dto.l1_transaction.ticket.token),
-      // TODO: receive the fee
-      fee: 0n,
       timestamp: dto.l1_transaction.timestamp
     };
-
-    return dto.l2_transaction
+    const etherlinkOperation: EtherlinkTransferTokensOperation | undefined = dto.l2_transaction
       ? {
+        blockId: dto.l2_transaction.level,
+        hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
+        logIndex: dto.l2_transaction.log_index,
+        amount: BigInt(dto.l2_transaction.amount),
+        token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
+        timestamp: dto.l2_transaction.timestamp
+      }
+      : undefined;
+    const id = bridgeUtils.convertOperationDataToTokenTransferId(tezosOperation.hash, tezosOperation.counter, tezosOperation.nonce);
+
+    return isFailed
+      ? {
+        id,
         kind: BridgeTokenTransferKind.Deposit,
-        status: BridgeTokenTransferStatus.Finished,
+        status: BridgeTokenTransferStatus.Failed,
         source,
         receiver,
         tezosOperation,
-        etherlinkOperation: {
-          blockId: dto.l2_transaction.level,
-          hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
-          amount: BigInt(dto.l2_transaction.amount),
-          token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
-          // TODO: receive the fee
-          fee: 0n,
-          timestamp: dto.l2_transaction.timestamp
-        }
+        etherlinkOperation
       }
-      : {
-        kind: BridgeTokenTransferKind.Deposit,
-        status: BridgeTokenTransferStatus.Created,
-        source,
-        receiver,
-        tezosOperation
-      };
+      : etherlinkOperation
+        ? {
+          id,
+          kind: BridgeTokenTransferKind.Deposit,
+          status: BridgeTokenTransferStatus.Finished,
+          source,
+          receiver,
+          tezosOperation,
+          etherlinkOperation
+        }
+        : {
+          id,
+          kind: BridgeTokenTransferKind.Deposit,
+          status: BridgeTokenTransferStatus.Created,
+          source,
+          receiver,
+          tezosOperation
+        };
   }
   catch (error) {
     loggerProvider.logger.error('Deposit DTO mapping error.', getErrorLogMessage(error));
@@ -90,70 +103,84 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
   }
 };
 
-export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: BridgeWithdrawalDto): BridgeTokenWithdrawal | null => {
+export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: BridgeWithdrawalDto, isFailed: boolean): BridgeTokenWithdrawal | null => {
   try {
     const source = etherlinkUtils.toChecksumAddress(dto.l2_transaction.l2_account);
     const receiver = dto.l2_transaction.l1_account;
     const amount = BigInt(dto.l2_transaction.amount);
 
-    const etherlinkOperation: CreatedBridgeTokenWithdrawal['etherlinkOperation'] = {
+    const etherlinkOperation: EtherlinkTransferTokensOperation = {
       blockId: dto.l2_transaction.level,
       hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
+      logIndex: dto.l2_transaction.log_index,
       amount,
       token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
-      // TODO: receive the fee
-      fee: 0n,
       timestamp: dto.l2_transaction.timestamp
     };
-
-    return dto.l1_transaction
+    const tezosOperation: TezosTransferTokensOperation | undefined = dto.l1_transaction
       ? {
+        blockId: dto.l1_transaction.level,
+        hash: dto.l1_transaction.operation_hash,
+        counter: dto.l1_transaction.counter,
+        nonce: dto.l1_transaction.nonce,
+        amount,
+        token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token?.ticket?.token),
+        timestamp: dto.l1_transaction.timestamp
+      }
+      : undefined;
+    const rollupData = {
+      outboxMessageLevel: dto.l2_transaction.outbox_message.level,
+      outboxMessageIndex: dto.l2_transaction.outbox_message.index,
+      commitment: dto.l2_transaction.outbox_message.commitment?.hash || '',
+      proof: dto.l2_transaction.outbox_message.proof || ''
+    };
+    const id = bridgeUtils.convertOperationDataToTokenTransferId(etherlinkOperation.hash, etherlinkOperation.logIndex);
+
+    return isFailed
+      ? {
+        id,
         kind: BridgeTokenTransferKind.Withdrawal,
-        status: BridgeTokenTransferStatus.Finished,
+        status: BridgeTokenTransferStatus.Failed,
         source,
         receiver,
-        tezosOperation: {
-          blockId: dto.l1_transaction.level,
-          hash: dto.l1_transaction.operation_hash,
-          amount,
-          token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token?.ticket?.token),
-          // TODO: receive the fee
-          fee: 0n,
-          timestamp: dto.l1_transaction.timestamp
-        },
+        tezosOperation,
         etherlinkOperation,
-        rollupData: {
-          outboxMessageLevel: dto.l2_transaction.outbox_message.level,
-          outboxMessageIndex: dto.l2_transaction.outbox_message.index,
-          commitment: dto.l2_transaction.outbox_message.commitment?.hash || '',
-          proof: dto.l2_transaction.outbox_message.proof || ''
-        }
+        rollupData
       }
-      : dto.l2_transaction.outbox_message.commitment && dto.l2_transaction.outbox_message.proof
+      : tezosOperation
         ? {
+          id,
           kind: BridgeTokenTransferKind.Withdrawal,
-          status: BridgeTokenTransferStatus.Sealed,
+          status: BridgeTokenTransferStatus.Finished,
           source,
           receiver,
+          tezosOperation,
           etherlinkOperation,
-          rollupData: {
-            outboxMessageLevel: dto.l2_transaction.outbox_message.level,
-            outboxMessageIndex: dto.l2_transaction.outbox_message.index,
-            commitment: dto.l2_transaction.outbox_message.commitment.hash,
-            proof: dto.l2_transaction.outbox_message.proof
-          }
+          rollupData
         }
-        : {
-          kind: BridgeTokenTransferKind.Withdrawal,
-          status: BridgeTokenTransferStatus.Created,
-          source,
-          receiver,
-          etherlinkOperation,
-          rollupData: {
-            outboxMessageLevel: dto.l2_transaction.outbox_message.level,
-            outboxMessageIndex: dto.l2_transaction.outbox_message.index
+        : rollupData.commitment && rollupData.proof
+          ? {
+            id,
+            kind: BridgeTokenTransferKind.Withdrawal,
+            status: BridgeTokenTransferStatus.Sealed,
+            source,
+            receiver,
+            etherlinkOperation,
+            rollupData
           }
-        };
+          : {
+            id,
+            kind: BridgeTokenTransferKind.Withdrawal,
+            status: BridgeTokenTransferStatus.Created,
+            source,
+            receiver,
+            etherlinkOperation,
+            rollupData: {
+              outboxMessageLevel: dto.l2_transaction.outbox_message.level,
+              outboxMessageIndex: dto.l2_transaction.outbox_message.index,
+              estimatedOutboxMessageExecutionTimestamp: dto.l2_transaction.outbox_message.cemented_at || undefined
+            }
+          };
   }
   catch (error) {
     loggerProvider.logger.error('Withdrawal DTO mapping error.', getErrorLogMessage(error));
@@ -162,9 +189,11 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
 };
 
 export const mapBridgeOperationDtoToBridgeTokenTransfer = (dto: BridgeOperationDto): BridgeTokenTransfer | null => {
+  const isFailed = dto.is_completed && !dto.is_successful;
+
   return dto.type === 'deposit'
-    ? mapBridgeDepositDtoToDepositBridgeTokenTransfer(dto.deposit!)
-    : mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(dto.withdrawal!);
+    ? mapBridgeDepositDtoToDepositBridgeTokenTransfer(dto.deposit!, isFailed)
+    : mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(dto.withdrawal!, isFailed);
 };
 
 export const mapBridgeOperationsDtoToBridgeTokenTransfer = (dto: BridgeOperationsDto | BridgeOperationsStreamDto): BridgeTokenTransfer[] => {

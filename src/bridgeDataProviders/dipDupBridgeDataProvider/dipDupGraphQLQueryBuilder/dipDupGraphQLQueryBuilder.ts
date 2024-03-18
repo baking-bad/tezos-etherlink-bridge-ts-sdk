@@ -24,12 +24,26 @@ export class DipDupGraphQLQueryBuilder {
   ) {
   }
 
-  getTokenTransferQuery(operationHash: string): GraphQLQuery {
-    return this.getTokenTransferQueryOrSubscription(operationHash, true);
+  getTokenTransferQuery(etherlinkOperationHash: string, logIndex: number): GraphQLQuery;
+  getTokenTransferQuery(tezosOperationHash: string, counter: number, nonce: number | null): GraphQLQuery;
+  getTokenTransferQuery(operationHash: string, counterOrLogIndex?: number, nonce?: number | null): GraphQLQuery;
+  getTokenTransferQuery(operationHash: string, counterOrLogIndex?: number, nonce?: number | null): GraphQLQuery {
+    return this.getOperationTokenTransfersQueryOrSubscription(true, operationHash, counterOrLogIndex, nonce);
   }
 
-  getTokenTransferSubscription(operationHash: string): GraphQLQuery {
-    return this.getTokenTransferQueryOrSubscription(operationHash, false);
+  getTokenTransferSubscription(etherlinkOperationHash: string, logIndex: number): GraphQLQuery;
+  getTokenTransferSubscription(tezosOperationHash: string, counter: number, nonce: number | null): GraphQLQuery;
+  getTokenTransferSubscription(operationHash: string, counterOrLogIndex?: number, nonce?: number | null): GraphQLQuery;
+  getTokenTransferSubscription(operationHash: string, counterOrLogIndex?: number, nonce?: number | null): GraphQLQuery {
+    return this.getOperationTokenTransfersQueryOrSubscription(false, operationHash, counterOrLogIndex, nonce);
+  }
+
+  getOperationTokenTransfersQuery(operationHash: string): GraphQLQuery {
+    return this.getOperationTokenTransfersQueryOrSubscription(true, operationHash);
+  }
+
+  getOperationTokenTransfersSubscription(operationHash: string): GraphQLQuery {
+    return this.getOperationTokenTransfersQueryOrSubscription(false, operationHash);
   }
 
   getTokenTransfersQuery(
@@ -96,24 +110,48 @@ export class DipDupGraphQLQueryBuilder {
     }`;
   }
 
-  protected getTokenTransferQueryOrSubscription(operationHash: string, isQuery: boolean): GraphQLQuery {
+  protected getOperationTokenTransfersQueryOrSubscription(isQuery: boolean, operationHash: string): GraphQLQuery;
+  protected getOperationTokenTransfersQueryOrSubscription(isQuery: boolean, etherlinkOperationHash: string, logIndex: number): GraphQLQuery;
+  protected getOperationTokenTransfersQueryOrSubscription(isQuery: boolean, tezosOperationHash: string, counter: number, nonce: number | null): GraphQLQuery;
+  protected getOperationTokenTransfersQueryOrSubscription(isQuery: boolean, operationHash: string, counterOrLogIndex?: number, nonce?: number | null): GraphQLQuery;
+  protected getOperationTokenTransfersQueryOrSubscription(isQuery: boolean, operationHash: string, counterOrLogIndex?: number, nonce?: number | null): GraphQLQuery {
     const queryType = isQuery ? 'query' : 'subscription';
     let whereArgument: string;
 
     if (this.isEtherlinkTransaction(operationHash)) {
       operationHash = this.prepareEtherlinkHexValue(operationHash, false);
+      const logIndexCondition = typeof counterOrLogIndex === 'number'
+        ? `log_index: { _eq: ${counterOrLogIndex} }`
+        : '';
+      const l2TransactionCondition = `l2_transaction: {
+        transaction_hash: { _eq: "${operationHash}" }
+        ${logIndexCondition}
+      }`;
+
       whereArgument = `where: {
         _or : [
-          { withdrawal: { l2_transaction: { transaction_hash: { _eq: "${operationHash}" } } } }
-          { deposit: { l2_transaction: { transaction_hash: { _eq: "${operationHash}" } } } }
+          { withdrawal: { ${l2TransactionCondition} } }
+          { deposit: { ${l2TransactionCondition} } }
         ]
       }`;
     }
     else {
+      const counterCondition = typeof counterOrLogIndex === 'number'
+        ? `counter: { _eq: ${counterOrLogIndex} }`
+        : '';
+      const nonceCondition = typeof nonce === 'number'
+        ? `nonce: { _eq: ${nonce} }`
+        : '';
+      const l1TransactionCondition = `l1_transaction: {
+        operation_hash: { _eq: "${operationHash}" }
+        ${counterCondition}
+        ${nonceCondition}
+      }`;
+
       whereArgument = `where: {
         _or : [
-          { deposit: { l1_transaction: { operation_hash: { _eq: "${operationHash}" } } } }
-          { withdrawal: { l1_transaction: { operation_hash: { _eq: "${operationHash}" } } } }
+          { deposit: { ${l1TransactionCondition} } }
+          { withdrawal: { ${l1TransactionCondition} } }
         ]
       }`;
     }

@@ -1,5 +1,3 @@
-import type { Contract } from 'web3';
-
 export const kernelContractAbi = [
   {
     anonymous: false,
@@ -189,5 +187,3 @@ export const kernelContractAbi = [
     type: 'function'
   }
 ] as const;
-
-export type KernelContract = Contract<typeof kernelContractAbi>;
