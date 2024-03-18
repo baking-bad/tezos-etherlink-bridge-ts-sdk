@@ -4,14 +4,18 @@ import Web3 from 'web3';
 
 import { TestConfig } from './testConfig';
 import {
-  createDefaultTokenBridge,
+  loggerProvider,
+  TokenBridge,
+  TaquitoContractTezosBridgeBlockchainService,
+  Web3EtherlinkBridgeBlockchainService,
+  DefaultDataProvider,
   BridgeTokenTransferKind, BridgeTokenTransferStatus, LogLevel,
-  type DefaultTokenBridgeOptions,
   type TezosToken, type EtherlinkToken,
   type BridgeTokenTransfer,
   type PendingBridgeTokenDeposit, type CreatedBridgeTokenDeposit, type FinishedBridgeTokenDeposit,
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal,
-  type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
+  type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal,
+  type DefaultDataProviderOptions,
 } from '../src';
 
 const depositIdRegex = /^o[0-9a-zA-Z]{50}_\d+_\d+$/;
@@ -23,27 +27,16 @@ interface CreateTestTokenBridgeParams {
   testConfig: TestConfig,
   tezosToolkit?: TezosToolkit,
   etherlinkToolkit?: Web3,
-  overrideOptions?: Partial<Omit<DefaultTokenBridgeOptions, 'tezos' | 'etherlink'>>
+  overriddenDefaultDataProviderOptions?: Partial<DefaultDataProviderOptions>
 }
 
-export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overrideOptions }: CreateTestTokenBridgeParams) => {
+export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolkit, overriddenDefaultDataProviderOptions }: CreateTestTokenBridgeParams) => {
   tezosToolkit = tezosToolkit || createTezosToolkitWithSigner(testConfig.tezosRpcUrl, testConfig.tezosAccountPrivateKey);
   etherlinkToolkit = etherlinkToolkit || createEtherlinkToolkitWithSigner(testConfig.etherlinkRpcUrl, testConfig.etherlinkAccountPrivateKey);
 
-  return createDefaultTokenBridge({
-    logging: {
-      logLevel: LogLevel.Debug
-    },
-    tezos: {
-      name: 'taquito',
-      apiType: 'contract',
-      tezosToolkit,
-      smartRollupAddress: testConfig.tezosRollupAddress
-    },
-    etherlink: {
-      name: 'web3',
-      web3: etherlinkToolkit
-    },
+  loggerProvider.setLogLevel(LogLevel.Debug);
+
+  const defaultDataProvider = new DefaultDataProvider({
     dipDup: {
       baseUrl: testConfig.dipDupBaseUrl,
       webSocketApiBaseUrl: testConfig.dipDupBaseUrl.replace('https', 'wss'),
@@ -81,8 +74,23 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
         }
       },
     ],
-    ...overrideOptions
-  } as const);
+    ...overriddenDefaultDataProviderOptions
+  });
+
+  return new TokenBridge({
+    tezosBridgeBlockchainService: new TaquitoContractTezosBridgeBlockchainService({
+      tezosToolkit,
+      smartRollupAddress: testConfig.tezosRollupAddress
+    }),
+    etherlinkBridgeBlockchainService: new Web3EtherlinkBridgeBlockchainService({
+      web3: etherlinkToolkit
+    }),
+    bridgeDataProviders: {
+      transfers: defaultDataProvider,
+      balances: defaultDataProvider,
+      tokens: defaultDataProvider,
+    }
+  });
 };
 
 export const createTezosToolkitWithSigner = (rpcUrl: string, privateKey: string): TezosToolkit => {

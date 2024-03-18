@@ -9,14 +9,6 @@ export {
 } from './common';
 
 export {
-  createDefaultTokenBridge,
-  defaultEtherlinkKernelAddress,
-  defaultWithdrawNativeTokenPrecompileAddress,
-  defaultWithdrawNonNativeTokenPrecompileAddress,
-  type DefaultTokenBridgeOptions
-} from './defaultTokenBridge';
-
-export {
   TokenBridge,
   type TokenBridgeOptions,
   type SignerTokenBalances

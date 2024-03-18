@@ -6,6 +6,7 @@ import { getErrorLogMessage, loggerProvider } from '../../logging';
 import { tezosUtils } from '../../utils';
 import {
   kernelContractAbi,
+  defaultAddresses,
   type EtherlinkBridgeBlockchainService,
   type WithdrawNativeTokenParams,
   type WithdrawNativeTokenResult,
@@ -17,9 +18,9 @@ import {
 
 export interface Web3EtherlinkBridgeBlockchainServiceOptions {
   web3: Web3;
-  kernelAddress: string;
-  withdrawNativeTokenPrecompileAddress: string;
-  withdrawNonNativeTokenPrecompileAddress: string;
+  kernelAddress?: string;
+  withdrawNativeTokenPrecompileAddress?: string;
+  withdrawNonNativeTokenPrecompileAddress?: string;
 }
 
 export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBlockchainService<
@@ -35,8 +36,8 @@ export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBloc
 
   constructor(options: Web3EtherlinkBridgeBlockchainServiceOptions) {
     this.web3 = options.web3;
-    this.withdrawNativeTokenPrecompiledAddress = options.withdrawNativeTokenPrecompileAddress;
-    this.withdrawNonNativeTokenPrecompiledAddress = options.withdrawNonNativeTokenPrecompileAddress;
+    this.withdrawNativeTokenPrecompiledAddress = options.withdrawNativeTokenPrecompileAddress || defaultAddresses.withdrawNativeTokenPrecompileAddress;
+    this.withdrawNonNativeTokenPrecompiledAddress = options.withdrawNonNativeTokenPrecompileAddress || defaultAddresses.withdrawNonNativeTokenPrecompileAddress;
 
     this.withdrawNonNativeTokenPrecompile = new this.web3.eth.Contract(
       kernelContractAbi,
