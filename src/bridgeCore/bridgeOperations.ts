@@ -7,7 +7,6 @@ export interface TezosTransferTokensOperation {
   readonly nonce: number | null;
   readonly amount: bigint;
   readonly token: TezosToken;
-  readonly fee: bigint;
   readonly timestamp: string;
 }
 
@@ -17,7 +16,6 @@ export interface EtherlinkTransferTokensOperation {
   readonly logIndex: number;
   readonly amount: bigint;
   readonly token: EtherlinkToken;
-  readonly fee: bigint;
   readonly timestamp: string;
 }
 

@@ -152,7 +152,6 @@ export const expectCreatedDeposit = (
       nonce: expect.any(Number),
       amount: params.amount,
       token: params.tezosToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     }
   });
@@ -182,7 +181,6 @@ export const expectFinishedDeposit = (
       nonce: expect.any(Number),
       amount: params.inAmount,
       token: params.tezosToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     etherlinkOperation: {
@@ -191,7 +189,6 @@ export const expectFinishedDeposit = (
       logIndex: expect.any(Number),
       amount: params.outAmount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     }
   });
@@ -241,7 +238,6 @@ export const expectCreatedWithdrawal = (
       logIndex: expect.any(Number),
       amount: params.amount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     rollupData: {
@@ -272,7 +268,6 @@ export const expectSealedWithdrawal = (
       logIndex: expect.any(Number),
       amount: params.amount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     rollupData: {
@@ -307,7 +302,6 @@ export const expectFinishedWithdrawal = (
       logIndex: expect.any(Number),
       amount: params.inAmount,
       token: params.etherlinkToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     tezosOperation: {
@@ -317,7 +311,6 @@ export const expectFinishedWithdrawal = (
       nonce: null,
       amount: params.outAmount,
       token: params.tezosToken,
-      fee: expect.any(BigInt),
       timestamp: expect.any(String),
     },
     rollupData: {

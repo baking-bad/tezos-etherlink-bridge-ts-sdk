@@ -52,7 +52,7 @@ export const isBridgeTokenTransferOwner = (tokenTransfer: BridgeTokenTransfer, a
 };
 
 const operationFieldNames: ReadonlyArray<keyof FinishedBridgeTokenDeposit> = ['tezosOperation', 'etherlinkOperation'];
-const bigIntFieldNames: ReadonlyArray<keyof FinishedBridgeTokenDeposit['etherlinkOperation' | 'tezosOperation']> = ['amount', 'fee'];
+const bigIntFieldNames: ReadonlyArray<keyof FinishedBridgeTokenDeposit['etherlinkOperation' | 'tezosOperation']> = ['amount'];
 const jsonStringifyReplacer = (_key: string, value: unknown) => typeof value === 'bigint'
   ? value.toString(10)
   : value;

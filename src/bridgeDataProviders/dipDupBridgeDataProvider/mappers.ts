@@ -55,8 +55,6 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
       nonce: dto.l1_transaction.nonce,
       amount: BigInt(dto.l1_transaction.amount),
       token: mapTezosTokenDtoToTezosToken(dto.l1_transaction.ticket.token),
-      // TODO: receive the fee
-      fee: 0n,
       timestamp: dto.l1_transaction.timestamp
     };
     const id = bridgeUtils.convertOperationDataToTokenTransferId(tezosOperation.hash, tezosOperation.counter, tezosOperation.nonce);
@@ -75,8 +73,6 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
           logIndex: dto.l2_transaction.log_index,
           amount: BigInt(dto.l2_transaction.amount),
           token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
-          // TODO: receive the fee
-          fee: 0n,
           timestamp: dto.l2_transaction.timestamp
         }
       }
@@ -107,8 +103,6 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
       logIndex: dto.l2_transaction.log_index,
       amount,
       token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
-      // TODO: receive the fee
-      fee: 0n,
       timestamp: dto.l2_transaction.timestamp
     };
     const id = bridgeUtils.convertOperationDataToTokenTransferId(etherlinkOperation.hash, etherlinkOperation.logIndex);
@@ -127,8 +121,6 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
           nonce: dto.l1_transaction.nonce,
           amount,
           token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token?.ticket?.token),
-          // TODO: receive the fee
-          fee: 0n,
           timestamp: dto.l1_transaction.timestamp
         },
         etherlinkOperation,
