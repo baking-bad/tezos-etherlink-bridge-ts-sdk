@@ -70,7 +70,7 @@ export class WebSocketClient implements WebSocketClientInterface<WebSocketClient
   };
 
   protected onError = (event: ErrorEvent) => {
-    throw new Error(`Websocket received error: ${JSON.stringify(event)}`);
+    throw new Error(`Websocket received error: ${event.message}`);
   };
 
   protected onClosed = (event: WebSocketCloseEvent) => {
