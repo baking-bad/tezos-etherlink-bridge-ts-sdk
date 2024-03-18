@@ -170,7 +170,7 @@ describe('Deposit', () => {
     });
 
     tokenBridge.deposit(amount, tezosToken)
-      .then(result => tokenBridge.stream.subscribeToTokenTransfer(result.tokenTransfer));
+      .then(result => tokenBridge.stream.subscribeToOperationTokenTransfers(result.tokenTransfer));
   });
 
   test('Deposit FA1.2 token, check the transfer status using events (subscribeToAccountTransfers)', done => {
@@ -180,7 +180,7 @@ describe('Deposit', () => {
     let tokenTransferOperationHash: string | undefined;
 
     tokenBridge.addEventListener('tokenTransferCreated', tokenTransfer => {
-      if (bridgeUtils.getInitialOperationHash(tokenTransfer) !== tokenTransferOperationHash)
+      if (bridgeUtils.getInitialOperation(tokenTransfer).hash !== tokenTransferOperationHash)
         return;
 
       expectPendingDeposit(tokenTransfer, {
@@ -193,7 +193,7 @@ describe('Deposit', () => {
     });
 
     tokenBridge.addEventListener('tokenTransferUpdated', tokenTransfer => {
-      if (bridgeUtils.getInitialOperationHash(tokenTransfer) !== tokenTransferOperationHash)
+      if (bridgeUtils.getInitialOperation(tokenTransfer).hash !== tokenTransferOperationHash)
         return;
 
       if (tokenTransfer.status === BridgeTokenTransferStatus.Created) {

@@ -5,9 +5,11 @@ export interface TokenBridgeStreamApi extends Pick<
   | 'subscribeToTokenTransfer'
   | 'subscribeToTokenTransfers'
   | 'subscribeToAccountTokenTransfers'
+  | 'subscribeToOperationTokenTransfers'
   | 'unsubscribeFromTokenTransfer'
   | 'unsubscribeFromTokenTransfers'
   | 'unsubscribeFromAccountTokenTransfers'
+  | 'unsubscribeFromOperationTokenTransfers'
   | 'unsubscribeFromAllSubscriptions'
 > {
 }

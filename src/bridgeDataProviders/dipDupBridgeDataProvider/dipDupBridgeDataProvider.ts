@@ -1,7 +1,7 @@
 import type { DipDupBridgeDataProviderOptions } from './dipDupBridgeDataProviderOptions';
 import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
 import type { GraphQLResponse, BridgeOperationsDto, TokenBalancesDto } from './dtos';
-import { DipDupAutoUpdateIsDisabledError, DipDupGraphQLError, DipDupTokenBalanceNotSupported } from './errors';
+import { DipDupAutoUpdateIsDisabledError, DipDupGraphQLError, DipDupTokenBalanceNotSupported, DipDupTokenTransferIdInvalid } from './errors';
 import * as mappers from './mappers';
 import { DipDupWebSocketClient, type DipDupWebSocketResponseDto } from './webSocket';
 import { loggerProvider } from '../..';
@@ -11,7 +11,8 @@ import {
   getErrorLogMessage,
   getBridgeTokenTransferLogMessage,
   getDetailedBridgeTokenTransferLogMessage,
-  getTokenLogMessage
+  getTokenLogMessage,
+  getBridgeTokenTransferIdLogMessage
 } from '../../logging';
 import type { NonNativeEtherlinkToken } from '../../tokens';
 import { bridgeUtils, guards } from '../../utils';
@@ -56,27 +57,22 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     throw error;
   }
 
-  async getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null> {
-    const operationHash = typeof operationHashOrTokenTransfer === 'string'
-      ? operationHashOrTokenTransfer
-      : (operationHashOrTokenTransfer.kind === BridgeTokenTransferKind.Deposit)
-        ? operationHashOrTokenTransfer.tezosOperation.hash
-        : operationHashOrTokenTransfer.etherlinkOperation.hash;
+  async getTokenTransfer(tokenTransferId: string): Promise<BridgeTokenTransfer | null> {
+    loggerProvider.logger.log('Getting token transfer by the token transfer Id:', tokenTransferId);
 
-    loggerProvider.logger.log('Getting token transfer by the operation hash:', operationHash);
+    const operationData = bridgeUtils.convertTokenTransferIdToOperationData(tokenTransferId);
+    if (!operationData)
+      throw new DipDupTokenTransferIdInvalid(tokenTransferId);
 
     const bridgeOperationsResponse = await this.fetch<GraphQLResponse<BridgeOperationsDto>>('/v1/graphql', 'json', {
       method: 'POST',
       body: JSON.stringify({
-        query: this.dipDupGraphQLQueryBuilder.getTokenTransferQuery(operationHash)
+        query: this.dipDupGraphQLQueryBuilder.getTokenTransferQuery(operationData[0], operationData[1], operationData[2])
       })
     });
     this.ensureNoDipDupGraphQLErrors(bridgeOperationsResponse);
 
-    loggerProvider.logger.log('Token transfer has been received by the operation hash:', operationHash);
+    loggerProvider.logger.log('Token transfer has been received by the token transfer Id:', tokenTransferId);
 
     const tokenTransfer = mappers.mapBridgeOperationsDtoToBridgeTokenTransfer(bridgeOperationsResponse.data)[0];
 
@@ -102,32 +98,54 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     return this.getTokenTransfersInternal(accountAddressOfAddresses, fetchOptions);
   }
 
-  subscribeToTokenTransfer(operationHash: string): void;
-  subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    this.startDipDupWebSocketClientIfNeeded();
+  async getOperationTokenTransfers(operationHash: string): Promise<BridgeTokenTransfer[]>;
+  async getOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer[]>;
+  async getOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer[]>;
+  async getOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer[]> {
     const operationHash = typeof operationHashOrTokenTransfer === 'string'
       ? operationHashOrTokenTransfer
-      : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
+      : (operationHashOrTokenTransfer.kind === BridgeTokenTransferKind.Deposit)
+        ? operationHashOrTokenTransfer.tezosOperation.hash
+        : operationHashOrTokenTransfer.etherlinkOperation.hash;
 
-    loggerProvider.logger.log('Subscribe to the token transfer by the initial operation:', operationHash);
+    loggerProvider.logger.log('Getting token transfer by the operation hash:', operationHash);
 
-    const subscription = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscription(operationHash);
+    const bridgeOperationsResponse = await this.fetch<GraphQLResponse<BridgeOperationsDto>>('/v1/graphql', 'json', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: this.dipDupGraphQLQueryBuilder.getOperationTokenTransfersQuery(operationHash)
+      })
+    });
+    this.ensureNoDipDupGraphQLErrors(bridgeOperationsResponse);
+
+    loggerProvider.logger.log(`Token transfer (${bridgeOperationsResponse.data.bridge_operation.length}) has been received by the operation hash:`, operationHash);
+
+    const tokenTransfers = mappers.mapBridgeOperationsDtoToBridgeTokenTransfer(bridgeOperationsResponse.data);
+
+    return tokenTransfers;
+  }
+
+  subscribeToTokenTransfer(tokenTransferId: string): void {
+    this.startDipDupWebSocketClientIfNeeded();
+
+    loggerProvider.logger.log('Subscribe to the token transfer by the token transfer Id:', tokenTransferId);
+
+    const operationData = bridgeUtils.convertTokenTransferIdToOperationData(tokenTransferId);
+    if (!operationData)
+      throw new DipDupTokenTransferIdInvalid(tokenTransferId);
+
+    const subscription = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscription(operationData[0], operationData[1], operationData[2]);
     this.dipDupWebSocketClient.subscribe(subscription);
   }
 
-  unsubscribeFromTokenTransfer(operationHash: string): void;
-  unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    const operationHash = typeof operationHashOrTokenTransfer === 'string'
-      ? operationHashOrTokenTransfer
-      : bridgeUtils.getInitialOperationHash(operationHashOrTokenTransfer);
+  unsubscribeFromTokenTransfer(tokenTransferId: string): void {
+    loggerProvider.logger.log('Unsubscribe from the token transfer by the token transfer Id:', tokenTransferId);
 
-    loggerProvider.logger.log('Unsubscribe from the token transfer by the initial operation:', operationHash);
+    const operationData = bridgeUtils.convertTokenTransferIdToOperationData(tokenTransferId);
+    if (!operationData)
+      throw new DipDupTokenTransferIdInvalid(tokenTransferId);
 
-    const subscription = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscription(operationHash);
+    const subscription = this.dipDupGraphQLQueryBuilder.getTokenTransferSubscription(operationData[0], operationData[1], operationData[2]);
     this.dipDupWebSocketClient.unsubscribe(subscription);
   }
 
@@ -153,6 +171,35 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void {
     this.unsubscribeFromTokenTransfersInternal(accountAddressOrAddresses);
+  }
+
+  subscribeToOperationTokenTransfers(operationHash: string): void;
+  subscribeToOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): void;
+  subscribeToOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  subscribeToOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    this.startDipDupWebSocketClientIfNeeded();
+    const operationHash = typeof operationHashOrTokenTransfer === 'string'
+      ? operationHashOrTokenTransfer
+      : bridgeUtils.getInitialOperation(operationHashOrTokenTransfer).hash;
+
+    loggerProvider.logger.log('Subscribe to the token transfers by the initial operation:', operationHash);
+
+    const subscription = this.dipDupGraphQLQueryBuilder.getOperationTokenTransfersSubscription(operationHash);
+    this.dipDupWebSocketClient.subscribe(subscription);
+  }
+
+  unsubscribeFromOperationTokenTransfers(operationHash: string): void;
+  unsubscribeFromOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): void;
+  unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    const operationHash = typeof operationHashOrTokenTransfer === 'string'
+      ? operationHashOrTokenTransfer
+      : bridgeUtils.getInitialOperation(operationHashOrTokenTransfer).hash;
+
+    loggerProvider.logger.log('Unsubscribe from the token transfers by the initial operation:', operationHash);
+
+    const subscription = this.dipDupGraphQLQueryBuilder.getOperationTokenTransfersSubscription(operationHash);
+    this.dipDupWebSocketClient.unsubscribe(subscription);
   }
 
   unsubscribeFromAllSubscriptions(): void {
@@ -375,7 +422,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
         if (!tokenTransfer)
           continue;
 
-        loggerProvider.lazyLogger.log?.(`The ${bridgeUtils.getInitialOperationHash(tokenTransfer)} token transfer has been ${isCreated ? 'created' : 'updated'}.`);
+        loggerProvider.lazyLogger.log?.(`The ${getBridgeTokenTransferIdLogMessage(tokenTransfer)} token transfer has been ${isCreated ? 'created' : 'updated'}.`);
         loggerProvider.lazyLogger.log?.(getBridgeTokenTransferLogMessage(tokenTransfer));
         loggerProvider.lazyLogger.debug?.(getDetailedBridgeTokenTransferLogMessage(tokenTransfer));
 

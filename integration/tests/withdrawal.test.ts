@@ -70,7 +70,7 @@ describe('Withdrawal', () => {
     });
 
     const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
-      startWithdrawResult.tokenTransfer,
+      createdBridgeTokenWithdrawal,
       BridgeTokenTransferStatus.Sealed
     );
     expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {
@@ -119,7 +119,7 @@ describe('Withdrawal', () => {
     });
 
     const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
-      startWithdrawResult.tokenTransfer,
+      createdBridgeTokenWithdrawal,
       BridgeTokenTransferStatus.Sealed
     );
     expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {

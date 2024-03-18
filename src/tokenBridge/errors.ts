@@ -1,7 +1,8 @@
 import type { BridgeTokenTransfer } from '../bridgeCore';
 import { DisposedError, TokenBridgeError } from '../common';
+import { getBridgeTokenTransferIdLogMessage } from '../logging';
 import type { TezosToken, EtherlinkToken } from '../tokens';
-import { bridgeUtils, tokenUtils } from '../utils';
+import { tokenUtils } from '../utils';
 
 export class TokenBridgeDisposed extends DisposedError {
   constructor() {
@@ -35,7 +36,7 @@ export class FailedTokenTransferError extends TokenBridgeError {
   }
 
   private static getMessage(tokenTransfer: BridgeTokenTransfer): string {
-    return `The ${bridgeUtils.getInitialOperationHash(tokenTransfer)} token transfer is failed`;
+    return `The ${getBridgeTokenTransferIdLogMessage(tokenTransfer)} token transfer is failed`;
   }
 }
 

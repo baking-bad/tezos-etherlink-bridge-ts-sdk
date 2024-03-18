@@ -28,12 +28,8 @@ import type {
 } from '../tokens';
 import { bridgeUtils, guards } from '../utils';
 
-type TokenTransferCreatedEventArgument = readonly [
-  tokenTransfer: PendingBridgeTokenDeposit | PendingBridgeTokenWithdrawal | CreatedBridgeTokenDeposit | CreatedBridgeTokenWithdrawal
-];
-
 interface TokenBridgeComponentsEvents {
-  readonly tokenTransferCreated: PublicEventEmitter<TokenTransferCreatedEventArgument>;
+  readonly tokenTransferCreated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
   readonly tokenTransferUpdated: PublicEventEmitter<readonly [tokenTransfer: BridgeTokenTransfer]>;
 }
 
@@ -53,7 +49,7 @@ export class TokenBridge<
     tokenTransferUpdated: new EventEmitter()
   };
 
-  protected readonly tokenTransferOperationWatchers = new Map<
+  protected readonly tokenTransferStatusWatchers = new Map<
     string,
     Map<BridgeTokenTransferStatus, {
       readonly promise: Promise<BridgeTokenTransfer>,
@@ -82,6 +78,7 @@ export class TokenBridge<
       getTokenTransfer: this.getTokenTransfer.bind(this),
       getTokenTransfers: this.getTokenTransfers.bind(this),
       getAccountTokenTransfers: this.getAccountTokenTransfers.bind(this),
+      getOperationTokenTransfers: this.getOperationTokenTransfers.bind(this),
       getSignerBalances: this.getSignerBalances.bind(this),
       getSignerTokenTransfers: this.getSignerTokenTransfers.bind(this),
     };
@@ -89,9 +86,11 @@ export class TokenBridge<
       subscribeToTokenTransfer: this.subscribeToTokenTransfer.bind(this),
       subscribeToTokenTransfers: this.subscribeToTokenTransfers.bind(this),
       subscribeToAccountTokenTransfers: this.subscribeToAccountTokenTransfers.bind(this),
+      subscribeToOperationTokenTransfers: this.subscribeToOperationTokenTransfers.bind(this),
       unsubscribeFromTokenTransfer: this.unsubscribeFromTokenTransfer.bind(this),
       unsubscribeFromTokenTransfers: this.unsubscribeFromTokenTransfers.bind(this),
       unsubscribeFromAccountTokenTransfers: this.unsubscribeFromAccountTokenTransfers.bind(this),
+      unsubscribeFromOperationTokenTransfers: this.unsubscribeFromOperationTokenTransfers.bind(this),
       unsubscribeFromAllSubscriptions: this.unsubscribeFromAllSubscriptions.bind(this)
     };
 
@@ -137,15 +136,20 @@ export class TokenBridge<
     if (transfer.status >= status)
       return transfer;
 
-    const operationHash = bridgeUtils.getInitialOperationHash(transfer);
-    const updatedTransfer = await this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfer(operationHash);
+    const isPending = transfer.status === BridgeTokenTransferStatus.Pending;
+    const updatedTransfers = await (isPending
+      ? this.bridgeComponents.transfersBridgeDataProvider.getOperationTokenTransfers(transfer)
+      : this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfer(transfer.id));
+    const updatedTransfer = guards.isArray(updatedTransfers) ? updatedTransfers[0] : updatedTransfers;
+
     if (updatedTransfer?.status === status)
       return updatedTransfer;
 
-    let statusWatchers = this.tokenTransferOperationWatchers.get(operationHash);
+    const statusWatcherKey = isPending ? bridgeUtils.getInitialOperation(transfer).hash : transfer.id;
+    let statusWatchers = this.tokenTransferStatusWatchers.get(statusWatcherKey);
     if (!statusWatchers) {
       statusWatchers = new Map();
-      this.tokenTransferOperationWatchers.set(operationHash, statusWatchers);
+      this.tokenTransferStatusWatchers.set(statusWatcherKey, statusWatchers);
     }
 
     const watcher = statusWatchers.get(status);
@@ -153,23 +157,24 @@ export class TokenBridge<
       return watcher.promise;
 
     const watcherPromise = new Promise<BridgeTokenTransfer>((resolve, reject) => {
-      const statusWatchers = this.tokenTransferOperationWatchers.get(operationHash);
+      const statusWatchers = this.tokenTransferStatusWatchers.get(statusWatcherKey);
       if (!statusWatchers) {
-        reject(`Status watchers map not found for the ${operationHash} operation`);
+        reject(`Status watchers map not found for the ${statusWatcherKey} token transfer`);
         return;
       }
 
       setTimeout(() => {
         try {
-          this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(operationHash);
+          this.bridgeComponents.transfersBridgeDataProvider[isPending ? 'subscribeToOperationTokenTransfers' : 'subscribeToTokenTransfer'](statusWatcherKey);
+
           statusWatchers.set(status, {
             promise: watcherPromise,
             resolve: (updatedTransfer: BridgeTokenTransfer) => {
-              this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
+              this.bridgeComponents.transfersBridgeDataProvider[isPending ? 'unsubscribeFromOperationTokenTransfers' : 'unsubscribeFromTokenTransfer'](statusWatcherKey);
               resolve(updatedTransfer);
             },
             reject: (error: unknown) => {
-              this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHash);
+              this.bridgeComponents.transfersBridgeDataProvider[isPending ? 'unsubscribeFromOperationTokenTransfers' : 'unsubscribeFromTokenTransfer'](statusWatcherKey);
               reject(error);
             }
           });
@@ -433,11 +438,8 @@ export class TokenBridge<
     return this.bridgeComponents.tokensBridgeDataProvider.getRegisteredTokenPairs(fetchOptions);
   }
 
-  protected getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
-  protected getTokenTransfer(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  protected getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  protected getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null> {
-    return this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfer(operationHashOrTokenTransfer);
+  protected getTokenTransfer(tokenTransferId: string): Promise<BridgeTokenTransfer | null> {
+    return this.bridgeComponents.transfersBridgeDataProvider.getTokenTransfer(tokenTransferId);
   }
 
   protected getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
@@ -455,6 +457,13 @@ export class TokenBridge<
   protected getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
     return this.bridgeComponents.transfersBridgeDataProvider
       .getAccountTokenTransfers(accountAddressOfAddresses, fetchOptions);
+  }
+
+  protected getOperationTokenTransfers(operationHash: string): Promise<BridgeTokenTransfer[]>;
+  protected getOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer[]>;
+  protected getOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer[]>;
+  protected getOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer[]> {
+    return this.bridgeComponents.transfersBridgeDataProvider.getOperationTokenTransfers(operationHashOrTokenTransfer);
   }
 
   protected async getSignerBalances(): Promise<SignerTokenBalances> {
@@ -493,19 +502,12 @@ export class TokenBridge<
 
   // #region Stream API
 
-  protected subscribeToTokenTransfer(transfer: BridgeTokenTransfer): void;
-  protected subscribeToTokenTransfer(operationHash: BridgeTokenTransfer): void;
-  protected subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  protected subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(operationHashOrTokenTransfer);
+  protected subscribeToTokenTransfer(tokenTransferId: string): void {
+    this.bridgeComponents.transfersBridgeDataProvider.subscribeToTokenTransfer(tokenTransferId);
   }
 
-  protected unsubscribeFromTokenTransfer(transfer: BridgeTokenTransfer): void;
-  protected unsubscribeFromTokenTransfer(operationHash: BridgeTokenTransfer): void;
-  protected unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  protected unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  protected unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(operationHashOrTokenTransfer);
+  protected unsubscribeFromTokenTransfer(tokenTransferId: string): void {
+    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromTokenTransfer(tokenTransferId);
   }
 
   protected subscribeToTokenTransfers(): void {
@@ -530,22 +532,37 @@ export class TokenBridge<
     this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses);
   }
 
+  protected subscribeToOperationTokenTransfers(transfer: BridgeTokenTransfer): void;
+  protected subscribeToOperationTokenTransfers(operationHash: BridgeTokenTransfer): void;
+  protected subscribeToOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  protected subscribeToOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    this.bridgeComponents.transfersBridgeDataProvider.subscribeToOperationTokenTransfers(operationHashOrTokenTransfer);
+  }
+
+  protected unsubscribeFromOperationTokenTransfers(transfer: BridgeTokenTransfer): void;
+  protected unsubscribeFromOperationTokenTransfers(operationHash: BridgeTokenTransfer): void;
+  protected unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  protected unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  protected unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer);
+  }
+
   protected unsubscribeFromAllSubscriptions(): void {
     this.bridgeComponents.transfersBridgeDataProvider.unsubscribeFromAllSubscriptions();
   }
 
   // #endregion
 
-  protected emitLocalTokenTransferCreatedEvent(tokenTransfer: TokenTransferCreatedEventArgument[0]) {
+  protected emitLocalTokenTransferCreatedEvent(tokenTransfer: BridgeTokenTransfer) {
     setTimeout(() => {
       this.emitTokenTransferCreatedOrUpdatedEvent(tokenTransfer);
     }, 0);
   }
 
-  protected emitTokenTransferCreatedOrUpdatedEvent(tokenTransfer: TokenTransferCreatedEventArgument[0]) {
+  protected emitTokenTransferCreatedOrUpdatedEvent(tokenTransfer: BridgeTokenTransfer) {
     this.ensureLastCreatedTokenTransfersTimerIsStarted();
 
-    const initialOperationHash = bridgeUtils.getInitialOperationHash(tokenTransfer);
+    const initialOperationHash = bridgeUtils.getInitialOperation(tokenTransfer).hash;
     let eventName: 'tokenTransferCreated' | 'tokenTransferUpdated';
     if (this.lastCreatedTokenTransfers.has(initialOperationHash)) {
       eventName = 'tokenTransferUpdated';
@@ -561,10 +578,21 @@ export class TokenBridge<
   }
 
   protected resolveStatusWatcherIfNeeded(tokenTransfer: BridgeTokenTransfer) {
-    const initialOperationHash = bridgeUtils.getInitialOperationHash(tokenTransfer);
-    const statusWatchers = this.tokenTransferOperationWatchers.get(initialOperationHash);
-    if (!statusWatchers)
-      return;
+    let statusWatcherKey: string;
+    let statusWatchers: ReturnType<typeof this.tokenTransferStatusWatchers.get>;
+
+    if (tokenTransfer.status !== BridgeTokenTransferStatus.Pending) {
+      statusWatcherKey = tokenTransfer.id;
+      statusWatchers = this.tokenTransferStatusWatchers.get(tokenTransfer.id);
+    }
+
+    if (!statusWatchers) {
+      statusWatcherKey = bridgeUtils.getInitialOperation(tokenTransfer).hash;
+      statusWatchers = this.tokenTransferStatusWatchers.get(statusWatcherKey);
+
+      if (!statusWatchers)
+        return;
+    }
 
     for (const [status, watcher] of statusWatchers) {
       if (tokenTransfer.status >= status) {
@@ -577,11 +605,11 @@ export class TokenBridge<
     }
 
     if (!statusWatchers.size)
-      this.tokenTransferOperationWatchers.delete(initialOperationHash);
+      this.tokenTransferStatusWatchers.delete(statusWatcherKey!);
   }
 
   protected rejectAndClearAllStatusWatchers(error: unknown) {
-    for (const statusWatchers of this.tokenTransferOperationWatchers.values()) {
+    for (const statusWatchers of this.tokenTransferStatusWatchers.values()) {
       for (const statusWatcher of statusWatchers.values()) {
         statusWatcher.reject(error);
       }
@@ -589,7 +617,7 @@ export class TokenBridge<
       statusWatchers.clear();
     }
 
-    this.tokenTransferOperationWatchers.clear();
+    this.tokenTransferStatusWatchers.clear();
   }
 
   protected attachEvents() {
@@ -602,7 +630,7 @@ export class TokenBridge<
     this.bridgeComponents.transfersBridgeDataProvider.events.tokenTransferCreated.removeListener(this.handleTransfersBridgeDataProviderTokenTransferCreated);
   }
 
-  protected handleTransfersBridgeDataProviderTokenTransferCreated = (createdTokenTransfer: TokenTransferCreatedEventArgument[0]) => {
+  protected handleTransfersBridgeDataProviderTokenTransferCreated = (createdTokenTransfer: BridgeTokenTransfer) => {
     this.resolveStatusWatcherIfNeeded(createdTokenTransfer);
     this.emitTokenTransferCreatedOrUpdatedEvent(createdTokenTransfer);
   };

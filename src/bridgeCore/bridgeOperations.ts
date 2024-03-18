@@ -3,6 +3,8 @@ import type { TezosToken, EtherlinkToken } from '../tokens';
 export interface TezosTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
+  readonly counter: number;
+  readonly nonce: number | null;
   readonly amount: bigint;
   readonly token: TezosToken;
   readonly fee: bigint;
@@ -12,6 +14,7 @@ export interface TezosTransferTokensOperation {
 export interface EtherlinkTransferTokensOperation {
   readonly blockId: number;
   readonly hash: string;
+  readonly logIndex: number;
   readonly amount: bigint;
   readonly token: EtherlinkToken;
   readonly fee: bigint;
@@ -69,12 +72,14 @@ export interface PendingBridgeTokenDeposit extends BridgeTokenTransferBase {
 }
 
 export interface CreatedBridgeTokenDeposit extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Deposit;
   readonly status: BridgeTokenTransferStatus.Created;
   readonly tezosOperation: TezosTransferTokensOperation;
 }
 
 export interface FinishedBridgeTokenDeposit extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Deposit;
   readonly status: BridgeTokenTransferStatus.Finished;
   readonly tezosOperation: TezosTransferTokensOperation;
@@ -82,6 +87,7 @@ export interface FinishedBridgeTokenDeposit extends BridgeTokenTransferBase {
 }
 
 export interface FailedBridgeTokenDeposit extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Deposit;
   readonly status: BridgeTokenTransferStatus.Failed;
   readonly tezosOperation: TezosTransferTokensOperation;
@@ -106,6 +112,7 @@ export interface PendingBridgeTokenWithdrawal extends BridgeTokenTransferBase {
 }
 
 export interface CreatedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Created;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
@@ -113,6 +120,7 @@ export interface CreatedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
 }
 
 export interface SealedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Sealed;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
@@ -120,6 +128,7 @@ export interface SealedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
 }
 
 export interface FinishedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Finished;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
@@ -128,6 +137,7 @@ export interface FinishedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
 }
 
 export interface FailedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
+  readonly id: string;
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Failed;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;

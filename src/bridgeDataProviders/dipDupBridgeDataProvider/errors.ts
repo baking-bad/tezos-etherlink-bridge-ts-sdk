@@ -24,3 +24,9 @@ export class DipDupTokenBalanceNotSupported extends TokenBridgeError {
     super(`DipDup won't be able to receive a balance of the ${tokenUtils.toDisplayString(token)}) token. Only ERC-20 tokens.`);
   }
 }
+
+export class DipDupTokenTransferIdInvalid extends TokenBridgeError {
+  constructor(tokenTransferId: string) {
+    super(`The token transfer Id is invalid: ${tokenTransferId}`);
+  }
+}

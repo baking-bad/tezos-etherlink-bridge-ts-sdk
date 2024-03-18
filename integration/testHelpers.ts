@@ -14,7 +14,9 @@ import {
   type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal
 } from '../src';
 
-const tezosOperationRegex = /^o/;
+const depositIdRegex = /^o[0-9a-zA-Z]{50}_\d+_\d+$/;
+const withdrawalIdRegex = /^0x[0-9a-f]{64}_\d+$/;
+const tezosOperationRegex = /^o[0-9a-zA-Z]{50}$/;
 const etherlinkOperationRegex = /^0x[0-9a-f]{64}$/;
 
 interface CreateTestTokenBridgeParams {
@@ -138,6 +140,7 @@ export const expectCreatedDeposit = (
   }
 ) => {
   expect(createdBridgeTokenDeposit).toMatchObject<CreatedBridgeTokenDeposit>({
+    id: expect.stringMatching(depositIdRegex),
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Created,
     source: params.source,
@@ -145,6 +148,8 @@ export const expectCreatedDeposit = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
+      counter: expect.any(Number),
+      nonce: expect.any(Number),
       amount: params.amount,
       token: params.tezosToken,
       fee: expect.any(BigInt),
@@ -165,6 +170,7 @@ export const expectFinishedDeposit = (
   }
 ) => {
   expect(finishedBridgeTokenDeposit).toMatchObject<FinishedBridgeTokenDeposit>({
+    id: expect.stringMatching(depositIdRegex),
     kind: BridgeTokenTransferKind.Deposit,
     status: BridgeTokenTransferStatus.Finished,
     source: params.source,
@@ -172,6 +178,8 @@ export const expectFinishedDeposit = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
+      counter: expect.any(Number),
+      nonce: expect.any(Number),
       amount: params.inAmount,
       token: params.tezosToken,
       fee: expect.any(BigInt),
@@ -180,6 +188,7 @@ export const expectFinishedDeposit = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.outAmount,
       token: params.etherlinkToken,
       fee: expect.any(BigInt),
@@ -221,6 +230,7 @@ export const expectCreatedWithdrawal = (
   }
 ) => {
   expect(createdBridgeTokenWithdrawal).toMatchObject<CreatedBridgeTokenWithdrawal>({
+    id: expect.stringMatching(withdrawalIdRegex),
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Created,
     source: params.source,
@@ -228,6 +238,7 @@ export const expectCreatedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.amount,
       token: params.etherlinkToken,
       fee: expect.any(BigInt),
@@ -250,6 +261,7 @@ export const expectSealedWithdrawal = (
   }
 ) => {
   expect(sealedBridgeTokenWithdrawal).toMatchObject<SealedBridgeTokenWithdrawal>({
+    id: expect.stringMatching(withdrawalIdRegex),
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Sealed,
     source: params.source,
@@ -257,6 +269,7 @@ export const expectSealedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.amount,
       token: params.etherlinkToken,
       fee: expect.any(BigInt),
@@ -266,7 +279,7 @@ export const expectSealedWithdrawal = (
       outboxMessageIndex: expect.any(Number),
       outboxMessageLevel: expect.any(Number),
       commitment: expect.any(String),
-      proof: expect.any(String)
+      proof: expect.any(String),
     }
   });
 };
@@ -283,6 +296,7 @@ export const expectFinishedWithdrawal = (
   }
 ) => {
   expect(finishedBridgeTokenWithdrawal).toMatchObject<FinishedBridgeTokenWithdrawal>({
+    id: expect.stringMatching(withdrawalIdRegex),
     kind: BridgeTokenTransferKind.Withdrawal,
     status: BridgeTokenTransferStatus.Finished,
     source: params.source,
@@ -290,6 +304,7 @@ export const expectFinishedWithdrawal = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
+      logIndex: expect.any(Number),
       amount: params.inAmount,
       token: params.etherlinkToken,
       fee: expect.any(BigInt),
@@ -298,6 +313,8 @@ export const expectFinishedWithdrawal = (
     tezosOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(tezosOperationRegex),
+      counter: expect.any(Number),
+      nonce: null,
       amount: params.outAmount,
       token: params.tezosToken,
       fee: expect.any(BigInt),

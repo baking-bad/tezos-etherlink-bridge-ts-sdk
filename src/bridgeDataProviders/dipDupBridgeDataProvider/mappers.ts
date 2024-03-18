@@ -11,7 +11,7 @@ import {
 } from '../../bridgeCore';
 import { getErrorLogMessage, loggerProvider } from '../../logging';
 import type { TezosToken, EtherlinkToken } from '../../tokens';
-import { etherlinkUtils } from '../../utils';
+import { bridgeUtils, etherlinkUtils } from '../../utils';
 import type { AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto | undefined | null): TezosToken => {
@@ -51,15 +51,19 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
     const tezosOperation: CreatedBridgeTokenDeposit['tezosOperation'] = {
       blockId: dto.l1_transaction.level,
       hash: dto.l1_transaction.operation_hash,
+      counter: dto.l1_transaction.counter,
+      nonce: dto.l1_transaction.nonce,
       amount: BigInt(dto.l1_transaction.amount),
       token: mapTezosTokenDtoToTezosToken(dto.l1_transaction.ticket.token),
       // TODO: receive the fee
       fee: 0n,
       timestamp: dto.l1_transaction.timestamp
     };
+    const id = bridgeUtils.convertOperationDataToTokenTransferId(tezosOperation.hash, tezosOperation.counter, tezosOperation.nonce);
 
     return dto.l2_transaction
       ? {
+        id,
         kind: BridgeTokenTransferKind.Deposit,
         status: BridgeTokenTransferStatus.Finished,
         source,
@@ -68,6 +72,7 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
         etherlinkOperation: {
           blockId: dto.l2_transaction.level,
           hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
+          logIndex: dto.l2_transaction.log_index,
           amount: BigInt(dto.l2_transaction.amount),
           token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
           // TODO: receive the fee
@@ -76,6 +81,7 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
         }
       }
       : {
+        id,
         kind: BridgeTokenTransferKind.Deposit,
         status: BridgeTokenTransferStatus.Created,
         source,
@@ -98,15 +104,18 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
     const etherlinkOperation: CreatedBridgeTokenWithdrawal['etherlinkOperation'] = {
       blockId: dto.l2_transaction.level,
       hash: etherlinkUtils.prepareHexPrefix(dto.l2_transaction.transaction_hash, true),
+      logIndex: dto.l2_transaction.log_index,
       amount,
       token: mapEtherlinkTokenDtoToEtherlinkToken(dto.l2_transaction.l2_token?.id),
       // TODO: receive the fee
       fee: 0n,
       timestamp: dto.l2_transaction.timestamp
     };
+    const id = bridgeUtils.convertOperationDataToTokenTransferId(etherlinkOperation.hash, etherlinkOperation.logIndex);
 
     return dto.l1_transaction
       ? {
+        id,
         kind: BridgeTokenTransferKind.Withdrawal,
         status: BridgeTokenTransferStatus.Finished,
         source,
@@ -114,6 +123,8 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
         tezosOperation: {
           blockId: dto.l1_transaction.level,
           hash: dto.l1_transaction.operation_hash,
+          counter: dto.l1_transaction.counter,
+          nonce: dto.l1_transaction.nonce,
           amount,
           token: mapTezosTokenDtoToTezosToken(dto.l2_transaction.l2_token?.ticket?.token),
           // TODO: receive the fee
@@ -130,6 +141,7 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
       }
       : dto.l2_transaction.outbox_message.commitment && dto.l2_transaction.outbox_message.proof
         ? {
+          id,
           kind: BridgeTokenTransferKind.Withdrawal,
           status: BridgeTokenTransferStatus.Sealed,
           source,
@@ -143,6 +155,7 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
           }
         }
         : {
+          id,
           kind: BridgeTokenTransferKind.Withdrawal,
           status: BridgeTokenTransferStatus.Created,
           source,

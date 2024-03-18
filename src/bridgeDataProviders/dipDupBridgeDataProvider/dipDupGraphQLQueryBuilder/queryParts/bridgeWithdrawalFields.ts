@@ -2,11 +2,14 @@ export const bridgeWithdrawalFields = `
 l1_transaction {
   level
   operation_hash
+  counter
+  nonce
   timestamp
 }
 l2_transaction {
   level
   transaction_hash
+  log_index
   amount
   l2_token {
     id

@@ -11,7 +11,7 @@ export interface SignerTokenBalances {
 
 export interface TokenBridgeDataApi extends Pick<TokensBridgeDataProvider, 'getRegisteredTokenPair' | 'getRegisteredTokenPairs'>,
   Pick<BalancesBridgeDataProvider, 'getBalance' | 'getBalances'>,
-  Pick<TransfersBridgeDataProvider, 'getTokenTransfer' | 'getTokenTransfers' | 'getAccountTokenTransfers'> {
+  Pick<TransfersBridgeDataProvider, 'getTokenTransfer' | 'getTokenTransfers' | 'getAccountTokenTransfers' | 'getOperationTokenTransfers'> {
   getSignerBalances(): Promise<SignerTokenBalances>;
 
   getSignerTokenTransfers(): Promise<BridgeTokenTransfer[]>;

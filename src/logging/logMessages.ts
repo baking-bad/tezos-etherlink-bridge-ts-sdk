@@ -18,6 +18,16 @@ export const getErrorLogMessage = (error: any): string => {
 
 export const getTokenLogMessage = tokenUtils.toDisplayString;
 
+export const getBridgeTokenTransferIdLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer | null | undefined): string => {
+  return bridgeTokenTransfer
+    ? bridgeTokenTransfer.status !== BridgeTokenTransferStatus.Pending
+      ? bridgeTokenTransfer.id
+      : `none (${bridgeUtils.getInitialOperation(bridgeTokenTransfer).hash})`
+    : bridgeTokenTransfer === null
+      ? 'null'
+      : 'undefined';
+};
+
 const getNullOrUndefinedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: null | undefined): string => {
   return `Bridge Token transfer is ${bridgeTokenTransfer === null ? 'null' : 'undefined'}`;
 };
@@ -25,6 +35,7 @@ const getNullOrUndefinedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: nu
 export const getBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer | null | undefined): string => {
   return bridgeTokenTransfer
     ? `Bridge Token Transfer:
+  Id: ${bridgeTokenTransfer && bridgeTokenTransfer.status !== BridgeTokenTransferStatus.Pending ? bridgeTokenTransfer.id : 'none'}
   Kind: ${BridgeTokenTransferKind[bridgeTokenTransfer.kind]}
   Status: ${BridgeTokenTransferStatus[bridgeTokenTransfer.status]}
   Source: ${bridgeTokenTransfer.source}
@@ -38,7 +49,7 @@ export const getBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeToke
 
 export const getDetailedBridgeTokenTransferLogMessage = (bridgeTokenTransfer: BridgeTokenTransfer | null | undefined): string => {
   return bridgeTokenTransfer
-    ? `Bridge Token Transfer [${bridgeUtils.getInitialOperationHash(bridgeTokenTransfer)}]:
+    ? `Bridge Token Transfer [${getBridgeTokenTransferIdLogMessage(bridgeTokenTransfer)}]:
 
 ${bridgeUtils.stringifyBridgeTokenTransfer(bridgeTokenTransfer, 2)}
 

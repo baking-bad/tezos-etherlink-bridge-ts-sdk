@@ -48,11 +48,8 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
     return this.dipDupBridgeDataProvider.events;
   }
 
-  async getTokenTransfer(operationHash: string): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null>;
-  async getTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer | null> {
-    return this.dipDupBridgeDataProvider.getTokenTransfer(operationHashOrTokenTransfer);
+  async getTokenTransfer(tokenTransferId: string): Promise<BridgeTokenTransfer | null> {
+    return this.dipDupBridgeDataProvider.getTokenTransfer(tokenTransferId);
   }
 
   async getTokenTransfers(): Promise<BridgeTokenTransfer[]>;
@@ -71,18 +68,19 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
     return this.dipDupBridgeDataProvider.getAccountTokenTransfers(accountAddressOfAddresses, fetchOptions);
   }
 
-  subscribeToTokenTransfer(operationHash: string): void;
-  subscribeToTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  subscribeToTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    return this.dipDupBridgeDataProvider.subscribeToTokenTransfer(operationHashOrTokenTransfer);
+  async getOperationTokenTransfers(operationHash: string): Promise<BridgeTokenTransfer[]>;
+  async getOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): Promise<BridgeTokenTransfer[]>;
+  async getOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer[]>;
+  async getOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): Promise<BridgeTokenTransfer[]> {
+    return this.dipDupBridgeDataProvider.getOperationTokenTransfers(operationHashOrTokenTransfer);
   }
 
-  unsubscribeFromTokenTransfer(operationHash: string): void;
-  unsubscribeFromTokenTransfer(tokenTransfer: BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
-  unsubscribeFromTokenTransfer(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
-    return this.dipDupBridgeDataProvider.unsubscribeFromTokenTransfer(operationHashOrTokenTransfer);
+  subscribeToTokenTransfer(tokenTransferId: string): void {
+    return this.dipDupBridgeDataProvider.subscribeToTokenTransfer(tokenTransferId);
+  }
+
+  unsubscribeFromTokenTransfer(tokenTransferId: string): void {
+    return this.dipDupBridgeDataProvider.unsubscribeFromTokenTransfer(tokenTransferId);
   }
 
   subscribeToTokenTransfers(): void {
@@ -105,6 +103,20 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void {
     return this.dipDupBridgeDataProvider.unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses);
+  }
+
+  subscribeToOperationTokenTransfers(operationHash: string): void;
+  subscribeToOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): void;
+  subscribeToOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  subscribeToOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    return this.dipDupBridgeDataProvider.subscribeToOperationTokenTransfers(operationHashOrTokenTransfer);
+  }
+
+  unsubscribeFromOperationTokenTransfers(operationHash: string): void;
+  unsubscribeFromOperationTokenTransfers(tokenTransfer: BridgeTokenTransfer): void;
+  unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void;
+  unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer: string | BridgeTokenTransfer): void {
+    return this.dipDupBridgeDataProvider.unsubscribeFromOperationTokenTransfers(operationHashOrTokenTransfer);
   }
 
   unsubscribeFromAllSubscriptions(): void {
