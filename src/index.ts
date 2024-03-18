@@ -36,6 +36,9 @@ export {
 
   type TokenPair,
 
+  type TezosTransferTokensOperation,
+  type EtherlinkTransferTokensOperation,
+
   type BridgeTokenTransfer,
   type BridgeTokenDeposit,
   type PendingBridgeTokenDeposit,

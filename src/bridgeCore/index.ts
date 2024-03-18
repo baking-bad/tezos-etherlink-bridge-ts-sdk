@@ -4,6 +4,9 @@ export {
   BridgeTokenTransferKind,
   BridgeTokenTransferStatus,
 
+  type TezosTransferTokensOperation,
+  type EtherlinkTransferTokensOperation,
+
   type BridgeTokenTransfer,
 
   type BridgeTokenDeposit,
