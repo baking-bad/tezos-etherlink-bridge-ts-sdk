@@ -500,7 +500,7 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   }
 
   private getPreparedLimitParameter(limitOrFetchOptions: number | undefined | null | BalancesFetchOptions): number {
-    const limit = typeof limitOrFetchOptions === 'number' ? limitOrFetchOptions : limitOrFetchOptions?.offset;
+    const limit = typeof limitOrFetchOptions === 'number' ? limitOrFetchOptions : limitOrFetchOptions?.limit;
 
     return limit && limit > 0 ? limit : DipDupBridgeDataProvider.defaultLoadDataLimit;
   }
