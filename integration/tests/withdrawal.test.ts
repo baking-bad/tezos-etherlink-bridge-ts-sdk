@@ -143,4 +143,65 @@ describe('Withdrawal', () => {
       tezosToken
     });
   }, withdrawalTimeout);
+
+  test('Withdraw FA1.2 token, check the transfer status using events (subscribeToTokenTransfer)', done => {
+    const amount = 3n;
+    const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+    let readyForDone = false;
+
+    tokenBridge.addEventListener('tokenTransferCreated', tokenTransfer => {
+      expectPendingWithdrawal(tokenTransfer, {
+        amount,
+        source: testEtherlinkAccountAddress,
+        receiver: testTezosAccountAddress,
+        etherlinkToken
+      });
+      readyForDone = true;
+    });
+
+    tokenBridge.addEventListener('tokenTransferUpdated', tokenTransfer => {
+      switch (tokenTransfer.status) {
+        case BridgeTokenTransferStatus.Created:
+          expectCreatedWithdrawal(tokenTransfer, {
+            amount,
+            source: testEtherlinkAccountAddress,
+            receiver: testTezosAccountAddress,
+            etherlinkToken,
+          });
+
+          break;
+        case BridgeTokenTransferStatus.Sealed: {
+          expectSealedWithdrawal(tokenTransfer, {
+            amount,
+            source: testEtherlinkAccountAddress,
+            receiver: testTezosAccountAddress,
+            etherlinkToken
+          });
+          tokenBridge.finishWithdraw(tokenTransfer);
+
+          break;
+        }
+        case BridgeTokenTransferStatus.Finished: {
+          expectFinishedWithdrawal(tokenTransfer, {
+            inAmount: amount,
+            outAmount: amount,
+            source: testEtherlinkAccountAddress,
+            receiver: testTezosAccountAddress,
+            tezosToken,
+            etherlinkToken
+          });
+          if (!readyForDone) {
+            fail('The tokenTransferCreated event has not been fired.');
+          }
+
+          done();
+          break;
+        }
+      }
+    });
+
+    tokenBridge.startWithdraw(amount, etherlinkToken)
+      .then(result => tokenBridge.stream.subscribeToOperationTokenTransfers(result.tokenTransfer));
+
+  }, withdrawalTimeout);
 });

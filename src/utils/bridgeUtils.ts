@@ -1,13 +1,15 @@
-import { BridgeTokenTransferKind, type BridgeTokenTransfer, type FinishedBridgeTokenDeposit } from '../bridgeCore';
+import { BridgeTokenTransferKind, type BridgeTokenTransfer, type FinishedBridgeTokenDeposit, BridgeTokenTransferStatus } from '../bridgeCore';
 
 const tokenTransferIdSeparator = '_';
 const isEtherlinkTransaction = (operationHash: string) => operationHash.startsWith('0x');
 
-export const getInitialOperation = (tokenTransfer: BridgeTokenTransfer) => {
-  return tokenTransfer.kind === BridgeTokenTransferKind.Deposit
-    ? tokenTransfer.tezosOperation
-    : tokenTransfer.etherlinkOperation;
-};
+export const getInitialOperation = (tokenTransfer: BridgeTokenTransfer) => tokenTransfer.kind === BridgeTokenTransferKind.Deposit
+  ? tokenTransfer.tezosOperation
+  : tokenTransfer.etherlinkOperation;
+
+export const getTokenTransferIdOrInitialOperationHash = (tokenTransfer: BridgeTokenTransfer) => tokenTransfer.status === BridgeTokenTransferStatus.Pending
+  ? getInitialOperation(tokenTransfer).hash
+  : tokenTransfer.id;
 
 export function convertOperationDataToTokenTransferId(etherlinkOperationHash: string, logIndex: number): string;
 export function convertOperationDataToTokenTransferId(tezosOperationHash: string, counter: number, nonce: number | null): string;
