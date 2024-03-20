@@ -63,9 +63,9 @@ export class DefaultDataProvider implements TransfersBridgeDataProvider, Balance
   async getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddress: string, fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddresses: readonly string[], fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
-    return this.dipDupBridgeDataProvider.getAccountTokenTransfers(accountAddressOfAddresses, fetchOptions);
+  async getAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.dipDupBridgeDataProvider.getAccountTokenTransfers(accountAddressOrAddresses, fetchOptions);
   }
 
   async getOperationTokenTransfers(operationHash: string): Promise<BridgeTokenTransfer[]>;

@@ -93,9 +93,11 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   async getAccountTokenTransfers(accountAddresses: readonly string[]): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddress: string, fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
   async getAccountTokenTransfers(accountAddresses: readonly string[], fetchOptions: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
-  async getAccountTokenTransfers(accountAddressOfAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
-    return this.getTokenTransfersInternal(accountAddressOfAddresses, fetchOptions);
+  async getAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]>;
+  async getAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[], fetchOptions?: TransfersFetchOptions): Promise<BridgeTokenTransfer[]> {
+    return this.validateAccountAddressOrAddresses(accountAddressOrAddresses)
+      ? this.getTokenTransfersInternal(accountAddressOrAddresses, fetchOptions)
+      : [];
   }
 
   async getOperationTokenTransfers(operationHash: string): Promise<BridgeTokenTransfer[]>;
@@ -162,6 +164,9 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   subscribeToAccountTokenTransfers(accountAddresses: readonly string[]): void;
   subscribeToAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
   subscribeToAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void {
+    if (!this.validateAccountAddressOrAddresses(accountAddressOrAddresses))
+      return;
+
     this.startDipDupWebSocketClientIfNeeded();
     this.subscribeToTokenTransfersInternal(accountAddressOrAddresses);
   }
@@ -170,6 +175,9 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   unsubscribeFromAccountTokenTransfers(accountAddresses: readonly string[]): void;
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void;
   unsubscribeFromAccountTokenTransfers(accountAddressOrAddresses: string | readonly string[]): void {
+    if (!this.validateAccountAddressOrAddresses(accountAddressOrAddresses))
+      return;
+
     this.unsubscribeFromTokenTransfersInternal(accountAddressOrAddresses);
   }
 
@@ -478,6 +486,11 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
     loggerProvider.logger.debug('Updated count of the subscribed addresses (include all [null]): ', updatedSubscribedAddressesSize);
 
     return [previousSubscribedAddressesSize, updatedSubscribedAddressesSize];
+  }
+
+  private validateAccountAddressOrAddresses(accountAddressOrAddresses: unknown): accountAddressOrAddresses is string | readonly string[] {
+    return !!((guards.isReadonlyArray(accountAddressOrAddresses) && accountAddressOrAddresses.length)
+      || (typeof accountAddressOrAddresses === 'string' && accountAddressOrAddresses));
   }
 
   private getPreparedOffsetParameter(offsetOrFetchOptions: number | undefined | null | BalancesFetchOptions): number {
