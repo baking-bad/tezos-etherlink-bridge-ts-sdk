@@ -41,7 +41,7 @@ describe('DipDup GraphQL Query Builder', () => {
   test.each(getTokenTransfersQueryTestCases)(
     'Build the getTokenTransfers query %s',
     (_, testData) => {
-      const query = queryBuilder.getTokenTransfersQuery(null, testData.offset, testData.limit);
+      const query = queryBuilder.getTokenTransfersQuery(null, testData.offset, testData.limit, testData.filter);
       const preparedQuery = prepareQueryFormatting(query);
 
       expect(preparedQuery).toBe(testData.expectedQuery);
@@ -51,7 +51,7 @@ describe('DipDup GraphQL Query Builder', () => {
   test.each(getTokenTransfersQueryByAccountAddressesTestCases)(
     'Build the getTokenTransfers query %s',
     (_, testData) => {
-      const query = queryBuilder.getTokenTransfersQuery(testData.address, testData.offset, testData.limit);
+      const query = queryBuilder.getTokenTransfersQuery(testData.address, testData.offset, testData.limit, testData.filter);
       const preparedQuery = prepareQueryFormatting(query);
 
       expect(preparedQuery).toBe(testData.expectedQuery);

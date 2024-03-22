@@ -1,5 +1,5 @@
 import type { DipDupBridgeDataProviderOptions } from './dipDupBridgeDataProviderOptions';
-import { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
+import { DipDupGraphQLQueryBuilder, type GraphQLTransfersFilter } from './dipDupGraphQLQueryBuilder';
 import type { GraphQLResponse, BridgeOperationsDto, TokenBalancesDto } from './dtos';
 import { DipDupAutoUpdateIsDisabledError, DipDupGraphQLError, DipDupTokenBalanceNotSupported, DipDupTokenTransferIdInvalid } from './errors';
 import * as mappers from './mappers';
@@ -314,19 +314,21 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
   ): Promise<BridgeTokenTransfer[]> {
     const offset = this.getPreparedOffsetParameter(fetchOptions);
     const limit = this.getPreparedLimitParameter(fetchOptions);
+    const filter = this.mapTransfersFilterToGraphQLTransfersFilter(fetchOptions?.filter);
 
     loggerProvider.lazyLogger.log?.(addressOrAddresses
       ? `Getting token transfers for ${typeof addressOrAddresses === 'string'
         ? `${addressOrAddresses} address.`
         : `[${addressOrAddresses.join(', ')}] addresses.`}`
       : 'Getting all token transfers.',
-      `Offset == ${offset}; Limit == ${limit}`
+      `Offset == ${offset}; Limit == ${limit}.`,
+      `Filter: ${JSON.stringify(filter)}.`
     );
 
     const bridgeOperationsResponse = await this.fetch<GraphQLResponse<BridgeOperationsDto>>('/v1/graphql', 'json', {
       method: 'POST',
       body: JSON.stringify({
-        query: this.dipDupGraphQLQueryBuilder.getTokenTransfersQuery(addressOrAddresses, offset, limit)
+        query: this.dipDupGraphQLQueryBuilder.getTokenTransfersQuery(addressOrAddresses, offset, limit, filter)
       })
     });
     this.ensureNoDipDupGraphQLErrors(bridgeOperationsResponse);
@@ -398,6 +400,23 @@ export class DipDupBridgeDataProvider extends RemoteService implements Transfers
 
   protected createDipDupGraphQLQueryBuilder(): DipDupGraphQLQueryBuilder {
     return new DipDupGraphQLQueryBuilder();
+  }
+
+  protected mapTransfersFilterToGraphQLTransfersFilter(filter: TransfersFetchOptions['filter']): GraphQLTransfersFilter | null {
+    if (!filter || (!filter.kind && !filter.status))
+      return null;
+
+    const type = filter.kind
+      ? mappers.mapBridgeTokenTransferKindsToBridgeOperationDtoTypes(filter.kind)
+      : undefined;
+    const status = filter.status
+      ? mappers.mapBridgeTokenTransferStatusesToBridgeOperationDtoStatuses(filter.status)
+      : undefined;
+
+    return {
+      type,
+      status
+    };
   }
 
   protected ensureNoDipDupGraphQLErrors<TData>(response: GraphQLResponse<TData>) {

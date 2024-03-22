@@ -79,6 +79,7 @@ export interface BridgeWithdrawalDto {
 
 export interface BridgeOperationDto {
   type: 'deposit' | 'withdrawal';
+  status: 'Created' | 'Sealed' | 'Finished' | 'Failed';
   is_completed: boolean;
   is_successful: boolean;
   created_at: string;

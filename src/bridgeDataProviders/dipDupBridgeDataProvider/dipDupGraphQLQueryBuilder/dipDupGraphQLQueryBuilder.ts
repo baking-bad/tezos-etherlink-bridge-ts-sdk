@@ -10,6 +10,11 @@ interface DipDupGraphQLQueryBuilderQueryParts {
   readonly l2TokenHolderFields: string;
 }
 
+export interface GraphQLTransfersFilter {
+  type?: Array<'deposit' | 'withdrawal'> | null;
+  status?: Array<'Created' | 'Sealed' | 'Finished' | 'Failed'> | null;
+}
+
 export class DipDupGraphQLQueryBuilder {
   protected static readonly defaultQueryParts: DipDupGraphQLQueryBuilderQueryParts = {
     getBridgeOperationsFields,
@@ -49,12 +54,14 @@ export class DipDupGraphQLQueryBuilder {
   getTokenTransfersQuery(
     addressOrAddresses: string | readonly string[] | undefined | null,
     offset: number,
-    limit: number
+    limit: number,
+    filter?: GraphQLTransfersFilter | undefined | null
   ): string {
     return this.getTokenTransfersQueryOrSteamSubscription(
       addressOrAddresses,
       'query',
       'bridge_operation',
+      this.getTransfersFilterWhereCondition(filter),
       `order_by: { created_at: desc }, offset: ${offset}, limit: ${limit}`
     );
   }
@@ -68,6 +75,7 @@ export class DipDupGraphQLQueryBuilder {
       addressOrAddresses,
       'subscription',
       'bridge_operation_stream',
+      undefined,
       `batch_size: ${batchSize}, cursor: {initial_value: {updated_at: "${startUpdatedAt.toISOString()}"}, ordering: ASC}`
     );
   }
@@ -167,22 +175,17 @@ export class DipDupGraphQLQueryBuilder {
     addressOrAddresses: string | readonly string[] | undefined | null,
     queryType: string,
     rootFieldName: string,
+    transfersFilterWhereCondition: string | undefined | null,
     queryExtraArguments: string
   ): GraphQLQuery {
-    let whereArgument = '';
-
-    if (addressOrAddresses) {
-      if (typeof addressOrAddresses === 'string' || (addressOrAddresses.length === 1)) {
-        const address = typeof addressOrAddresses === 'string' ? addressOrAddresses : addressOrAddresses[0]!;
-        whereArgument = this.getTokenTransfersWhereArgumentForOneAddress(address);
-      }
-      else if (addressOrAddresses.length > 1) {
-        whereArgument = this.getTokenTransfersWhereArgumentForMultipleAddresses(addressOrAddresses);
-      }
-    }
-
-    if (whereArgument)
-      whereArgument += ',';
+    const addressOrAddressesWhereCondition = this.getTokenTransfersByAddressOrAddressesWhereCondition(addressOrAddresses);
+    const whereArgument = transfersFilterWhereCondition && addressOrAddressesWhereCondition
+      ? `where: { ${transfersFilterWhereCondition}, ${addressOrAddressesWhereCondition} },`
+      : transfersFilterWhereCondition
+        ? `where: { ${transfersFilterWhereCondition} },`
+        : addressOrAddressesWhereCondition
+          ? `where: { ${addressOrAddressesWhereCondition} },`
+          : '';
 
     return `${queryType} TokenTransfers {
       ${rootFieldName}(
@@ -194,7 +197,45 @@ export class DipDupGraphQLQueryBuilder {
     }`;
   }
 
-  private getTokenTransfersWhereArgumentForOneAddress(address: string): string {
+  protected getTransfersFilterWhereCondition(filter: GraphQLTransfersFilter | undefined | null): string {
+    if (!filter)
+      return '';
+
+    let condition = '';
+
+    if (filter.type) {
+      condition += filter.type.length === 1
+        ? `type: { _eq: "${filter.type[0]}" }`
+        : `type: { _in: ${this.arrayToInOperatorValue(filter.type)} }`;
+    }
+
+    if (filter.status) {
+      if (condition)
+        condition += ', ';
+
+      condition += filter.status.length === 1
+        ? `status: { _eq: "${filter.status[0]}" }`
+        : `status: { _in: ${this.arrayToInOperatorValue(filter.status)} }`;
+    }
+
+    return condition;
+  }
+
+  private getTokenTransfersByAddressOrAddressesWhereCondition(addressOrAddresses: string | readonly string[] | undefined | null) {
+    if (addressOrAddresses) {
+      if (typeof addressOrAddresses === 'string' || (addressOrAddresses.length === 1)) {
+        const address = typeof addressOrAddresses === 'string' ? addressOrAddresses : addressOrAddresses[0]!;
+        return this.getTokenTransfersByOneAddressWhereCondition(address);
+      }
+      else if (addressOrAddresses.length > 1) {
+        return this.getTokenTransfersByMultipleAddressesWhereCondition(addressOrAddresses);
+      }
+    }
+
+    return '';
+  }
+
+  private getTokenTransfersByOneAddressWhereCondition(address: string): string {
     let accountFieldName: string;
     let preparedAddress = address;
 
@@ -206,15 +247,13 @@ export class DipDupGraphQLQueryBuilder {
       accountFieldName = 'l1_account';
     }
 
-    return `where: {
-      _or: [
-    	  { deposit: { l1_transaction: { ${accountFieldName}: { _eq: "${preparedAddress}" } } } }
-        { withdrawal: { l2_transaction: { ${accountFieldName}: { _eq: "${preparedAddress}" } } } } 
-      ]
-    }`;
+    return `_or: [
+      { deposit: { l1_transaction: { ${accountFieldName}: { _eq: "${preparedAddress}" } } } }
+      { withdrawal: { l2_transaction: { ${accountFieldName}: { _eq: "${preparedAddress}" } } } } 
+    ]`;
   }
 
-  private getTokenTransfersWhereArgumentForMultipleAddresses(addresses: readonly string[]): string {
+  private getTokenTransfersByMultipleAddressesWhereCondition(addresses: readonly string[]): string {
     const { tezosAddresses, etherlinkAddresses } = this.splitAddressesToTezosAndEtherlinkAddresses(addresses);
     const isNeedRootOrOperator = tezosAddresses.length > 0 && etherlinkAddresses.length > 0;
 
@@ -239,7 +278,7 @@ export class DipDupGraphQLQueryBuilder {
     if (isNeedRootOrOperator)
       transactionCondition += ' ] }';
 
-    return `where: { _or: [
+    return `_or: [
       {
         deposit: { 
           l1_transaction: ${transactionCondition}
@@ -250,7 +289,7 @@ export class DipDupGraphQLQueryBuilder {
           l2_transaction: ${transactionCondition}
         }
       }
-    ] }`;
+    ]`;
   }
 
   private splitAddressesToTezosAndEtherlinkAddresses(

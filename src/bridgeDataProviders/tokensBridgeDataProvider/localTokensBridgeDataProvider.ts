@@ -63,7 +63,7 @@ export class LocalTokensBridgeDataProvider implements TokensBridgeDataProvider {
     const offset = fetchOptions.offset || 0;
     const limit = fetchOptions.limit && (fetchOptions.limit + offset);
 
-    return Promise.resolve(this.tokenPairs.slice(offset, limit));
+    return Promise.resolve(this.tokenPairs.slice(offset, limit || undefined));
   }
 
   private createTokenPairsByTokenMap(tokenPairs: readonly TokenPair[]): TokenPairsByTokenMap {

@@ -248,3 +248,45 @@ export const mapTokenBalancesDtoToAccountTokenBalances = (dto: TokenBalancesDto,
     } satisfies AccountTokenBalances;
   }
 };
+
+const tokenTransferKindToBridgeOperationDtoTypeMap = new Map<BridgeTokenTransferKind, BridgeOperationDto['type']>()
+  .set(BridgeTokenTransferKind.Deposit, 'deposit')
+  .set(BridgeTokenTransferKind.Withdrawal, 'withdrawal');
+
+export const mapBridgeTokenTransferKindToBridgeOperationDtoType = (kind: BridgeTokenTransferKind): BridgeOperationDto['type'] | null => {
+  return tokenTransferKindToBridgeOperationDtoTypeMap.get(kind) || null;
+};
+
+export const mapBridgeTokenTransferKindsToBridgeOperationDtoTypes = (kinds: readonly BridgeTokenTransferKind[]): Array<BridgeOperationDto['type']> => {
+  const result: Array<BridgeOperationDto['type']> = [];
+
+  for (const kind of kinds) {
+    const type = mapBridgeTokenTransferKindToBridgeOperationDtoType(kind);
+    if (type)
+      result.push(type);
+  }
+
+  return result;
+};
+
+const tokenTransferStatusToBridgeOperationDtoStatusMap = new Map<BridgeTokenTransferStatus, BridgeOperationDto['status']>()
+  .set(BridgeTokenTransferStatus.Created, 'Created')
+  .set(BridgeTokenTransferStatus.Sealed, 'Sealed')
+  .set(BridgeTokenTransferStatus.Finished, 'Finished')
+  .set(BridgeTokenTransferStatus.Failed, 'Failed');
+
+export const mapBridgeTokenTransferStatusToBridgeOperationDtoStatus = (status: BridgeTokenTransferStatus): BridgeOperationDto['status'] | null => {
+  return tokenTransferStatusToBridgeOperationDtoStatusMap.get(status) || null;
+};
+
+export const mapBridgeTokenTransferStatusesToBridgeOperationDtoStatuses = (statuses: readonly BridgeTokenTransferStatus[]): Array<BridgeOperationDto['status']> => {
+  const result: Array<BridgeOperationDto['status']> = [];
+
+  for (const status of statuses) {
+    const type = mapBridgeTokenTransferStatusToBridgeOperationDtoStatus(status);
+    if (type)
+      result.push(type);
+  }
+
+  return result;
+};

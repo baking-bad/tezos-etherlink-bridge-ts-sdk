@@ -40,7 +40,7 @@ export class TzKTBalancesProvider extends RemoteService implements BalancesBridg
       : this.getAllTokenBalances(accountAddress, tokensOrFetchOptions?.offset, tokensOrFetchOptions?.limit);
   }
 
-  protected async getAllTokenBalances(accountAddress: string, offset?: number, limit?: number) {
+  protected async getAllTokenBalances(accountAddress: string, offset?: number | null, limit?: number | null) {
     loggerProvider.logger.log(`Getting balances of the all tokens for the ${accountAddress} address`);
 
     let accountTokenBalances: AccountTokenBalances;
@@ -127,8 +127,8 @@ export class TzKTBalancesProvider extends RemoteService implements BalancesBridg
   protected async getNonNativeTezosTokenBalances(
     address: string,
     tokenOrTokens: NonNativeTezosToken | readonly NonNativeTezosToken[] | null | undefined,
-    offset?: number,
-    limit?: number
+    offset?: number | null,
+    limit?: number | null
   ): Promise<AccountTokenBalances> {
     const queryParams = this.getNonNativeTezosTokenBalancesQueryParams(address, tokenOrTokens);
     if (offset && offset > 0)

@@ -1,1 +1,1 @@
-export { DipDupGraphQLQueryBuilder } from './dipDupGraphQLQueryBuilder';
+export { DipDupGraphQLQueryBuilder, type GraphQLTransfersFilter } from './dipDupGraphQLQueryBuilder';

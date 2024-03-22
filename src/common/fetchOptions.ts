@@ -1,4 +1,4 @@
 export interface FetchOptions {
-  offset?: number;
-  limit?: number;
+  offset?: number | null;
+  limit?: number | null;
 }
