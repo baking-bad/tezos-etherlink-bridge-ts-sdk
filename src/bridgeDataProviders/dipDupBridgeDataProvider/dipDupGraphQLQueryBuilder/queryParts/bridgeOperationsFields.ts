@@ -1,5 +1,6 @@
 export const getBridgeOperationsFields = (bridgeDepositFields: string | null, bridgeWithdrawalFields: string | null) => `
 type
+status
 is_completed
 is_successful
 created_at

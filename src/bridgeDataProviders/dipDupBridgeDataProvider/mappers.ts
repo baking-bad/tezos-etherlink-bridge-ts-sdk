@@ -189,7 +189,7 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
 };
 
 export const mapBridgeOperationDtoToBridgeTokenTransfer = (dto: BridgeOperationDto): BridgeTokenTransfer | null => {
-  const isFailed = dto.is_completed && !dto.is_successful;
+  const isFailed = dto.status === 'Failed';
 
   return dto.type === 'deposit'
     ? mapBridgeDepositDtoToDepositBridgeTokenTransfer(dto.deposit!, isFailed)
