@@ -31,8 +31,8 @@
   },
   "dependencies": {
     "@taquito/utils": "^19.1.0",
-    "web3-utils": "^4.2.0",
-    "web3-validator": "^2.0.4"
+    "web3-utils": "^4.2.2",
+    "web3-validator": "^2.0.5"
   },
   "peerDependencies": {
     "@taquito/taquito": ">=19.0.0",
