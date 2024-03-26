@@ -1,7 +1,7 @@
 import type {
   BridgeDepositDto, BridgeWithdrawalDto,
   BridgeOperationDto, BridgeOperationsDto, BridgeOperationsStreamDto,
-  TezosTokenDto, TokenBalancesDto
+  TezosTokenDto, TokenBalancesDto,
 } from './dtos';
 import {
   BridgeTokenTransferKind, BridgeTokenTransferStatus,
@@ -10,7 +10,7 @@ import {
 } from '../../bridgeCore';
 import { getErrorLogMessage, loggerProvider } from '../../logging';
 import type { TezosToken, EtherlinkToken } from '../../tokens';
-import { bridgeUtils, etherlinkUtils } from '../../utils';
+import { bridgeUtils, etherlinkUtils, guards } from '../../utils';
 import type { AccountTokenBalance, AccountTokenBalances } from '../balancesBridgeDataProvider';
 
 const mapTezosTokenDtoToTezosToken = (tezosTokenDto: TezosTokenDto | undefined | null): TezosToken => {
@@ -42,7 +42,7 @@ const mapEtherlinkTokenDtoToEtherlinkToken = (etherlinkTokenId: string | undefin
     };
 };
 
-export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto, isFailed: boolean): BridgeTokenDeposit | null => {
+export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepositDto, isFailed: boolean, error?: string): BridgeTokenDeposit | null => {
   try {
     const source = dto.l1_transaction.l1_account;
     const receiver = etherlinkUtils.toChecksumAddress(dto.l1_transaction.l2_account);
@@ -73,6 +73,7 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
         id,
         kind: BridgeTokenTransferKind.Deposit,
         status: BridgeTokenTransferStatus.Failed,
+        error,
         source,
         receiver,
         tezosOperation,
@@ -103,7 +104,7 @@ export const mapBridgeDepositDtoToDepositBridgeTokenTransfer = (dto: BridgeDepos
   }
 };
 
-export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: BridgeWithdrawalDto, isFailed: boolean): BridgeTokenWithdrawal | null => {
+export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: BridgeWithdrawalDto, isFailed: boolean, error?: string): BridgeTokenWithdrawal | null => {
   try {
     const source = etherlinkUtils.toChecksumAddress(dto.l2_transaction.l2_account);
     const receiver = dto.l2_transaction.l1_account;
@@ -141,6 +142,7 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
         id,
         kind: BridgeTokenTransferKind.Withdrawal,
         status: BridgeTokenTransferStatus.Failed,
+        error,
         source,
         receiver,
         tezosOperation,
@@ -189,11 +191,12 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
 };
 
 export const mapBridgeOperationDtoToBridgeTokenTransfer = (dto: BridgeOperationDto): BridgeTokenTransfer | null => {
-  const isFailed = dto.status === 'Failed';
+  const isFailed = dto.status.startsWith('FAILED');
+  const error = isFailed && dto.status !== 'FAILED' ? dto.status.replace('FAILED_', '') : undefined;
 
   return dto.type === 'deposit'
-    ? mapBridgeDepositDtoToDepositBridgeTokenTransfer(dto.deposit!, isFailed)
-    : mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(dto.withdrawal!, isFailed);
+    ? mapBridgeDepositDtoToDepositBridgeTokenTransfer(dto.deposit!, isFailed, error)
+    : mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer(dto.withdrawal!, isFailed, error);
 };
 
 export const mapBridgeOperationsDtoToBridgeTokenTransfer = (dto: BridgeOperationsDto | BridgeOperationsStreamDto): BridgeTokenTransfer[] => {
@@ -269,23 +272,42 @@ export const mapBridgeTokenTransferKindsToBridgeOperationDtoTypes = (kinds: read
   return result;
 };
 
-const tokenTransferStatusToBridgeOperationDtoStatusMap = new Map<BridgeTokenTransferStatus, BridgeOperationDto['status']>()
-  .set(BridgeTokenTransferStatus.Created, 'Created')
-  .set(BridgeTokenTransferStatus.Sealed, 'Sealed')
-  .set(BridgeTokenTransferStatus.Finished, 'Finished')
-  .set(BridgeTokenTransferStatus.Failed, 'Failed');
-
-export const mapBridgeTokenTransferStatusToBridgeOperationDtoStatus = (status: BridgeTokenTransferStatus): BridgeOperationDto['status'] | null => {
-  return tokenTransferStatusToBridgeOperationDtoStatusMap.get(status) || null;
+export const mapBridgeTokenTransferStatusToBridgeOperationDtoStatuses = (status: BridgeTokenTransferStatus): BridgeOperationDto['status'] | Array<BridgeOperationDto['status']> | null => {
+  switch (status) {
+    case BridgeTokenTransferStatus.Created:
+      return 'CREATED';
+    case BridgeTokenTransferStatus.Sealed:
+      return 'SEALED';
+    case BridgeTokenTransferStatus.Finished:
+      return 'FINISHED';
+    case BridgeTokenTransferStatus.Failed:
+      return [
+        'FAILED',
+        'FAILED_INVALID_ROUTING_INFO_REVERTABLE',
+        'FAILED_INVALID_ROUTING_PROXY_NOT_WHITELISTED',
+        'FAILED_INVALID_ROUTING_PROXY_EMPTY_PROXY',
+        'FAILED_INVALID_ROUTING_INVALID_PROXY_ADDRESS',
+        'FAILED_OUTBOX_EXPIRED'
+      ];
+    default:
+      return null;
+  }
 };
 
 export const mapBridgeTokenTransferStatusesToBridgeOperationDtoStatuses = (statuses: readonly BridgeTokenTransferStatus[]): Array<BridgeOperationDto['status']> => {
   const result: Array<BridgeOperationDto['status']> = [];
 
   for (const status of statuses) {
-    const type = mapBridgeTokenTransferStatusToBridgeOperationDtoStatus(status);
-    if (type)
-      result.push(type);
+    const type = mapBridgeTokenTransferStatusToBridgeOperationDtoStatuses(status);
+    if (type) {
+      if (guards.isArray(type)) {
+        for (const t of type)
+          result.push(t);
+      }
+      else {
+        result.push(type);
+      }
+    }
   }
 
   return result;

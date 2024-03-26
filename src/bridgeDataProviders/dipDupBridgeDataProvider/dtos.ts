@@ -1,3 +1,18 @@
+export type BridgeOperationCommonStatus =
+  | 'CREATED'
+  | 'SEALED'
+  | 'FINISHED'
+  | 'FAILED';
+
+export type BridgeOperationFailedStatus =
+  | 'FAILED_INVALID_ROUTING_INFO_REVERTABLE'
+  | 'FAILED_INVALID_ROUTING_PROXY_NOT_WHITELISTED'
+  | 'FAILED_INVALID_ROUTING_PROXY_EMPTY_PROXY'
+  | 'FAILED_INVALID_ROUTING_INVALID_PROXY_ADDRESS'
+  | 'FAILED_OUTBOX_EXPIRED';
+
+export type BridgeOperationStatus = BridgeOperationCommonStatus | BridgeOperationFailedStatus;
+
 export interface TezosTokenDto {
   type: string;
   contract_address: string;
@@ -79,7 +94,7 @@ export interface BridgeWithdrawalDto {
 
 export interface BridgeOperationDto {
   type: 'deposit' | 'withdrawal';
-  status: 'Created' | 'Sealed' | 'Finished' | 'Failed';
+  status: BridgeOperationStatus;
   is_completed: boolean;
   is_successful: boolean;
   created_at: string;

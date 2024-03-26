@@ -10,9 +10,22 @@ interface DipDupGraphQLQueryBuilderQueryParts {
   readonly l2TokenHolderFields: string;
 }
 
+type BridgeOperationType = 'deposit' | 'withdrawal';
+
+type BridgeOperationStatus =
+  | 'CREATED'
+  | 'SEALED'
+  | 'FINISHED'
+  | 'FAILED'
+  | 'FAILED_INVALID_ROUTING_INFO_REVERTABLE'
+  | 'FAILED_INVALID_ROUTING_PROXY_NOT_WHITELISTED'
+  | 'FAILED_INVALID_ROUTING_PROXY_EMPTY_PROXY'
+  | 'FAILED_INVALID_ROUTING_INVALID_PROXY_ADDRESS'
+  | 'FAILED_OUTBOX_EXPIRED';
+
 export interface GraphQLTransfersFilter {
-  type?: Array<'deposit' | 'withdrawal'> | null;
-  status?: Array<'Created' | 'Sealed' | 'Finished' | 'Failed'> | null;
+  type?: BridgeOperationType[] | null;
+  status?: BridgeOperationStatus[] | null;
 }
 
 export class DipDupGraphQLQueryBuilder {

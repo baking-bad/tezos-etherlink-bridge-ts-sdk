@@ -88,6 +88,7 @@ export interface FailedBridgeTokenDeposit extends BridgeTokenTransferBase {
   readonly id: string;
   readonly kind: BridgeTokenTransferKind.Deposit;
   readonly status: BridgeTokenTransferStatus.Failed;
+  readonly error?: string;
   readonly tezosOperation: TezosTransferTokensOperation;
   readonly etherlinkOperation?: EtherlinkTransferTokensOperation;
 }
@@ -138,6 +139,7 @@ export interface FailedBridgeTokenWithdrawal extends BridgeTokenTransferBase {
   readonly id: string;
   readonly kind: BridgeTokenTransferKind.Withdrawal;
   readonly status: BridgeTokenTransferStatus.Failed;
+  readonly error?: string;
   readonly etherlinkOperation: EtherlinkTransferTokensOperation;
   readonly rollupData?: Partial<CementedRollupData>;
   readonly tezosOperation?: TezosTransferTokensOperation;
