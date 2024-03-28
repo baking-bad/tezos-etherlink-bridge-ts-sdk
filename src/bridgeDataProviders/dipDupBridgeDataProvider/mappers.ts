@@ -287,7 +287,8 @@ export const mapBridgeTokenTransferStatusToBridgeOperationDtoStatuses = (status:
         'FAILED_INVALID_ROUTING_PROXY_NOT_WHITELISTED',
         'FAILED_INVALID_ROUTING_PROXY_EMPTY_PROXY',
         'FAILED_INVALID_ROUTING_INVALID_PROXY_ADDRESS',
-        'FAILED_OUTBOX_EXPIRED'
+        'FAILED_OUTBOX_EXPIRED',
+        'FAILED_INBOX_MATCHING_TIMEOUT'
       ];
     default:
       return null;

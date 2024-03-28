@@ -9,7 +9,8 @@ export type BridgeOperationFailedStatus =
   | 'FAILED_INVALID_ROUTING_PROXY_NOT_WHITELISTED'
   | 'FAILED_INVALID_ROUTING_PROXY_EMPTY_PROXY'
   | 'FAILED_INVALID_ROUTING_INVALID_PROXY_ADDRESS'
-  | 'FAILED_OUTBOX_EXPIRED';
+  | 'FAILED_OUTBOX_EXPIRED'
+  | 'FAILED_INBOX_MATCHING_TIMEOUT';
 
 export type BridgeOperationStatus = BridgeOperationCommonStatus | BridgeOperationFailedStatus;
 
