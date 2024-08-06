@@ -26,6 +26,15 @@ interface InboxMessageDto {
   index: number;
 }
 
+interface OutboxMessageDto {
+  level: number;
+  index: number;
+  commitment: { hash: string; } | null;
+  proof: string | null;
+  cemented_at: string;
+  cemented_level: number;
+}
+
 interface TezosTicketDto {
   token: TezosTokenDto;
 }
@@ -40,7 +49,6 @@ interface DepositL1TransactionDto {
   l1_account: string;
   l2_account: string;
   timestamp: string;
-  inbox_message: InboxMessageDto;
 }
 
 interface DepositL2TransactionDto {
@@ -57,6 +65,7 @@ interface DepositL2TransactionDto {
 export interface BridgeDepositDto {
   l1_transaction: DepositL1TransactionDto;
   l2_transaction: DepositL2TransactionDto | null;
+  inbox_message: InboxMessageDto | null;
 }
 
 interface WithdrawalL1TransactionDto {
@@ -65,6 +74,7 @@ interface WithdrawalL1TransactionDto {
   counter: number;
   nonce: number | null;
   timestamp: string;
+  outbox_message: OutboxMessageDto;
 }
 
 interface WithdrawalL2TransactionDto {
@@ -79,18 +89,12 @@ interface WithdrawalL2TransactionDto {
   l1_account: string;
   l2_account: string;
   timestamp: string;
-  outbox_message: {
-    level: number;
-    index: number;
-    commitment: { hash: string; } | null;
-    proof: string | null;
-    cemented_at: string | null;
-  }
 }
 
 export interface BridgeWithdrawalDto {
   l1_transaction: WithdrawalL1TransactionDto | null;
   l2_transaction: WithdrawalL2TransactionDto;
+  outbox_message: OutboxMessageDto | null;
 }
 
 export interface BridgeOperationDto {

@@ -15,11 +15,6 @@ l1_transaction {
   l1_account
   l2_account
   timestamp
-  inbox_message {
-    type
-    level
-    index
-  }
 }
 l2_transaction {
   level
@@ -30,4 +25,9 @@ l2_transaction {
     id
   }
   timestamp
+}
+inbox_message {
+  type
+  level
+  index
 }`;
