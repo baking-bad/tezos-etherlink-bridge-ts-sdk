@@ -1,6 +1,6 @@
 {
   "name": "@baking-bad/tezos-etherlink-bridge-sdk",
-  "version": "0.2.5",
+  "version": "0.3.0",
   "description": "SDK designed for building token bridge applications between Tezos (L1) and Etherlink (L2)",
   "license": "MIT",
   "author": "Baking Bad (https://bakingbad.dev)",
