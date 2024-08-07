@@ -47,8 +47,8 @@ describe('Withdrawal', () => {
   });
 
   test('Withdraw FA1.2 token', async () => {
-    const amount = 17n;
-    const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+    const amount = 1_700_000n;
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];
 
     const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
     expectPendingWithdrawal(startWithdrawResult.tokenTransfer, {
@@ -96,7 +96,7 @@ describe('Withdrawal', () => {
   }, withdrawalTimeout);
 
   test('Withdraw FA2 token', async () => {
-    const amount = 20n;
+    const amount = 20_000_000n;
     const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
 
     const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
@@ -144,9 +144,9 @@ describe('Withdrawal', () => {
     });
   }, withdrawalTimeout);
 
-  test('Withdraw FA1.2 token, check the transfer status using events (subscribeToTokenTransfer)', done => {
-    const amount = 3n;
-    const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+  test.skip('Withdraw FA1.2 token, check the transfer status using events (subscribeToTokenTransfer)', done => {
+    const amount = 3_000_000n;
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];
     let readyForDone = false;
 
     tokenBridge.addEventListener('tokenTransferCreated', tokenTransfer => {

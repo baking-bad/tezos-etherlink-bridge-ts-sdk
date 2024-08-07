@@ -24,13 +24,14 @@ l2_transaction {
   l1_account
   l2_account
   timestamp
-  outbox_message {
-    level
-    index
-    commitment {
-      hash
-    }
-    proof
-    cemented_at
+}
+outbox_message {
+  level
+  index
+  commitment {
+    hash
   }
+  proof
+  cemented_at
+  cemented_level
 }`;

@@ -40,10 +40,10 @@ describe('Balances', () => {
 
   test.each([
     () => [testTezosAccountAddress, tokens.tezos.tez] as const,
-    () => [testTezosAccountAddress, tokens.tezos.ctez] as const,
+    () => [testTezosAccountAddress, tokens.tezos.tzbtc] as const,
     () => [testTezosAccountAddress, tokens.tezos.usdt] as const,
     () => [testEtherlinkAccountAddress, tokens.etherlink.tez] as const,
-    () => [testEtherlinkAccountAddress, tokens.etherlink.ctez] as const,
+    () => [testEtherlinkAccountAddress, tokens.etherlink.tzbtc] as const,
     () => [testEtherlinkAccountAddress, tokens.etherlink.usdt] as const,
   ])('Get the balance for a specific address and token: %#', async getTestData => {
     const [address, token] = getTestData();
@@ -59,30 +59,30 @@ describe('Balances', () => {
 
   test.each([
     () => [testTezosAccountAddress, [tokens.tezos.tez], [tokens.tezos.tez]] as const,
-    () => [testTezosAccountAddress, [tokens.tezos.ctez], [tokens.tezos.ctez]] as const,
-    () => [testTezosAccountAddress, [tokens.tezos.ctez, tokens.tezos.usdt], [tokens.tezos.ctez, tokens.tezos.usdt]] as const,
+    () => [testTezosAccountAddress, [tokens.tezos.tzbtc], [tokens.tezos.tzbtc]] as const,
+    () => [testTezosAccountAddress, [tokens.tezos.tzbtc, tokens.tezos.usdt], [tokens.tezos.tzbtc, tokens.tezos.usdt]] as const,
     () => [
       testTezosAccountAddress,
-      [tokens.tezos.ctez, tokens.tezos.tez, tokens.tezos.usdt],
-      [tokens.tezos.tez, tokens.tezos.ctez, tokens.tezos.usdt]
+      [tokens.tezos.tzbtc, tokens.tezos.tez, tokens.tezos.usdt],
+      [tokens.tezos.tez, tokens.tezos.tzbtc, tokens.tezos.usdt]
     ] as const,
     () => [
       testTezosAccountAddress,
-      [tokens.tezos.ctez, tokens.etherlink.ctez, tokens.tezos.tez, tokens.tezos.usdt],
-      [tokens.tezos.ctez, tokens.tezos.tez, tokens.tezos.usdt]
+      [tokens.tezos.tzbtc, tokens.etherlink.tzbtc, tokens.tezos.tez, tokens.tezos.usdt],
+      [tokens.tezos.tzbtc, tokens.tezos.tez, tokens.tezos.usdt]
     ] as const,
     () => [
       testTezosAccountAddress,
-      [tokens.tezos.ctez, tokens.etherlink.ctez, tokens.tezos.tez, tokens.etherlink.tez, tokens.tezos.usdt],
-      [tokens.tezos.ctez, tokens.tezos.tez, tokens.tezos.usdt]
+      [tokens.tezos.tzbtc, tokens.etherlink.tzbtc, tokens.tezos.tez, tokens.etherlink.tez, tokens.tezos.usdt],
+      [tokens.tezos.tzbtc, tokens.tezos.tez, tokens.tezos.usdt]
     ] as const,
     () => [testEtherlinkAccountAddress, [tokens.etherlink.tez], [tokens.etherlink.tez]] as const,
-    () => [testEtherlinkAccountAddress, [tokens.etherlink.ctez], [tokens.etherlink.ctez],] as const,
-    () => [testEtherlinkAccountAddress, [tokens.etherlink.ctez, tokens.etherlink.usdt], [tokens.etherlink.ctez, tokens.etherlink.usdt]] as const,
+    () => [testEtherlinkAccountAddress, [tokens.etherlink.tzbtc], [tokens.etherlink.tzbtc]] as const,
+    () => [testEtherlinkAccountAddress, [tokens.etherlink.tzbtc, tokens.etherlink.usdt], [tokens.etherlink.tzbtc, tokens.etherlink.usdt]] as const,
     () => [
       testEtherlinkAccountAddress,
-      [tokens.etherlink.ctez, tokens.tezos.ctez, tokens.tezos.tez, tokens.etherlink.usdt],
-      [tokens.etherlink.ctez, tokens.etherlink.tez, tokens.etherlink.usdt]
+      [tokens.etherlink.tzbtc, tokens.tezos.tzbtc, tokens.tezos.tez, tokens.etherlink.usdt],
+      [tokens.etherlink.tzbtc, tokens.etherlink.tez, tokens.etherlink.usdt]
     ] as const,
   ])('Get the balance for a specific address and tokens: %#', async getTestData => {
     const [address, tokens, expectedTokens] = getTestData();
@@ -113,7 +113,7 @@ describe('Balances', () => {
           balance: expect.any(BigInt)
         },
         {
-          token: tokens.tezos.ctez,
+          token: tokens.tezos.tzbtc,
           balance: expect.any(BigInt)
         },
         {
@@ -137,7 +137,7 @@ describe('Balances', () => {
           balance: expect.any(BigInt)
         },
         {
-          token: tokens.etherlink.ctez,
+          token: tokens.etherlink.tzbtc,
           balance: expect.any(BigInt)
         },
         {
