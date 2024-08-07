@@ -46,7 +46,7 @@ describe('Withdrawal', () => {
     tokenBridge[Symbol.dispose]();
   });
 
-  test.only('Withdraw FA1.2 token', async () => {
+  test('Withdraw FA1.2 token', async () => {
     const amount = 1_700_000n;
     const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];
 
