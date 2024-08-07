@@ -20,8 +20,8 @@ import {
 export interface Web3EtherlinkBridgeBlockchainServiceOptions {
   web3: Web3;
   kernelAddress?: string;
-  withdrawNativeTokenPrecompileAddress?: string;
-  withdrawNonNativeTokenPrecompileAddress?: string;
+  nativeTokenBridgePrecompileAddress?: string;
+  nonNativeTokenBridgePrecompileAddress?: string;
 }
 
 export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBlockchainService<
@@ -38,8 +38,8 @@ export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBloc
 
   constructor(options: Web3EtherlinkBridgeBlockchainServiceOptions) {
     this.web3 = options.web3;
-    this.nativeTokenBridgePrecompiledAddress = options.withdrawNativeTokenPrecompileAddress || defaultAddresses.withdrawNativeTokenPrecompileAddress;
-    this.nonNativeTokenBridgePrecompiledAddress = options.withdrawNonNativeTokenPrecompileAddress || defaultAddresses.withdrawNonNativeTokenPrecompileAddress;
+    this.nativeTokenBridgePrecompiledAddress = options.nativeTokenBridgePrecompileAddress || defaultAddresses.nativeTokenBridgePrecompileAddress;
+    this.nonNativeTokenBridgePrecompiledAddress = options.nonNativeTokenBridgePrecompileAddress || defaultAddresses.nonNativeTokenBridgePrecompileAddress;
 
     this.nativeTokenBridgePrecompile = new this.web3.eth.Contract(
       nativeTokenBridgePrecompile,
