@@ -1,5 +1,5 @@
 export const defaultAddresses = {
   etherlinkKernelAddress: '0x0000000000000000000000000000000000000000',
-  withdrawNativeTokenPrecompileAddress: '0x0000000000000000000000000000000000000020',
-  withdrawNonNativeTokenPrecompileAddress: '0x0000000000000000000000000000000000000040'
+  withdrawNativeTokenPrecompileAddress: '0xff00000000000000000000000000000000000001',
+  withdrawNonNativeTokenPrecompileAddress: '0xff00000000000000000000000000000000000002'
 } as const;

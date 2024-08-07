@@ -23,6 +23,7 @@ export interface InitialRollupData {
   readonly outboxMessageLevel: number;
   readonly outboxMessageIndex: number;
   readonly estimatedOutboxMessageExecutionTimestamp?: string;
+  readonly estimatedOutboxMessageExecutionLevel?: number;
 }
 
 export interface CementedRollupData {

@@ -33,4 +33,5 @@ outbox_message {
   }
   proof
   cemented_at
+  cemented_level
 }`;

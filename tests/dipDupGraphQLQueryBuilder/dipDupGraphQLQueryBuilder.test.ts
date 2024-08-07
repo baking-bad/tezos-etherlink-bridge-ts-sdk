@@ -31,7 +31,7 @@ describe('DipDup GraphQL Query Builder', () => {
   test.each(getOperationTokenTransfersQueryTestCases)(
     'Build the getOperationTokenTransfers query %s',
     (_, testData) => {
-      const query = queryBuilder.getTokenTransferQuery(testData.operationHash);
+      const query = queryBuilder.getOperationTokenTransfersQuery(testData.operationHash);
       const preparedQuery = prepareQueryFormatting(query);
 
       expect(preparedQuery).toBe(testData.expectedQuery);

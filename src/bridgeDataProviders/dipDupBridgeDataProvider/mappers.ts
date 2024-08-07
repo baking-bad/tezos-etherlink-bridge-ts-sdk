@@ -129,12 +129,19 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
         timestamp: dto.l1_transaction.timestamp
       }
       : undefined;
-    const rollupData = {
-      outboxMessageLevel: dto.outbox_message?.level || 0,
-      outboxMessageIndex: dto.outbox_message?.index || 0,
-      commitment: dto.outbox_message?.commitment?.hash || '',
-      proof: dto.outbox_message?.proof || ''
-    };
+    const rollupData = dto.outbox_message
+      ? {
+        outboxMessageLevel: dto.outbox_message.level,
+        outboxMessageIndex: dto.outbox_message.index,
+        commitment: dto.outbox_message.commitment?.hash || '',
+        proof: dto.outbox_message.proof || ''
+      }
+      : {
+        outboxMessageLevel: 0,
+        outboxMessageIndex: 0,
+        commitment: '',
+        proof: ''
+      };
     const id = bridgeUtils.convertOperationDataToTokenTransferId(etherlinkOperation.hash, etherlinkOperation.logIndex);
 
     return isFailed
@@ -178,9 +185,10 @@ export const mapBridgeWithdrawalDtoToWithdrawalBridgeTokenTransfer = (dto: Bridg
             receiver,
             etherlinkOperation,
             rollupData: {
-              outboxMessageLevel: dto.outbox_message?.level || 0,
-              outboxMessageIndex: dto.outbox_message?.index || 0,
-              estimatedOutboxMessageExecutionTimestamp: dto.outbox_message?.cemented_at || undefined
+              outboxMessageLevel: rollupData.outboxMessageLevel,
+              outboxMessageIndex: rollupData.outboxMessageIndex,
+              estimatedOutboxMessageExecutionTimestamp: dto.outbox_message?.cemented_at || undefined,
+              estimatedOutboxMessageExecutionLevel: dto.outbox_message?.cemented_level || undefined,
             }
           };
   }
