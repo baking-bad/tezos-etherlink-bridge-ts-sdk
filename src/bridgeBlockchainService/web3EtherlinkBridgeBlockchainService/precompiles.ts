@@ -1,5 +1,6 @@
 import type { Contract } from 'web3';
 
-import { kernelContractAbi } from '../etherlinkBridgeBlockchainService';
+import { nativeTokenBridgePrecompile, nonNativeTokenBridgePrecompile } from '../etherlinkBridgeBlockchainService';
 
-export type WithdrawNonNativeTokenPrecompile = Contract<typeof kernelContractAbi>;
+export type NativeTokenBridgePrecompile = Contract<typeof nativeTokenBridgePrecompile>;
+export type NonNativeTokenBridgePrecompile = Contract<typeof nonNativeTokenBridgePrecompile>;

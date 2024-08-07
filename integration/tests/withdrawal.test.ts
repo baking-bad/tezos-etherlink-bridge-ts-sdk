@@ -46,6 +46,55 @@ describe('Withdrawal', () => {
     tokenBridge[Symbol.dispose]();
   });
 
+  test('Withdraw native token', async () => {
+    const amount = 1n * (10n ** 18n);
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tez, tokens.etherlink.tez];
+
+    const startWithdrawResult = await tokenBridge.startWithdraw(amount, etherlinkToken);
+    expectPendingWithdrawal(startWithdrawResult.tokenTransfer, {
+      amount,
+      source: testEtherlinkAccountAddress,
+      receiver: testTezosAccountAddress,
+      etherlinkToken
+    });
+
+    const createdBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
+      startWithdrawResult.tokenTransfer,
+      BridgeTokenTransferStatus.Created
+    );
+    expectCreatedWithdrawal(createdBridgeTokenWithdrawal, {
+      amount,
+      source: testEtherlinkAccountAddress,
+      receiver: testTezosAccountAddress,
+      etherlinkToken
+    });
+
+    const sealedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
+      createdBridgeTokenWithdrawal,
+      BridgeTokenTransferStatus.Sealed
+    );
+    expectSealedWithdrawal(sealedBridgeTokenWithdrawal, {
+      amount,
+      source: testEtherlinkAccountAddress,
+      receiver: testTezosAccountAddress,
+      etherlinkToken
+    });
+
+    const finishWithdrawResult = await tokenBridge.finishWithdraw(sealedBridgeTokenWithdrawal);
+    const finishedBridgeTokenWithdrawal = await tokenBridge.waitForStatus(
+      finishWithdrawResult.tokenTransfer,
+      BridgeTokenTransferStatus.Finished
+    );
+    expectFinishedWithdrawal(finishedBridgeTokenWithdrawal, {
+      inAmount: amount,
+      outAmount: amount,
+      source: testEtherlinkAccountAddress,
+      receiver: testTezosAccountAddress,
+      etherlinkToken,
+      tezosToken
+    });
+  }, withdrawalTimeout);
+
   test('Withdraw FA1.2 token', async () => {
     const amount = 1_700_000n;
     const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];

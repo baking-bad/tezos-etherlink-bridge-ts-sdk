@@ -1,4 +1,4 @@
-export const kernelContractAbi = [
+export const nonNativeTokenBridgePrecompile = [
   {
     anonymous: false,
     inputs: [

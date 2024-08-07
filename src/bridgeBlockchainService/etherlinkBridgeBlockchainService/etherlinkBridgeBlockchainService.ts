@@ -43,6 +43,6 @@ export interface EtherlinkBridgeBlockchainService<
   withdrawNativeToken(params: WithdrawNativeTokenParams): Promise<WithdrawNativeTokenResult & TWithdrawNativeTokenExtraResult>;
   withdrawNonNativeToken(params: WithdrawNonNativeTokenParams): Promise<WithdrawNonNativeTokenResult & TWithdrawNonNativeTokenExtraResult>;
 
-  createDepositNativeTokenOperation(params: CreateWithdrawNativeTokenOperationParams): Promise<TCreateWithdrawNativeTokenOperationResult>;
-  createDepositNonNativeTokenOperation(params: CreateWithdrawNonNativeTokenOperationParams): Promise<TCreateWithdrawNonNativeTokenOperationResult>;
+  createWithdrawNativeTokenOperation(params: CreateWithdrawNativeTokenOperationParams): Promise<TCreateWithdrawNativeTokenOperationResult>;
+  createWithdrawNonNativeTokenOperation(params: CreateWithdrawNonNativeTokenOperationParams): Promise<TCreateWithdrawNonNativeTokenOperationResult>;
 }

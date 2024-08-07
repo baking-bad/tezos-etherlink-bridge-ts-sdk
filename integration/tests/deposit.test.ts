@@ -49,7 +49,7 @@ describe('Deposit', () => {
 
   test('Deposit native token', async () => {
     const amount = 1_000_000n;
-    const [tezosToken, etherlinkToken]: [NativeTezosToken, NativeEtherlinkToken] = [tokens.tezos.tez, tokens.etherlink.tez];
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tez, tokens.etherlink.tez];
 
     const depositResult = await tokenBridge.deposit(amount, tezosToken);
     expectPendingDeposit(depositResult.tokenTransfer, {
