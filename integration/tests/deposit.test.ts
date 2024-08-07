@@ -75,8 +75,8 @@ describe('Deposit', () => {
   });
 
   test('Deposit FA1.2 token', async () => {
-    const amount = 7n;
-    const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+    const amount = 7_000_000n;
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];
 
     const depositResult = await tokenBridge.deposit(amount, tezosToken);
     expectPendingDeposit(depositResult.tokenTransfer, {
@@ -102,7 +102,7 @@ describe('Deposit', () => {
   });
 
   test('Deposit FA2 token', async () => {
-    const amount = 20n;
+    const amount = 20_000_000n;
     const [tezosToken, etherlinkToken] = [tokens.tezos.usdt, tokens.etherlink.usdt];
 
     const depositResult = await tokenBridge.deposit(amount, tezosToken);
@@ -129,8 +129,8 @@ describe('Deposit', () => {
   });
 
   test('Deposit FA1.2 token, check the transfer status using events (subscribeToTokenTransfer)', done => {
-    const amount = 5n;
-    const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+    const amount = 5_000_000n;
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];
     let readyForDone = false;
 
     tokenBridge.addEventListener('tokenTransferCreated', tokenTransfer => {
@@ -174,8 +174,8 @@ describe('Deposit', () => {
   });
 
   test('Deposit FA1.2 token, check the transfer status using events (subscribeToAccountTransfers)', done => {
-    const amount = 5n;
-    const [tezosToken, etherlinkToken] = [tokens.tezos.ctez, tokens.etherlink.ctez];
+    const amount = 5_000_000n;
+    const [tezosToken, etherlinkToken] = [tokens.tezos.tzbtc, tokens.etherlink.tzbtc];
     let readyForDone = false;
     let tokenTransferOperationHash: string | undefined;
 

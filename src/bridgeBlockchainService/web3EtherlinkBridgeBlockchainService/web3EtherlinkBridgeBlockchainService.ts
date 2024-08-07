@@ -28,7 +28,7 @@ export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBloc
   { receipt: TransactionReceipt },
   NonPayableMethodObject,
   NonPayableMethodObject
->  {
+> {
   protected readonly web3: Web3;
   protected readonly withdrawNativeTokenPrecompiledAddress: string;
   protected readonly withdrawNonNativeTokenPrecompiledAddress: string;
@@ -67,11 +67,16 @@ export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBloc
       this.getSignerAddress()
     ]);
     const data = nonNativeTokenOperation.encodeABI();
-    // TODO: need to calculate the value or hardcode it in config 
+
+    const estimatedGas = await this.web3.eth.estimateGas({
+      from: signerAddress,
+      to: this.withdrawNonNativeTokenPrecompiledAddress,
+      data,
+    });
     const receipt = await this.web3.eth.sendTransaction({
       from: signerAddress,
       to: this.withdrawNonNativeTokenPrecompiledAddress,
-      gas: 30000n,
+      gas: estimatedGas + (estimatedGas * 5n / 100n),
       gasPrice,
       data,
     });

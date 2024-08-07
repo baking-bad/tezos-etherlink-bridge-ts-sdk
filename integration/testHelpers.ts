@@ -47,7 +47,7 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       {
         tezos: {
           ...testConfig.tokens.tezos.tez,
-          ticketHelperContractAddress: 'KT1DWVsu4Jtu2ficZ1qtNheGPunm5YVniegT'
+          ticketHelperContractAddress: 'KT1MJxf4KVN3sosR99VRG7WBbWTJtAyWUJt9'
         },
         etherlink: {
           ...testConfig.tokens.etherlink.tez,
@@ -55,19 +55,19 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       },
       {
         tezos: {
-          ...testConfig.tokens.tezos.ctez,
-          ticketerContractAddress: 'KT1RvSp4yDKUABqWmv3pKGE9fA6iCGy7bqGh',
-          ticketHelperContractAddress: 'KT1DHLWJorW9WB6ztkx1XcoaJKWXeTu9yoR1'
+          ...testConfig.tokens.tezos.tzbtc,
+          ticketerContractAddress: 'KT1AAi4DCQiTUv5MYoXtdiFwUrPH3t3Yhkjo',
+          ticketHelperContractAddress: 'KT1FcXb4oFBWtUVbEa96Do4DfQZXn6878yu1'
         },
         etherlink: {
-          ...testConfig.tokens.etherlink.ctez
+          ...testConfig.tokens.etherlink.tzbtc
         }
       },
       {
         tezos: {
           ...testConfig.tokens.tezos.usdt,
-          ticketerContractAddress: 'KT1VybveLaWhpQHKph28WcGwSy1ud22KSEan',
-          ticketHelperContractAddress: 'KT1DNtHLr9T9zksZjZvQwgtx5XJwrW9wzETB'
+          ticketerContractAddress: 'KT1JT3T9jodxKchWEcwMtHzKTcM5pKD4phFp',
+          ticketHelperContractAddress: 'KT1G4athp6hNRmy65MdM1stv3bXXh82NEvCH'
         },
         etherlink: {
           ...testConfig.tokens.etherlink.usdt
@@ -194,7 +194,7 @@ export const expectFinishedDeposit = (
     etherlinkOperation: {
       blockId: expect.any(Number),
       hash: expect.stringMatching(etherlinkOperationRegex),
-      logIndex: expect.any(Number),
+      logIndex: params.etherlinkToken.type === 'native' ? null : expect.any(Number),
       amount: params.outAmount,
       token: params.etherlinkToken,
       timestamp: expect.any(String),

@@ -3,12 +3,12 @@ import type { NativeEtherlinkToken, NativeTezosToken, ERC20EtherlinkToken, FA12T
 export interface TestTokens {
   readonly tezos: {
     tez: NativeTezosToken;
-    ctez: FA12TezosToken;
+    tzbtc: FA12TezosToken;
     usdt: FA2TezosToken;
   };
   readonly etherlink: {
     tez: NativeEtherlinkToken
-    ctez: ERC20EtherlinkToken;
+    tzbtc: ERC20EtherlinkToken;
     usdt: ERC20EtherlinkToken;
   };
 }
@@ -62,27 +62,27 @@ const createTestTokens = (): TestTokens => {
       tez: {
         type: 'native'
       },
-      ctez: {
+      tzbtc: {
         type: 'fa1.2',
-        address: 'KT1LpdETWYvPWCQTR2FEW6jE6dVqJqxYjdeW'
+        address: 'KT1Vq1toL9mQquJhCvVRbbcC8PbZJWM4bPui'
       },
       usdt: {
         type: 'fa2',
-        address: 'KT195Eb8T524v5VJ99ZzH2wpnPfQ2wJfMi6h',
-        tokenId: '42'
+        address: 'KT1K6uyg7cjNRoPkYw6SfyCm1f2tPLHfVUez',
+        tokenId: '0'
       }
     },
     etherlink: {
       tez: {
         type: 'native'
       },
-      ctez: {
+      tzbtc: {
         type: 'erc20',
         address: '0x87dcBf128677ba36E79D47dAf4eb4e51610e0150'
       },
       usdt: {
         type: 'erc20',
-        address: '0xcB5d40c6B1bdf5Cd51b3801351b0A68D101a561b'
+        address: '0x8554cD57C0C3E5Ab9d1782c9063279fA9bFA4680'
       }
     }
   };
