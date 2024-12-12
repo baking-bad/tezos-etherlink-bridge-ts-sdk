@@ -1,5 +1,6 @@
 import { InMemorySigner } from '@taquito/signer';
 import { TezosToolkit } from '@taquito/taquito';
+import { ethers } from 'ethers';
 import Web3 from 'web3';
 
 import { TestConfig } from './testConfig';
@@ -16,6 +17,7 @@ import {
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal,
   type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal,
   type DefaultDataProviderOptions,
+  EthersEtherlinkBridgeBlockchainService,
 } from '../src';
 
 const depositIdRegex = /^o[0-9a-zA-Z]{50}_\d+_\d+$/;
@@ -26,7 +28,7 @@ const etherlinkOperationRegex = /^0x[0-9a-f]{64}$/;
 interface CreateTestTokenBridgeParams {
   testConfig: TestConfig,
   tezosToolkit?: TezosToolkit,
-  etherlinkToolkit?: Web3,
+  etherlinkToolkit?: Web3 | ethers.Signer,
   overriddenDefaultDataProviderOptions?: Partial<DefaultDataProviderOptions>
 }
 
@@ -82,9 +84,13 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       tezosToolkit,
       smartRollupAddress: testConfig.tezosRollupAddress
     }),
-    etherlinkBridgeBlockchainService: new Web3EtherlinkBridgeBlockchainService({
-      web3: etherlinkToolkit
-    }),
+    etherlinkBridgeBlockchainService: etherlinkToolkit instanceof Web3
+      ? new Web3EtherlinkBridgeBlockchainService({
+        web3: etherlinkToolkit
+      })
+      : new EthersEtherlinkBridgeBlockchainService({
+        signer: etherlinkToolkit
+      }),
     bridgeDataProviders: {
       transfers: defaultDataProvider,
       balances: defaultDataProvider,
