@@ -27,7 +27,7 @@ export interface Web3EtherlinkBridgeBlockchainServiceOptions {
 export class Web3EtherlinkBridgeBlockchainService implements EtherlinkBridgeBlockchainService<
   { receipt: TransactionReceipt },
   { receipt: TransactionReceipt },
-  NonPayableMethodObject,
+  PayableMethodObject,
   NonPayableMethodObject
 > {
   protected readonly web3: Web3;
