@@ -1,10 +1,7 @@
 import { TezosToolkit } from '@taquito/taquito';
 import Web3 from 'web3';
 
-import {
-  BridgeTokenTransferStatus,
-  type NativeEtherlinkToken, type NativeTezosToken
-} from '../../src';
+import { BridgeTokenTransferStatus } from '../../src';
 import { bridgeUtils } from '../../src/utils';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
 import {
