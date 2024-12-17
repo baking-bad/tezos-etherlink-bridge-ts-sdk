@@ -29,29 +29,34 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
   ContractTransaction,
   ContractTransaction
 > {
-  protected readonly ethers: typeof ethers;
-  protected readonly signer: Signer;
+  readonly ethers: typeof ethers;
+
   protected readonly nativeTokenBridgePrecompiledAddress: string;
   protected readonly nonNativeTokenBridgePrecompiledAddress: string;
   protected readonly nativeTokenBridgePrecompile: Contract;
   protected readonly nonNativeTokenBridgePrecompile: Contract;
+  private _signer: Signer;
 
   constructor(options: EthersEtherlinkBridgeBlockchainServiceOptions) {
     this.ethers = options.ethers;
-    this.signer = options.signer;
     this.nativeTokenBridgePrecompiledAddress = options.nativeTokenBridgePrecompileAddress || defaultAddresses.nativeTokenBridgePrecompileAddress;
     this.nonNativeTokenBridgePrecompiledAddress = options.nonNativeTokenBridgePrecompileAddress || defaultAddresses.nonNativeTokenBridgePrecompileAddress;
+    this._signer = options.signer;
 
     this.nativeTokenBridgePrecompile = new this.ethers.Contract(
       this.nativeTokenBridgePrecompiledAddress,
       nativeTokenBridgePrecompile,
-      this.signer
+      this._signer
     );
     this.nonNativeTokenBridgePrecompile = new this.ethers.Contract(
       this.nonNativeTokenBridgePrecompiledAddress,
       nonNativeTokenBridgePrecompile,
-      this.signer
+      this._signer
     );
+  }
+
+  get signer() {
+    return this._signer;
   }
 
   async getSignerAddress(): Promise<string | undefined> {
@@ -97,6 +102,10 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
         params.tezosTicketerContent
       )
     );
+  }
+
+  setSigner(signer: Signer) {
+    this._signer = signer;
   }
 
   protected getCurrentTransactionTimestamp() {
