@@ -32,7 +32,9 @@ export {
 } from './web3EtherlinkBridgeBlockchainService';
 
 export {
+  EthersV5EtherlinkBridgeBlockchainService,
   EthersEtherlinkBridgeBlockchainService,
 
+  type EthersV5EtherlinkBridgeBlockchainServiceOptions,
   type EthersEtherlinkBridgeBlockchainServiceOptions
 } from './ethersEtherlinkBridgeBlockchainService';

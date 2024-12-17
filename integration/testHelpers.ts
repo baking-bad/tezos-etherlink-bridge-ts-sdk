@@ -1,6 +1,7 @@
 import { InMemorySigner } from '@taquito/signer';
 import { TezosToolkit } from '@taquito/taquito';
-import { ethers } from 'ethers';
+import { ethers as ethers } from 'ethers';
+import { ethers as ethersV5 } from 'ethers-v5';
 import Web3 from 'web3';
 
 import { TestConfig } from './testConfig';
@@ -9,6 +10,8 @@ import {
   TokenBridge,
   TaquitoContractTezosBridgeBlockchainService,
   Web3EtherlinkBridgeBlockchainService,
+  EthersV5EtherlinkBridgeBlockchainService,
+  EthersEtherlinkBridgeBlockchainService,
   DefaultDataProvider,
   BridgeTokenTransferKind, BridgeTokenTransferStatus, LogLevel,
   type TezosToken, type EtherlinkToken,
@@ -17,7 +20,6 @@ import {
   type PendingBridgeTokenWithdrawal, type CreatedBridgeTokenWithdrawal,
   type SealedBridgeTokenWithdrawal, type FinishedBridgeTokenWithdrawal,
   type DefaultDataProviderOptions,
-  EthersEtherlinkBridgeBlockchainService,
 } from '../src';
 
 const depositIdRegex = /^o[0-9a-zA-Z]{50}_\d+_\d+$/;
@@ -25,10 +27,15 @@ const withdrawalIdRegex = /^0x[0-9a-f]{64}_\d+$/;
 const tezosOperationRegex = /^o[0-9a-zA-Z]{50}$/;
 const etherlinkOperationRegex = /^0x[0-9a-f]{64}$/;
 
+export type EtherlinkToolkit =
+  | { type: 'web3', web3: Web3 }
+  | { type: 'ethers-v6', ethers: typeof ethers, signer: ethers.Signer }
+  | { type: 'ethers-v5', ethers: typeof ethersV5, signer: ethersV5.Signer };
+
 interface CreateTestTokenBridgeParams {
   testConfig: TestConfig,
   tezosToolkit?: TezosToolkit,
-  etherlinkToolkit?: Web3 | ethers.Signer,
+  etherlinkToolkit?: EtherlinkToolkit,
   overriddenDefaultDataProviderOptions?: Partial<DefaultDataProviderOptions>
 }
 
@@ -49,7 +56,7 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       {
         tezos: {
           ...testConfig.tokens.tezos.tez,
-          ticketHelperContractAddress: 'KT1MJxf4KVN3sosR99VRG7WBbWTJtAyWUJt9'
+          ticketHelperContractAddress: 'KT1VEjeQfDBSfpDH5WeBM5LukHPGM2htYEh3'
         },
         etherlink: {
           ...testConfig.tokens.etherlink.tez,
@@ -58,8 +65,8 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       {
         tezos: {
           ...testConfig.tokens.tezos.tzbtc,
-          ticketerContractAddress: 'KT1AAi4DCQiTUv5MYoXtdiFwUrPH3t3Yhkjo',
-          ticketHelperContractAddress: 'KT1FcXb4oFBWtUVbEa96Do4DfQZXn6878yu1'
+          ticketerContractAddress: 'KT1H7if3gSZE1pZSK48W3NzGpKmbWyBxWDHe',
+          ticketHelperContractAddress: 'KT1KUAaaRMeMS5TJJyGTQJANcpSR4egvHBUk'
         },
         etherlink: {
           ...testConfig.tokens.etherlink.tzbtc
@@ -68,8 +75,8 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       {
         tezos: {
           ...testConfig.tokens.tezos.usdt,
-          ticketerContractAddress: 'KT1JT3T9jodxKchWEcwMtHzKTcM5pKD4phFp',
-          ticketHelperContractAddress: 'KT1G4athp6hNRmy65MdM1stv3bXXh82NEvCH'
+          ticketerContractAddress: 'KT1S6Nf9MnafAgSUWLKcsySPNFLUxxqSkQCw',
+          ticketHelperContractAddress: 'KT1JLZe4qTa76y6Us2aDoRNUgZyssSDUr6F5'
         },
         etherlink: {
           ...testConfig.tokens.etherlink.usdt
@@ -84,13 +91,18 @@ export const createTestTokenBridge = ({ testConfig, tezosToolkit, etherlinkToolk
       tezosToolkit,
       smartRollupAddress: testConfig.tezosRollupAddress
     }),
-    etherlinkBridgeBlockchainService: etherlinkToolkit instanceof Web3
+    etherlinkBridgeBlockchainService: etherlinkToolkit.type === 'web3'
       ? new Web3EtherlinkBridgeBlockchainService({
-        web3: etherlinkToolkit
+        web3: etherlinkToolkit.web3
       })
-      : new EthersEtherlinkBridgeBlockchainService({
-        signer: etherlinkToolkit
-      }),
+      : etherlinkToolkit.type === 'ethers-v6' ? new EthersEtherlinkBridgeBlockchainService({
+        ethers: etherlinkToolkit.ethers,
+        signer: etherlinkToolkit.signer
+      })
+        : new EthersV5EtherlinkBridgeBlockchainService({
+          ethers: etherlinkToolkit.ethers,
+          signer: etherlinkToolkit.signer
+        }),
     bridgeDataProviders: {
       transfers: defaultDataProvider,
       balances: defaultDataProvider,
@@ -109,16 +121,41 @@ export const createTezosToolkitWithSigner = (rpcUrl: string, privateKey: string)
   return toolkit;
 };
 
-export const createEtherlinkToolkitWithSigner = (rpcUrl: string, privateKey: string): Web3 => {
+const createWeb3EtherlinkToolkitWithSigner = (rpcUrl: string, privateKey: string) => {
+  const web3 = new Web3(rpcUrl);
+  const account = web3.eth.accounts.privateKeyToAccount(privateKey);
+  web3.eth.accounts.wallet.add(account);
+  web3.eth.defaultAccount = account.address;
+
+  return { type: 'web3', web3 } satisfies EtherlinkToolkit;
+};
+
+const createEthersEtherlinkToolkitWithSigner = (rpcUrl: string, privateKey: string) => {
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const wallet = new ethers.Wallet(privateKey, provider);
+
+  return { type: 'ethers-v6', ethers, signer: wallet } satisfies EtherlinkToolkit;
+};
+
+const createEthersV5EtherlinkToolkitWithSigner = (rpcUrl: string, privateKey: string) => {
+  const provider = new ethersV5.providers.JsonRpcProvider(rpcUrl);
+  const wallet = new ethersV5.Wallet(privateKey, provider);
+
+  return { type: 'ethers-v5', ethers: ethersV5, signer: wallet } satisfies EtherlinkToolkit;
+};
+
+export const createEtherlinkToolkitWithSigner = (rpcUrl: string, privateKey: string, type: EtherlinkToolkit['type'] = 'web3') => {
   if (!privateKey.startsWith('0x'))
     privateKey = '0x' + privateKey;
 
-  const toolkit = new Web3(rpcUrl);
-  const account = toolkit.eth.accounts.privateKeyToAccount(privateKey);
-  toolkit.eth.accounts.wallet.add(account);
-  toolkit.eth.defaultAccount = account.address;
-
-  return toolkit;
+  switch (type) {
+    case 'web3':
+      return createWeb3EtherlinkToolkitWithSigner(rpcUrl, privateKey);
+    case 'ethers-v6':
+      return createEthersEtherlinkToolkitWithSigner(rpcUrl, privateKey);
+    case 'ethers-v5':
+      return createEthersV5EtherlinkToolkitWithSigner(rpcUrl, privateKey);
+  }
 };
 
 export const expectPendingDeposit = (

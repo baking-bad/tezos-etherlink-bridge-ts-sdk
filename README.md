@@ -222,6 +222,7 @@ const tokenBridge = new TokenBridge({
   }),
   // or for ethers
   // etherlinkBridgeBlockchainService: new EthersEtherlinkBridgeBlockchainService({
+  //   ethers,
   //   signer
   // }),
   bridgeDataProviders: {
@@ -260,9 +261,10 @@ const tokenBridge = new TokenBridge({
     web3: this.etherlinkToolkit
   }),
   // or for ethers
-  etherlinkBridgeBlockchainService: new EthersEtherlinkBridgeBlockchainService({
-
-  }),
+  // etherlinkBridgeBlockchainService: new EthersEtherlinkBridgeBlockchainService({
+  //   ethers,
+  //   signer
+  // }),
   bridgeDataProviders: {
     transfers: defaultDataProvider,
     balances: defaultDataProvider,

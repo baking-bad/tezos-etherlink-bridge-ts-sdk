@@ -62,11 +62,11 @@ const createTestTokens = (): TestTokens => {
       },
       tzbtc: {
         type: 'fa1.2',
-        address: 'KT1Vq1toL9mQquJhCvVRbbcC8PbZJWM4bPui'
+        address: 'KT1HmyazXfKDbo8XjwtWPXcoyHcmNPDCvZyb'
       },
       usdt: {
         type: 'fa2',
-        address: 'KT1K6uyg7cjNRoPkYw6SfyCm1f2tPLHfVUez',
+        address: 'KT1V2ak1MfNd3w4oyKD64ehYU7K4CrpUcDGR',
         tokenId: '0'
       }
     },
@@ -76,11 +76,11 @@ const createTestTokens = (): TestTokens => {
       },
       tzbtc: {
         type: 'erc20',
-        address: '0x87dcBf128677ba36E79D47dAf4eb4e51610e0150'
+        address: '0x8e73aE3CF688Fbd8368c99520d26F9eF1B4d3BCa'
       },
       usdt: {
         type: 'erc20',
-        address: '0x8554cD57C0C3E5Ab9d1782c9063279fA9bFA4680'
+        address: '0xf68997eCC03751cb99B5B36712B213f11342452b'
       }
     }
   };

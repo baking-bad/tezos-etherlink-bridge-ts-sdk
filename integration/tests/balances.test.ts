@@ -1,17 +1,14 @@
 import { TezosToolkit } from '@taquito/taquito';
-import Web3 from 'web3';
 
 import type { AccountTokenBalance, AccountTokenBalances } from '../../src';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
-import {
-  createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner, createTestTokenBridge
-} from '../testHelpers';
+import { createTezosToolkitWithSigner, createEtherlinkToolkitWithSigner, createTestTokenBridge, type EtherlinkToolkit } from '../testHelpers';
 
 describe('Balances', () => {
   let testConfig: TestConfig;
   let tokens: TestTokens;
   let tezosToolkit: TezosToolkit;
-  let etherlinkToolkit: Web3;
+  let etherlinkToolkit: EtherlinkToolkit;
   let tokenBridge: ReturnType<typeof createTestTokenBridge>;
   let testTezosAccountAddress: string;
   let testEtherlinkAccountAddress: string;

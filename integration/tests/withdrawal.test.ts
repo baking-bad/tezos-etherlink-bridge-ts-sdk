@@ -1,5 +1,4 @@
 import { TezosToolkit } from '@taquito/taquito';
-import Web3 from 'web3';
 
 import { BridgeTokenTransferStatus, type TokenBridge } from '../../src';
 import { getTestConfig, type TestConfig, type TestTokens } from '../testConfig';
@@ -10,7 +9,8 @@ import {
   expectCreatedWithdrawal,
   expectSealedWithdrawal,
   expectFinishedWithdrawal,
-  createTestTokenBridge
+  createTestTokenBridge,
+  type EtherlinkToolkit
 } from '../testHelpers';
 
 const withdrawalTimeout = process.env.WITHDRAWAL_TIMEOUT ? parseInt(process.env.WITHDRAWAL_TIMEOUT, 10) : 15 * 60 * 1000;
@@ -19,7 +19,7 @@ describe('Withdrawal', () => {
   let testConfig: TestConfig;
   let tokens: TestTokens;
   let tezosToolkit: TezosToolkit;
-  let etherlinkToolkit: Web3;
+  let etherlinkToolkit: EtherlinkToolkit;
   let tokenBridge: TokenBridge;
   let testTezosAccountAddress: string;
   let testEtherlinkAccountAddress: string;

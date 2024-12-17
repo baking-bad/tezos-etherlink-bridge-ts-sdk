@@ -1,4 +1,4 @@
-import type { ethers, Contract, ContractTransaction, ContractTransactionResponse, Signer } from 'ethers';
+import type { ethers, Contract, ContractTransaction, PopulatedTransaction, Signer } from 'ethers-v5';
 
 import { getErrorLogMessage, loggerProvider } from '../../logging';
 import { tezosUtils } from '../../utils';
@@ -15,7 +15,7 @@ import {
   type CreateWithdrawNonNativeTokenOperationParams,
 } from '../etherlinkBridgeBlockchainService';
 
-export interface EthersEtherlinkBridgeBlockchainServiceOptions {
+export interface EthersV5EtherlinkBridgeBlockchainServiceOptions {
   ethers: typeof ethers;
   signer: Signer;
   kernelAddress?: string;
@@ -23,11 +23,11 @@ export interface EthersEtherlinkBridgeBlockchainServiceOptions {
   nonNativeTokenBridgePrecompileAddress?: string;
 }
 
-export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBlockchainService<
-  { tx: ContractTransactionResponse },
-  { tx: ContractTransactionResponse },
-  ContractTransaction,
-  ContractTransaction
+export class EthersV5EtherlinkBridgeBlockchainService implements EtherlinkBridgeBlockchainService<
+  { tx: ContractTransaction },
+  { tx: ContractTransaction },
+  PopulatedTransaction,
+  PopulatedTransaction
 > {
   protected readonly ethers: typeof ethers;
   protected readonly signer: Signer;
@@ -36,7 +36,7 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
   protected readonly nativeTokenBridgePrecompile: Contract;
   protected readonly nonNativeTokenBridgePrecompile: Contract;
 
-  constructor(options: EthersEtherlinkBridgeBlockchainServiceOptions) {
+  constructor(options: EthersV5EtherlinkBridgeBlockchainServiceOptions) {
     this.ethers = options.ethers;
     this.signer = options.signer;
     this.nativeTokenBridgePrecompiledAddress = options.nativeTokenBridgePrecompileAddress || defaultAddresses.nativeTokenBridgePrecompileAddress;
@@ -64,13 +64,13 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
     }
   }
 
-  async withdrawNativeToken(params: WithdrawNativeTokenParams): Promise<WithdrawNativeTokenResult & { tx: ContractTransactionResponse }> {
+  async withdrawNativeToken(params: WithdrawNativeTokenParams): Promise<WithdrawNativeTokenResult & { tx: ContractTransaction }> {
     const nativeTokenOperation = await this.createWithdrawNativeTokenOperation(params);
 
     return this.withdrawToken(this.nativeTokenBridgePrecompile, nativeTokenOperation, params.amount);
   }
 
-  async withdrawNonNativeToken(params: WithdrawNonNativeTokenParams): Promise<WithdrawNonNativeTokenResult & { tx: ContractTransactionResponse }> {
+  async withdrawNonNativeToken(params: WithdrawNonNativeTokenParams): Promise<WithdrawNonNativeTokenResult & { tx: ContractTransaction }> {
     const nonNativeTokenOperation = await this.createWithdrawNonNativeTokenOperation(params);
 
     return this.withdrawToken(this.nonNativeTokenBridgePrecompile, nonNativeTokenOperation, params.amount);
@@ -78,8 +78,8 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
 
   createWithdrawNativeTokenOperation(params: CreateWithdrawNativeTokenOperationParams) {
     return Promise.resolve(this.nativeTokenBridgePrecompile
-      .getFunction('withdraw_base58')
-      .populateTransaction(params.tezosReceiverAddress, { value: params.amount }));
+      .populateTransaction!
+      .withdraw_base58!(params.tezosReceiverAddress, { value: params.amount }));
   }
 
   createWithdrawNonNativeTokenOperation(params: CreateWithdrawNonNativeTokenOperationParams) {
@@ -88,8 +88,9 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
     const tezosProxyAddressBytes = tezosUtils.convertAddressToBytes(params.tezosTicketerAddress);
     const receiverBytes = tezosReceiverAddressBytes + tezosProxyAddressBytes;
 
-    return Promise.resolve(this.nonNativeTokenBridgePrecompile.getFunction('withdraw')
-      .populateTransaction(
+    return Promise.resolve(this.nonNativeTokenBridgePrecompile
+      .populateTransaction!
+      .withdraw!(
         params.token.address,
         receiverBytes,
         params.amount,
@@ -105,17 +106,16 @@ export class EthersEtherlinkBridgeBlockchainService implements EtherlinkBridgeBl
 
   private async withdrawToken(
     contract: Contract,
-    transaction: ContractTransaction,
+    transaction: PopulatedTransaction,
     amount: bigint
   ) {
     const transactionResponse = await this.signer.sendTransaction(transaction);
-    const contractTransactionResponse = new this.ethers.ContractTransactionResponse(contract.interface, this.signer.provider!, transactionResponse);
 
     return {
-      hash: contractTransactionResponse.hash,
+      hash: transactionResponse.hash,
       amount,
       timestamp: this.getCurrentTransactionTimestamp(),
-      tx: contractTransactionResponse
+      tx: transactionResponse
     };
   }
 }

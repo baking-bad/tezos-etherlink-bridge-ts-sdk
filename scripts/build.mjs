@@ -50,7 +50,10 @@ const baseOptions = {
   plugins: [
     makeAllPackagesExternalPlugin,
     applyPlatformModulesPlugin
-  ]
+  ],
+  alias: {
+    ethers: import.meta.resolve('ethers-v5'),
+  }
 };
 
 /**

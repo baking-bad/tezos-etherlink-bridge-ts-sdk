@@ -1,5 +1,4 @@
 import { TezosToolkit } from '@taquito/taquito';
-import Web3 from 'web3';
 
 import { BridgeTokenTransferStatus } from '../../src';
 import { bridgeUtils } from '../../src/utils';
@@ -10,14 +9,15 @@ import {
   expectPendingDeposit,
   expectCreatedDeposit,
   expectFinishedDeposit,
-  createTestTokenBridge
+  createTestTokenBridge,
+  type EtherlinkToolkit
 } from '../testHelpers';
 
 describe('Deposit', () => {
   let testConfig: TestConfig;
   let tokens: TestTokens;
   let tezosToolkit: TezosToolkit;
-  let etherlinkToolkit: Web3;
+  let etherlinkToolkit: EtherlinkToolkit;
   let tokenBridge: ReturnType<typeof createTestTokenBridge>;
   let testTezosAccountAddress: string;
   let testEtherlinkAccountAddress: string;
