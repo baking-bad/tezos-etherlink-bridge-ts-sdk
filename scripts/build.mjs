@@ -2,9 +2,12 @@
 /* eslint-env node */
 const startTime = process.hrtime.bigint();
 import { spawnSync } from 'child_process';
+import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { build } from 'esbuild';
+
+const ethers5TypeFilePath = 'dist/types/bridgeBlockchainService/ethersEtherlinkBridgeBlockchainService/ethersV5EtherlinkBridgeBlockchainService.d.ts';
 
 let lastTime = startTime;
 /**
@@ -49,11 +52,8 @@ const baseOptions = {
   minify: false,
   plugins: [
     makeAllPackagesExternalPlugin,
-    applyPlatformModulesPlugin
-  ],
-  alias: {
-    ethers: import.meta.resolve('ethers-v5'),
-  }
+    applyPlatformModulesPlugin,
+  ]
 };
 
 /**
@@ -92,6 +92,9 @@ try {
   const typeCheckingResult = spawnSync('npm', ['run', 'build:types'], { shell: true, stdio: 'inherit' });
   if (typeCheckingResult.status > 0)
     fail('Type checking failed');
+
+  const typeContent = await fs.readFile(ethers5TypeFilePath, 'utf8');
+  await fs.writeFile(ethers5TypeFilePath, typeContent.replaceAll('ethers-v5', 'ethers'), 'utf8');
 
   console.info(`Type checking is completed (${getElapsedTimeMs()}ms)`);
   console.info('Building...');

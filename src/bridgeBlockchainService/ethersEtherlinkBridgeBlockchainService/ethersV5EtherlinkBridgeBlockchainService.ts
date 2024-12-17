@@ -39,9 +39,9 @@ export class EthersV5EtherlinkBridgeBlockchainService implements EtherlinkBridge
 
   constructor(options: EthersV5EtherlinkBridgeBlockchainServiceOptions) {
     this.ethers = options.ethers;
-    this._signer = options.signer;
     this.nativeTokenBridgePrecompiledAddress = options.nativeTokenBridgePrecompileAddress || defaultAddresses.nativeTokenBridgePrecompileAddress;
     this.nonNativeTokenBridgePrecompiledAddress = options.nonNativeTokenBridgePrecompileAddress || defaultAddresses.nonNativeTokenBridgePrecompileAddress;
+    this._signer = options.signer;
 
     this.nativeTokenBridgePrecompile = new this.ethers.Contract(
       this.nativeTokenBridgePrecompiledAddress,
