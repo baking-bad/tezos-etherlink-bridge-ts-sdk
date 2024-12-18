@@ -62,6 +62,8 @@ export {
   TaquitoContractTezosBridgeBlockchainService,
   TaquitoWalletTezosBridgeBlockchainService,
   Web3EtherlinkBridgeBlockchainService,
+  EthersV5EtherlinkBridgeBlockchainService,
+  EthersEtherlinkBridgeBlockchainService,
 
   type BridgeBlockchainService,
   type TezosBridgeBlockchainService,
@@ -69,7 +71,9 @@ export {
 
   type TaquitoContractTezosBridgeBlockchainServiceOptions,
   type TaquitoWalletTezosBridgeBlockchainServiceOptions,
-  type Web3EtherlinkBridgeBlockchainServiceOptions
+  type Web3EtherlinkBridgeBlockchainServiceOptions,
+  type EthersV5EtherlinkBridgeBlockchainServiceOptions,
+  type EthersEtherlinkBridgeBlockchainServiceOptions
 } from './bridgeBlockchainService';
 
 export {
